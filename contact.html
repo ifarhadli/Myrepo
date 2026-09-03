@@ -16,9 +16,9 @@
 
 <header class="hero on-dark noise" style="min-height:auto;padding:88px 0 56px">
   <div class="wrap" style="display:block;max-width:760px">
-    <p class="eyebrow">Contact</p>
-    <h1 class="display-l kinetic" style="color:#fff">Show us your funnel. We'll show you the leaks.</h1>
-    <p class="lede">Twenty minutes on a call, a written teardown within 48 hours. No pitch deck, no obligation.</p>
+    <p class="eyebrow" data-i18n="nav.contact">Contact</p>
+    <h1 class="display-l kinetic" style="color:#fff" data-i18n="home.cta.h2">Show us your funnel. We'll show you the leaks.</h1>
+    <p class="lede" data-i18n="home.cta.sub">Twenty minutes on a call, a written teardown within 48 hours. No pitch deck, no obligation.</p>
   </div>
 </header>
 
@@ -27,58 +27,58 @@
   <div class="wrap">
     <div class="grid-2" style="grid-template-columns:1.1fr .9fr;gap:48px;align-items:start">
       <div>
-        <p class="label" style="margin-bottom:14px">Pick a time directly</p>
+        <p class="label" style="margin-bottom:14px" data-i18n="contactPage.schedulerLabel">Pick a time directly</p>
         <div class="scheduler-embed">
           <!-- Meeting scheduler embed (HubSpot / Calendly / Chili Piper — TBC) mounts here.
                Container has a fixed min-height and internal scroll so a third-party
                iframe can never push or reflow the surrounding page layout. -->
           <div class="scheduler-ph">
-            <span class="icon">Scheduler</span>
-            <p style="margin-bottom:0">Live meeting scheduler embeds here once the CRM/scheduler decision (HubSpot or Salesforce) is confirmed. Until then, use the form.</p>
+            <span class="icon" data-i18n="contactPage.schedulerIcon">Scheduler</span>
+            <p style="margin-bottom:0" data-i18n="contactPage.schedulerText">Live meeting scheduler embeds here once the CRM/scheduler decision (HubSpot or Salesforce) is confirmed. Until then, use the form.</p>
           </div>
         </div>
 
-        <p class="label" style="margin:40px 0 14px">Or send us the short version</p>
+        <p class="label" style="margin:40px 0 14px" data-i18n="contactPage.formLabel">Or send us the short version</p>
         <form class="validate-form" data-success="contactSuccess" novalidate>
           <div class="grid-2" style="gap:16px">
-            <div class="field"><label for="c-name">Name <span class="req">*</span></label><input id="c-name" name="name" type="text" required></div>
-            <div class="field"><label for="c-email">Work email <span class="req">*</span></label><input id="c-email" name="email" type="email" required><span class="err-msg">Enter a valid work email.</span></div>
+            <div class="field"><label for="c-name"><span data-i18n="home.cta.labelName">Name</span> <span class="req">*</span></label><input id="c-name" name="name" type="text" required></div>
+            <div class="field"><label for="c-email"><span data-i18n="home.cta.labelEmail">Work email</span> <span class="req">*</span></label><input id="c-email" name="email" type="email" required><span class="err-msg" data-i18n="home.cta.errEmail">Enter a valid work email.</span></div>
           </div>
           <div class="grid-2" style="gap:16px">
-            <div class="field"><label for="c-company">Company <span class="req">*</span></label><input id="c-company" name="company" type="text" required></div>
-            <div class="field"><label for="c-spend">Monthly marketing spend <span class="req">*</span></label>
+            <div class="field"><label for="c-company"><span data-i18n="home.cta.labelCompany">Company</span> <span class="req">*</span></label><input id="c-company" name="company" type="text" required></div>
+            <div class="field"><label for="c-spend"><span data-i18n="home.cta.labelSpend">Monthly marketing spend</span> <span class="req">*</span></label>
               <select id="c-spend" name="spend" required>
-                <option value="">Select a range</option>
-                <option>Under $10k</option><option>$10k–$50k</option><option>$50k–$200k</option><option>$200k+</option>
+                <option value="" data-i18n="home.cta.spendPlaceholder">Select a range</option>
+                <option data-i18n="home.cta.spend1">Under $10k</option><option data-i18n="home.cta.spend2">$10k–$50k</option><option data-i18n="home.cta.spend3">$50k–$200k</option><option data-i18n="home.cta.spend4">$200k+</option>
               </select>
             </div>
           </div>
-          <div class="field"><label for="c-broken">What's broken right now?</label><textarea id="c-broken" name="broken"></textarea></div>
+          <div class="field"><label for="c-broken" data-i18n="home.cta.labelBroken">What's broken right now?</label><textarea id="c-broken" name="broken"></textarea></div>
           <label class="checkfield" style="margin-bottom:18px">
             <input type="checkbox" name="consent" required>
-            <span>I agree to be contacted about this enquiry. <span class="req">*</span></span>
+            <span><span data-i18n="contactPage.consent">I agree to be contacted about this enquiry.</span> <span class="req">*</span></span>
           </label>
-          <button type="submit" class="btn btn-primary btn-block">Request the teardown</button>
-          <p class="footnote" style="margin-top:14px">We reply within one business day. No drip sequences — we practise what we preach.</p>
+          <button type="submit" class="btn btn-primary btn-block" data-i18n="home.cta.button">Request the teardown</button>
+          <p class="footnote" style="margin-top:14px" data-i18n="home.cta.reassurance">We reply within one business day. No drip sequences — we practise what we preach.</p>
         </form>
         <div class="form-success" id="contactSuccess">
           <div class="check">&#10003;</div>
-          <h3>Got it.</h3>
-          <p>Check your inbox for a calendar link within the hour.</p>
+          <h3 data-i18n="home.cta.successH">Got it.</h3>
+          <p data-i18n="home.cta.successB">Check your inbox for a calendar link within the hour.</p>
         </div>
       </div>
 
       <div>
         <div class="panel" style="background:var(--ink);color:#fff;border-radius:18px;padding:30px">
-          <h3 style="color:#fff">Prefer to reach us directly?</h3>
-          <p style="color:#C9CDD6;font-size:14.5px">Email <a href="mailto:hello@omnimark.com" style="color:var(--signal);text-decoration:underline">hello@omnimark.com</a> or call <a href="tel:+18005551234" style="color:var(--signal);text-decoration:underline">+1 (800) 555-1234</a>.</p>
+          <h3 style="color:#fff" data-i18n="contactPage.panelH3">Prefer to reach us directly?</h3>
+          <p style="color:#C9CDD6;font-size:14.5px" data-i18n="contactPage.panelBodyHtml" data-i18n-html>Email <a href="mailto:hello@omnimark.com" style="color:var(--signal);text-decoration:underline">hello@omnimark.com</a> or call <a href="tel:+18005551234" style="color:var(--signal);text-decoration:underline">+1 (800) 555-1234</a>.</p>
           <hr style="border:none;border-top:1px solid var(--panel-border);margin:22px 0">
-          <p style="color:#C9CDD6;font-size:14.5px;margin-bottom:4px">Office</p>
+          <p style="color:#C9CDD6;font-size:14.5px;margin-bottom:4px" data-i18n="contactPage.officeLabel">Office</p>
           <p style="color:#fff;margin-bottom:0">400 Commerce St<br>Austin, TX 78701</p>
         </div>
         <div class="card reveal" style="margin-top:20px">
-          <span class="tag">Not ready for a call?</span>
-          <p>Browse the <a href="services.html" class="btn-text">five engines</a> or read <a href="insights.html" class="btn-text">what we're arguing about</a> this month.</p>
+          <span class="tag" data-i18n="contactPage.notReadyTag">Not ready for a call?</span>
+          <p data-i18n="contactPage.notReadyHtml" data-i18n-html>Browse the <a href="services.html" class="btn-text">five engines</a> or read <a href="insights.html" class="btn-text">what we're arguing about</a> this month.</p>
         </div>
       </div>
     </div>
@@ -89,7 +89,9 @@
 <div id="site-footer"></div>
 
 <script src="js/data.js"></script>
+<script src="js/i18n-data.js"></script>
 <script src="js/partials.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

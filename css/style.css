@@ -175,6 +175,18 @@ section{padding:var(--rhythm) 0}
 .nav-caret{width:9px;height:9px;flex:none;transition:transform var(--dur) var(--ease)}
 .nav-item.open .nav-caret{transform:rotate(180deg)}
 .nav-actions{display:flex;align-items:center;gap:10px}
+
+/* ---------- language switch ---------- */
+.lang-switch{display:inline-flex;border:1px solid var(--border);border-radius:999px;padding:3px;gap:2px;flex:none}
+.lang-switch button{
+  border:none;background:none;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;
+  padding:6px 11px;border-radius:999px;cursor:pointer;color:var(--muted);
+  transition:background var(--dur) var(--ease),color var(--dur) var(--ease);min-height:0;line-height:1;
+}
+.lang-switch button:hover{color:var(--text)}
+.lang-switch button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.drawer .lang-switch{margin-top:22px;justify-content:center;border-color:var(--border)}
+.drawer .lang-switch button{flex:1;padding:9px 0;font-size:12px}
 .hamburger{display:none;background:none;border:1px solid var(--border);border-radius:8px;width:44px;height:44px;align-items:center;justify-content:center;cursor:pointer}
 .hamburger span,.hamburger span:before,.hamburger span:after{content:"";display:block;width:18px;height:2px;background:var(--text);position:relative;transition:transform var(--dur) var(--ease),opacity var(--dur) var(--ease)}
 .hamburger span:before{position:absolute;top:-6px}
