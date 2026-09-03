@@ -23,7 +23,6 @@
     initKinetic();
     initMarquee();
     initCountUp();
-    initPageTransitions();
   }
 
   /* ---------- desktop nav-item toggles (mega menu / industries dropdown) ---------- */
@@ -379,36 +378,6 @@
       });
     }, { threshold: .5 });
     figs.forEach(function(el){ io.observe(el); });
-  }
-
-  /* ---------- cross-page transition wipe — spectrum sweep on same-origin
-     navigations, reduced-motion visitors skip straight to instant nav ---------- */
-  function initPageTransitions(){
-    if(reduceMotion) return;
-    var wipe = document.createElement('div');
-    wipe.id = 'pageWipe';
-    wipe.setAttribute('aria-hidden', 'true');
-    for(var i = 0; i < 5; i++){ wipe.appendChild(document.createElement('span')); }
-    document.body.appendChild(wipe);
-
-    requestAnimationFrame(function(){
-      wipe.classList.add('enter');
-      setTimeout(function(){ wipe.classList.remove('enter'); }, 650);
-    });
-
-    document.addEventListener('click', function(e){
-      if(e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-      var a = e.target.closest('a');
-      if(!a) return;
-      var href = a.getAttribute('href');
-      if(!href || href.charAt(0) === '#' || a.target === '_blank' || a.hasAttribute('download')) return;
-      if(/^(mailto:|tel:|javascript:)/.test(href)) return;
-      if(a.origin !== window.location.origin) return;
-      if(href === window.location.pathname + window.location.search) return;
-      e.preventDefault();
-      wipe.classList.add('leave');
-      setTimeout(function(){ window.location.href = href; }, 480);
-    });
   }
 
   /* newsletter form in footer is injected after partials load */
