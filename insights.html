@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Insights — OmniMark</title>
+<meta name="description" content="What we're arguing about this month. Demand, RevOps and sales — from the team running the whole path to purchase.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="insights">
+
+<div id="site-header"></div>
+
+<header class="hero on-dark" style="min-height:auto;padding:88px 0 56px">
+  <div class="wrap" style="display:block">
+    <p class="eyebrow">Insights</p>
+    <h1 class="display-l" style="color:#fff">What we're arguing about this month.</h1>
+    <p class="lede">The point of view that justifies the fee — written by the people doing the work, not a content team writing about it.</p>
+  </div>
+</header>
+
+<main>
+<section class="section-border reveal">
+  <div class="wrap">
+    <div class="filters" role="group" aria-label="Filter by category">
+      <button class="active" data-filter="all">All</button>
+      <button data-filter="demand">Demand</button>
+      <button data-filter="revops">RevOps</button>
+      <button data-filter="sales">Sales</button>
+      <button data-filter="brand">Brand</button>
+    </div>
+    <div class="article-rule-list">
+      <a class="article-row" href="article.html" data-industry="demand"><span class="title">The MQL is dead. Here's the metric that replaced it.</span><span class="meta">Demand · 6 min</span></a>
+      <a class="article-row" href="article.html" data-industry="revops"><span class="title">Your attribution model is lying to your CFO</span><span class="meta">RevOps · 9 min</span></a>
+      <a class="article-row" href="article.html" data-industry="sales"><span class="title">Cold outbound isn't dead. Your list is.</span><span class="meta">Sales · 5 min</span></a>
+      <a class="article-row" href="article.html" data-industry="brand"><span class="title">Positioning isn't a workshop. It's a decision.</span><span class="meta">Brand · 7 min</span></a>
+      <a class="article-row" href="article.html" data-industry="revops"><span class="title">Stop reporting on impressions. Start reporting on pipeline.</span><span class="meta">RevOps · 8 min</span></a>
+      <a class="article-row" href="article.html" data-industry="demand"><span class="title">Why your best channel last quarter is your worst channel this one</span><span class="meta">Demand · 4 min</span></a>
+    </div>
+    <div class="empty-state hide" id="workEmpty">
+      <div class="big-emoji">—</div>
+      <p>Nothing in this category yet.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/partials.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

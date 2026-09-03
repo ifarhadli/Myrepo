@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact — OmniMark</title>
+<meta name="description" content="Book a 20-minute funnel teardown. No deck, no discovery marathon — just a look at where your funnel leaks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="contact">
+
+<div id="site-header"></div>
+
+<header class="hero on-dark" style="min-height:auto;padding:88px 0 56px">
+  <div class="wrap" style="display:block;max-width:760px">
+    <p class="eyebrow">Contact</p>
+    <h1 class="display-l" style="color:#fff">Show us your funnel. We'll show you the leaks.</h1>
+    <p class="lede">Twenty minutes on a call, a written teardown within 48 hours. No pitch deck, no obligation.</p>
+  </div>
+</header>
+
+<main>
+<section class="section-border reveal">
+  <div class="wrap">
+    <div class="grid-2" style="grid-template-columns:1.1fr .9fr;gap:48px;align-items:start">
+      <div>
+        <p class="label" style="margin-bottom:14px">Pick a time directly</p>
+        <div class="scheduler-embed">
+          <!-- Meeting scheduler embed (HubSpot / Calendly / Chili Piper — TBC) mounts here.
+               Container has a fixed min-height and internal scroll so a third-party
+               iframe can never push or reflow the surrounding page layout. -->
+          <div class="scheduler-ph">
+            <span class="icon">Scheduler</span>
+            <p style="margin-bottom:0">Live meeting scheduler embeds here once the CRM/scheduler decision (HubSpot or Salesforce) is confirmed. Until then, use the form.</p>
+          </div>
+        </div>
+
+        <p class="label" style="margin:40px 0 14px">Or send us the short version</p>
+        <form class="validate-form" data-success="contactSuccess" novalidate>
+          <div class="grid-2" style="gap:16px">
+            <div class="field"><label for="c-name">Name <span class="req">*</span></label><input id="c-name" name="name" type="text" required></div>
+            <div class="field"><label for="c-email">Work email <span class="req">*</span></label><input id="c-email" name="email" type="email" required><span class="err-msg">Enter a valid work email.</span></div>
+          </div>
+          <div class="grid-2" style="gap:16px">
+            <div class="field"><label for="c-company">Company <span class="req">*</span></label><input id="c-company" name="company" type="text" required></div>
+            <div class="field"><label for="c-spend">Monthly marketing spend <span class="req">*</span></label>
+              <select id="c-spend" name="spend" required>
+                <option value="">Select a range</option>
+                <option>Under $10k</option><option>$10k–$50k</option><option>$50k–$200k</option><option>$200k+</option>
+              </select>
+            </div>
+          </div>
+          <div class="field"><label for="c-broken">What's broken right now?</label><textarea id="c-broken" name="broken"></textarea></div>
+          <label class="checkfield" style="margin-bottom:18px">
+            <input type="checkbox" name="consent" required>
+            <span>I agree to be contacted about this enquiry. <span class="req">*</span></span>
+          </label>
+          <button type="submit" class="btn btn-primary btn-block">Request the teardown</button>
+          <p class="footnote" style="margin-top:14px">We reply within one business day. No drip sequences — we practise what we preach.</p>
+        </form>
+        <div class="form-success" id="contactSuccess">
+          <div class="check">&#10003;</div>
+          <h3>Got it.</h3>
+          <p>Check your inbox for a calendar link within the hour.</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="panel" style="background:var(--ink);color:#fff;border-radius:18px;padding:30px">
+          <h3 style="color:#fff">Prefer to reach us directly?</h3>
+          <p style="color:#C9CDD6;font-size:14.5px">Email <a href="mailto:hello@omnimark.com" style="color:var(--signal);text-decoration:underline">hello@omnimark.com</a> or call <a href="tel:+18005551234" style="color:var(--signal);text-decoration:underline">+1 (800) 555-1234</a>.</p>
+          <hr style="border:none;border-top:1px solid var(--panel-border);margin:22px 0">
+          <p style="color:#C9CDD6;font-size:14.5px;margin-bottom:4px">Office</p>
+          <p style="color:#fff;margin-bottom:0">400 Commerce St<br>Austin, TX 78701</p>
+        </div>
+        <div class="card" style="margin-top:20px">
+          <span class="tag">Not ready for a call?</span>
+          <p>Browse the <a href="services.html" class="btn-text">five engines</a> or read <a href="insights.html" class="btn-text">what we're arguing about</a> this month.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<div id="site-footer"></div>
+
+<script src="js/data.js"></script>
+<script src="js/partials.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
