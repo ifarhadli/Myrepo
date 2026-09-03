@@ -14,9 +14,15 @@
     initForms();
     initFilters();
     initCookieBanner();
+    initStagger();
     initReveal();
     initProcessLine();
     initSideNav();
+    initCursor();
+    initMagnetic();
+    initKinetic();
+    initMarquee();
+    initCountUp();
   }
 
   /* ---------- desktop nav-item toggles (mega menu / industries dropdown) ---------- */
@@ -266,6 +272,112 @@
       });
     }, { rootMargin: '-30% 0px -60% 0px' });
     targets.forEach(function(t){ io.observe(t); });
+  }
+
+  /* ---------- stagger — assigns --i to children of .stagger containers
+     so .reveal's transition-delay fans siblings out instead of firing
+     as one flat block ---------- */
+  function initStagger(){
+    document.querySelectorAll('.stagger').forEach(function(group){
+      Array.prototype.forEach.call(group.children, function(child, i){
+        child.style.setProperty('--i', i);
+      });
+    });
+  }
+
+  /* ---------- custom magnetic cursor (fine pointer + hover only) ---------- */
+  function initCursor(){
+    if(reduceMotion) return;
+    if(!window.matchMedia || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+    var dot = document.createElement('div'); dot.id = 'cursorDot';
+    var ring = document.createElement('div'); ring.id = 'cursorRing';
+    document.body.appendChild(dot); document.body.appendChild(ring);
+    var mx = -100, my = -100, rx = -100, ry = -100;
+    window.addEventListener('mousemove', function(e){
+      mx = e.clientX; my = e.clientY;
+      dot.style.transform = 'translate('+mx+'px,'+my+'px) translate(-50%,-50%)';
+    }, { passive: true });
+    (function raf(){
+      rx += (mx - rx) * 0.18; ry += (my - ry) * 0.18;
+      ring.style.transform = 'translate('+rx+'px,'+ry+'px) translate(-50%,-50%)';
+      requestAnimationFrame(raf);
+    })();
+    var big = 'a, button, .chip, .card, .case-card, .cross-card, .team-card, .eng-head, [role="button"]';
+    document.addEventListener('mouseover', function(e){
+      if(e.target.closest(big)) ring.classList.add('big');
+    });
+    document.addEventListener('mouseout', function(e){
+      if(e.target.closest(big)) ring.classList.remove('big');
+    });
+    document.addEventListener('mouseleave', function(){ ring.style.opacity = '0'; dot.style.opacity = '0'; });
+    document.addEventListener('mouseenter', function(){ ring.style.opacity = '1'; dot.style.opacity = '1'; });
+  }
+
+  /* ---------- magnetic buttons — pull toward the cursor within bounds ---------- */
+  function initMagnetic(){
+    if(reduceMotion) return;
+    if(!window.matchMedia || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
+    document.querySelectorAll('.btn-primary, .btn-shine').forEach(function(el){
+      if(el.classList.contains('btn-block')) return; // full-width buttons shouldn't drift
+      el.classList.add('magnetic');
+      el.addEventListener('mousemove', function(e){
+        var r = el.getBoundingClientRect();
+        var x = e.clientX - r.left - r.width/2, y = e.clientY - r.top - r.height/2;
+        el.style.transform = 'translate('+(x*0.22)+'px,'+(y*0.32)+'px)';
+      });
+      el.addEventListener('mouseleave', function(){ el.style.transform = ''; });
+    });
+  }
+
+  /* ---------- kinetic headline — splits .kinetic text into staggered word spans ---------- */
+  function initKinetic(){
+    document.querySelectorAll('.kinetic').forEach(function(el){
+      if(el.dataset.kineticDone) return;
+      el.dataset.kineticDone = '1';
+      var words = el.textContent.split(' ');
+      el.innerHTML = words.map(function(w, i){
+        return '<span class="kw" style="--i:'+i+'">'+w+(i < words.length-1 ? '&nbsp;' : '')+'</span>';
+      }).join('');
+    });
+  }
+
+  /* ---------- marquee — duplicates track content once for a seamless loop ---------- */
+  function initMarquee(){
+    document.querySelectorAll('.marquee-track').forEach(function(track){
+      if(track.dataset.marqueeDone) return;
+      track.dataset.marqueeDone = '1';
+      track.innerHTML += track.innerHTML;
+    });
+  }
+
+  /* ---------- count-up stats — animates .stat-fig from 0 up to whatever
+     number is already in the markup, so a no-JS or reduced-motion visitor
+     just sees the static final figure exactly as authored ---------- */
+  function initCountUp(){
+    var figs = document.querySelectorAll('.stat-fig');
+    if(!figs.length || reduceMotion || !('IntersectionObserver' in window)) return;
+    function animate(el){
+      var target = el.textContent.trim();
+      var num = parseFloat(target.replace(/[^0-9.]/g, ''));
+      if(isNaN(num)) return;
+      var prefix = target.match(/^[^0-9]*/)[0];
+      var suffix = target.match(/[0-9.]*([^0-9]*)$/)[1];
+      var start = performance.now(), dur = 1200;
+      function step(now){
+        var p = Math.min(1, (now - start) / dur);
+        var eased = 1 - Math.pow(1 - p, 3);
+        var val = Math.round(num * eased);
+        el.textContent = prefix + val + suffix;
+        if(p < 1) requestAnimationFrame(step); else el.textContent = target;
+      }
+      requestAnimationFrame(step);
+    }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(en.isIntersecting){ animate(en.target); io.unobserve(en.target); }
+      });
+    }, { threshold: .5 });
+    figs.forEach(function(el){ io.observe(el); });
   }
 
   /* newsletter form in footer is injected after partials load */

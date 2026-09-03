@@ -10,10 +10,10 @@
   function isOn(key){ return page === key ? ' class="nav-link on"' : ' class="nav-link"'; }
 
   function megaMenu(){
-    var cols = engines.map(function(e){
+    var cols = engines.map(function(e, idx){
       var items = e.groups.reduce(function(a,g){ return a.concat(g.items); }, []).slice(0,7);
       var li = items.map(function(t){ return '<li><a href="sub-service.html">'+t+'</a></li>'; }).join('');
-      return '<div class="mega-col">'+
+      return '<div class="mega-col" data-n="'+(idx+1)+'">'+
         '<span class="num">'+e.num+'</span>'+
         '<h5>'+e.name+'</h5>'+
         '<p class="promise">'+e.promise+'</p>'+
