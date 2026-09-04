@@ -61,7 +61,7 @@ const DEFAULT_SITE = {
     geoEmail: 'austin@omnimark.com', linkedin: 'https://www.linkedin.com', privacyUrl: '#', termsUrl: '#',
     schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4
   },
-  features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, customCursor: true,
+  features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false, customCursor: true,
     magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
   design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
   analytics: { gaId: '', consentScript: '' },

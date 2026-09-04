@@ -10,6 +10,12 @@ window.OM_I18N = {
       error: "We could not send that. Please try again, or email us at",
       subscribeError: "Could not subscribe right now. Please try again."
     },
+    availability: {
+      caseSoon: "Case study coming soon",
+      insightSoon: "Insight coming soon",
+      pageSoon: "Page coming soon",
+      roleSoon: "Role page coming soon"
+    },
     nav: {
       skip: "Skip to content",
       home: "Home", services: "Services", work: "Work", industries: "Industries",
@@ -577,13 +583,24 @@ window.OM_I18N = {
     "quote": "The MQL tells you who might be interested. It has never told you who's about to buy.",
     "h2b": "What we measure instead: Pipeline-Qualified Engagement",
     "p3": "We replaced the single MQL gate with a composite score built from behavior sales already trusts: repeat visits to pricing, multiple stakeholders from the same account engaging within a two-week window, and direct outreach to a rep rather than a form fill. We call it Pipeline-Qualified Engagement, or PQE.",
+    "figAlt": "The old MQL funnel counts individual form fills; the PQE model combines several account-level buying signals.",
+    "figOld": "OLD: INDIVIDUAL MQL",
+    "figDownload": "Content download",
+    "figForm": "Form fill + firmographic fit",
+    "figMql": "MQL sent to sales",
+    "figVolume": "High volume, weak intent",
+    "figNew": "NEW: ACCOUNT-LEVEL PQE",
+    "figPricing": "Repeat pricing visits",
+    "figStakeholders": "Multiple stakeholders",
+    "figRep": "Direct rep outreach",
+    "figIntent": "Lower volume, stronger intent",
     "figCaption": "Fig 1. — Old funnel vs. PQE model. Illustrative.",
     "h3": "Why it works better",
     "li1": "It's built from signals sales already believes, so adoption doesn't require a mandate from above.",
     "li2": "It rewards account-level behavior, not one anonymous form fill.",
     "li3": "It's harder to game with a single high-intent asset.",
     "calloutB": "Worth knowing",
-    "calloutTextHtml": "PQE isn't a replacement metric you can bolt onto an existing CRM in an afternoon. It requires the lead-scoring and lifecycle rebuild described in our <a href=\"sub-service.html\" style=\"text-decoration:underline\">Demand Generation</a> service.",
+    "calloutTextHtml": "PQE isn't a replacement metric you can bolt onto an existing CRM in an afternoon. It requires the lead-scoring and lifecycle rebuild described in our <a href=\"services.html#engine-05\" style=\"text-decoration:underline\">Sales &amp; Revenue</a> engine.",
     "h2c": "Rolling it out without a turf war",
     "p4": "The rollout that works is the one where sales helps write the scoring model, not receive it. We run this as a two-week joint workshop before a single line of the CRM changes — the model has to survive contact with the people who'll actually act on it.",
     "inlineCtaP": "Want the actual scoring model? We'll walk you through it.",
@@ -594,7 +611,8 @@ window.OM_I18N = {
     "cross1p": "9 min read",
     "cross2tag": "All insights",
     "cross2h": "See everything",
-    "cross2p": "Demand, RevOps, sales and brand."
+    "cross2p": "Demand, RevOps, sales and brand.",
+    "linkCopied": "Article link copied."
   },
   "contactPage": {
     "schedulerLabel": "Pick a time directly",
@@ -653,6 +671,12 @@ window.OM_I18N = {
     forms: {
       error: "Göndərmək mümkün olmadı. Yenidən cəhd edin və ya bizə yazın:",
       subscribeError: "Hazırda abunə olmaq mümkün olmadı. Yenidən cəhd edin."
+    },
+    availability: {
+      caseSoon: "Keys tezliklə",
+      insightSoon: "Yazı tezliklə",
+      pageSoon: "Səhifə tezliklə",
+      roleSoon: "Vakansiya səhifəsi tezliklə"
     },
     nav: {
       skip: "Məzmuna keç",
@@ -1221,13 +1245,24 @@ window.OM_I18N = {
     "quote": "MQL sizə kimin maraqlana biləcəyini deyir. Heç vaxt kimin almaq üzrə olduğunu deməyib.",
     "h2b": "Bunun əvəzinə nəyi ölçürük: Pipeline-Qualified Engagement",
     "p3": "Tək MQL qapısını satışın artıq etibar etdiyi davranışdan qurulmuş kompozit bir bal ilə əvəz etdik: qiymətləndirmə səhifəsinə təkrar baxışlar, eyni hesabdan iki həftəlik pəncərədə iştirak edən bir neçə maraqlı tərəf və forma doldurmaq əvəzinə birbaşa nümayəndəyə müraciət. Biz buna Pipeline-Qualified Engagement, yəni PQE deyirik.",
+    "figAlt": "Köhnə MQL hunisi fərdi forma doldurmalarını sayır; PQE modeli hesab səviyyəsində bir neçə alış siqnalını birləşdirir.",
+    "figOld": "KÖHNƏ: FƏRDİ MQL",
+    "figDownload": "Kontentin yüklənməsi",
+    "figForm": "Forma + firmanın uyğunluğu",
+    "figMql": "MQL satışa ötürülür",
+    "figVolume": "Yüksək həcm, zəif niyyət",
+    "figNew": "YENİ: HESAB SƏVİYYƏLİ PQE",
+    "figPricing": "Qiymət səhifəsinə təkrar baxış",
+    "figStakeholders": "Bir neçə maraqlı tərəf",
+    "figRep": "Nümayəndəyə birbaşa müraciət",
+    "figIntent": "Aşağı həcm, daha güclü niyyət",
     "figCaption": "Şəkil 1. — Köhnə huni ilə PQE modelinin müqayisəsi. İllüstrativdir.",
     "h3": "Niyə daha yaxşı işləyir",
     "li1": "Satışın artıq inandığı siqnallardan qurulub, ona görə qəbul edilməsi üçün yuxarıdan əmr tələb olunmur.",
     "li2": "Bir anonim forma doldurmağı deyil, hesab səviyyəsində davranışı mükafatlandırır.",
     "li3": "Tək bir yüksək-niyyətli material ilə aldatmaq daha çətindir.",
     "calloutB": "Bilməyə dəyər",
-    "calloutTextHtml": "PQE mövcud CRM-ə bir günəbaxımda əlavə edə biləcəyiniz sadə bir əvəzedici göstərici deyil. Bu, <a href=\"sub-service.html\" style=\"text-decoration:underline\">Tələbat Yaratma</a> xidmətimizdə təsvir olunan lead-qiymətləndirmə və həyat dövrü yenidən qurulmasını tələb edir.",
+    "calloutTextHtml": "PQE mövcud CRM-ə bir gündə əlavə edə biləcəyiniz sadə bir əvəzedici göstərici deyil. Bu, <a href=\"services.html#engine-05\" style=\"text-decoration:underline\">Satış və Gəlir</a> istiqamətimizdə təsvir olunan lead-qiymətləndirmə və həyat dövrü yenidən qurulmasını tələb edir.",
     "h2c": "Ərazi müharibəsi olmadan tətbiq etmək",
     "p4": "İşləyən tətbiq o zaman olur ki, satış qiymətləndirmə modelini qəbul etmək əvəzinə onu yazmağa kömək edir. Biz bunu CRM-də bir sətir belə dəyişmədən əvvəl iki həftəlik birgə seminar kimi keçiririk — model onu həqiqətən istifadə edəcək insanlarla təmasdan sağ çıxmalıdır.",
     "inlineCtaP": "Real qiymətləndirmə modelini istəyirsiniz? Sizə addım-addım izah edərik.",
@@ -1238,7 +1273,8 @@ window.OM_I18N = {
     "cross1p": "9 dəqiqəlik oxu",
     "cross2tag": "Bütün bloq yazıları",
     "cross2h": "Hamısına baxın",
-    "cross2p": "Tələbat, RevOps, satış və brend."
+    "cross2p": "Tələbat, RevOps, satış və brend.",
+    "linkCopied": "Yazının keçidi kopyalandı."
   },
   "contactPage": {
     "schedulerLabel": "Birbaşa vaxt seçin",

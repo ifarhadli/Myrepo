@@ -92,7 +92,7 @@
       phone: '+1 (800) 555-1234', phoneHref: '+18005551234', address: '400 Commerce St, Austin, TX 78701',
       addressLine1: '400 Commerce St', addressLine2: 'Austin, TX 78701', geoEmail: 'austin@omnimark.com',
       linkedin: 'https://www.linkedin.com', privacyUrl: '#', termsUrl: '#', schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4 },
-    features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, customCursor: true,
+    features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false, customCursor: true,
       magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
     design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
     analytics: { gaId: '', consentScript: '' },
@@ -138,6 +138,7 @@
     ['newsletter', 'Newsletter block in the footer', 'Sign-ups land in Submissions.'],
     ['cookieBanner', 'Cookie consent banner', 'Off = analytics loads for every visitor without asking. Your call, check local law.'],
     ['careersButton', '"Careers" button in the header', ''],
+    ['showVerifiedProof', 'Show verified proof content', 'Keep off until every logo, statistic, testimonial and team profile has written owner approval.'],
     ['customCursor', 'Custom cursor dot + ring (desktop)', ''],
     ['magneticButtons', 'Magnetic pull on primary buttons', ''],
     ['kineticHeadlines', 'Word-by-word headline animation', ''],
@@ -276,6 +277,7 @@
     if (/555-1234/.test(s.settings.phone || '')) todo.push(['settings', 'Replace the placeholder phone number.']);
     if (s.settings.privacyUrl === '#' || s.settings.termsUrl === '#') todo.push(['settings', 'Link a real Privacy Policy and Terms page.']);
     if (!s.analytics.gaId && !s.analytics.consentScript) todo.push(['settings', 'Add a Google Analytics ID (optional).']);
+    if (!s.features.showVerifiedProof) todo.push(['settings', 'Verify logos, statistics, testimonials and team profiles, then enable “Show verified proof content”.']);
     var overrides = Object.keys(s.i18n.en).length + Object.keys(s.i18n.az).length;
     panel.innerHTML =
       '<div class="grid3">' +
@@ -617,7 +619,7 @@
         '</div></div>' +
         '<div>' +
           '<div class="card"><h2>Site features</h2><div class="switch-list">' +
-            FEATURES.filter(function(f){ return ['langSwitch', 'newsletter', 'cookieBanner', 'careersButton'].indexOf(f[0]) >= 0; })
+            FEATURES.filter(function(f){ return ['langSwitch', 'newsletter', 'cookieBanner', 'careersButton', 'showVerifiedProof'].indexOf(f[0]) >= 0; })
               .map(function(f){ return '<label class="check"><input type="checkbox" data-bind="features.' + f[0] + '"><span>' + esc(f[1]) + (f[2] ? '<div class="d">' + esc(f[2]) + '</div>' : '') + '</span></label>'; }).join('') +
           '</div></div>' +
           '<div class="card"><h2>Analytics</h2><p class="muted small">Loaded only after a visitor accepts cookies (or always, if the banner is off).</p>' +

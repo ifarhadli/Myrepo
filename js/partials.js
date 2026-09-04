@@ -76,7 +76,8 @@
 
   function industryDropdown(){
     var links = industries.map(function(i, idx){
-      return '<a href="industry.html" data-i18n="industries.'+idx+'">'+esc(i)+'</a>';
+      if(idx === 0) return '<a href="industry.html" data-i18n="industries.'+idx+'">'+esc(i)+'</a>';
+      return '<div class="dropdown-static"><span data-i18n="industries.'+idx+'">'+esc(i)+'</span><small data-i18n="availability.pageSoon">Page coming soon</small></div>';
     }).join('');
     return '<div class="dropdown" role="group" aria-label="Industries">'+links+'</div>';
   }
@@ -112,7 +113,7 @@
         }).join('');
         return '<div><h6 data-i18n="'+k+'.groups.'+gi+'.title">'+esc(g.title)+'</h6><ul>'+li+'</ul></div>';
       }).join('');
-      var explore = mode === 'services' ? (e.detail || e.href) : e.href;
+      var explore = idx === 0 ? (e.detail || e.href) : engineAnchor(e, idx);
       return '<div class="eng-row'+(open?' open':'')+'" id="'+id+'" data-n="'+n+'">'+
         '<button class="eng-head" aria-expanded="'+(open?'true':'false')+'" aria-controls="'+id+'-panel">'+
           '<span class="num">'+esc(e.num)+'</span>'+
@@ -145,7 +146,7 @@
       '<ul class="primary-nav">'+
         '<li class="nav-item has-mega"><a href="services.html"'+isOn('services')+' aria-haspopup="true" aria-expanded="false"><span data-i18n="nav.services">Services</span> '+CARET+'</a>'+megaMenu()+'</li>'+
         '<li class="nav-item"><a href="work.html"'+isOn('work')+' data-i18n="nav.work">Work</a></li>'+
-        '<li class="nav-item"><a href="industry.html"'+isOn('industries')+' aria-haspopup="true" aria-expanded="false"><span data-i18n="nav.industries">Industries</span> '+CARET+'</a>'+industryDropdown()+'</li>'+
+        '<li class="nav-item"><a href="index.html#industries"'+isOn('industries')+' aria-haspopup="true" aria-expanded="false"><span data-i18n="nav.industries">Industries</span> '+CARET+'</a>'+industryDropdown()+'</li>'+
         '<li class="nav-item"><a href="about.html"'+isOn('about')+' data-i18n="nav.about">About</a></li>'+
         '<li class="nav-item"><a href="insights.html"'+isOn('insights')+' data-i18n="nav.insights">Insights</a></li>'+
       '</ul>'+
@@ -165,7 +166,7 @@
           '<div class="d-sub" id="d-services" inert>'+drawerServices()+'</div>'+
         '</li>'+
         '<li><a class="d-link" href="work.html" data-i18n="nav.work">Work</a></li>'+
-        '<li><a class="d-link" href="industry.html" data-i18n="nav.industries">Industries</a></li>'+
+        '<li><a class="d-link" href="index.html#industries" data-i18n="nav.industries">Industries</a></li>'+
         '<li><a class="d-link" href="about.html" data-i18n="nav.about">About</a></li>'+
         '<li><a class="d-link" href="insights.html" data-i18n="nav.insights">Insights</a></li>'+
         (features.careersButton === false ? '' : '<li><a class="d-link" href="careers.html" data-i18n="nav.careers">Careers</a></li>')+
@@ -212,7 +213,7 @@
       '</ul></div>'+
       '<div><h6 data-i18n="footer.colResources">Resources</h6><ul>'+
         '<li><a href="insights.html" data-i18n="footer.insights">Insights</a></li>'+
-        '<li><a href="industry.html" data-i18n="footer.industries">Industries</a></li>'+
+        '<li><a href="index.html#industries" data-i18n="footer.industries">Industries</a></li>'+
         '<li><a href="geo.html" data-i18n="footer.markets">Markets</a></li>'+
         '<li><a href="services.html" data-i18n="footer.allServices">All services</a></li>'+
       '</ul></div>'+

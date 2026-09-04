@@ -27,6 +27,7 @@ window.OMNI_SITE = {
     "newsletter": true,
     "cookieBanner": true,
     "careersButton": true,
+    "showVerifiedProof": false,
     "customCursor": true,
     "magneticButtons": true,
     "kineticHeadlines": true,

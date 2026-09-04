@@ -28,6 +28,7 @@
     initTestimonials();
     initForms();
     initScheduler();
+    initShare();
     initFilters();
     initCookieBanner();
     initStagger();
@@ -293,6 +294,33 @@
       document.querySelectorAll('[data-scheduler-only]').forEach(function(el){ el.parentNode.removeChild(el); });
       box.parentNode.removeChild(box);
     }
+  }
+
+  /* ---------- article sharing ---------- */
+  function initShare(){
+    var linkedIn = document.querySelector('[data-share="linkedin"]');
+    var x = document.querySelector('[data-share="x"]');
+    var copy = document.querySelector('[data-share="copy"]');
+    if(!linkedIn && !x && !copy) return;
+    var canonical = document.querySelector('link[rel="canonical"]');
+    var url = (canonical && canonical.href) || location.href;
+    if(linkedIn) linkedIn.href = 'https://www.linkedin.com/sharing/share-offsite/?url=' + encodeURIComponent(url);
+    if(x) x.href = 'https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(document.title);
+    if(copy) copy.addEventListener('click', function(){
+      function done(){
+        var status = document.getElementById('copyStatus');
+        if(status) status.textContent = t('article.linkCopied', 'Article link copied.');
+      }
+      function fallback(){
+        var field = document.createElement('textarea');
+        field.value = url; field.setAttribute('readonly', ''); field.style.position = 'fixed'; field.style.opacity = '0';
+        document.body.appendChild(field); field.select();
+        try { document.execCommand('copy'); done(); } catch(e) {}
+        document.body.removeChild(field);
+      }
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(fallback); }
+      else fallback();
+    });
   }
 
   /* ---------- filter chips (work index, industries) ---------- */

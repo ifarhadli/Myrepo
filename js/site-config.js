@@ -43,7 +43,7 @@
     'Space Mono': 'Space+Mono:wght@400;700'
   };
   var DEFAULT_FLAGS = {
-    langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true,
+    langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false,
     customCursor: true, magneticButtons: true, kineticHeadlines: true,
     marquee: true, countUp: true, reveal: true
   };
@@ -111,6 +111,7 @@
     root.classList.toggle('no-reveal', !f.reveal);
     root.classList.toggle('no-kinetic', !f.kineticHeadlines);
     root.classList.toggle('no-marquee', !f.marquee);
+    root.classList.toggle('show-verified-proof', f.showVerifiedProof);
 
     /* 5. free-form CSS — last, so it wins */
     styleTag('omni-custom-css').textContent = design.customCss || '';
