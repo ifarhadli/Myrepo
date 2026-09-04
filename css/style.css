@@ -670,6 +670,7 @@ a.cross-card:hover:before{opacity:.16}
 .no-kinetic .kinetic .kw{opacity:1;transform:none;animation:none}
 .no-marquee .marquee-track{animation:none!important}
 html:not(.show-verified-proof) [data-proof]{display:none!important}
+[data-section-accent]{box-shadow:inset 5px 0 0 var(--acc)}
 
 /* ---------- form error (server unreachable / rejected) ---------- */
 .form-error{display:none;color:var(--alert-on-light);font-size:13.5px;margin-top:12px}

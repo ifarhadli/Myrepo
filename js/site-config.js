@@ -52,8 +52,10 @@
     var el = document.getElementById(id);
     if (!el){
       el = document.createElement('style'); el.id = id;
-      (document.head || document.documentElement).appendChild(el);
     }
+    /* Moving an existing tag to the end keeps runtime overrides after the
+       page stylesheet once the document has finished parsing. */
+    (document.head || document.documentElement).appendChild(el);
     return el;
   }
   function cssEscapeAttr(s){ return String(s).replace(/["\\]/g, '\\$&'); }
@@ -156,10 +158,11 @@
       var next = [];
       order.forEach(function(id){ if (itemById[id] && next.indexOf(itemById[id]) < 0) next.push(itemById[id]); });
       items.forEach(function(el){ if (next.indexOf(el) < 0) next.push(el); });
-      next.forEach(function(el){ list.appendChild(el); });
+      var marker = Array.prototype.slice.call(list.children).find(function(el){ return !el.hasAttribute('data-item'); });
+      next.forEach(function(el){ list.insertBefore(el, marker || null); });
       items.forEach(function(el){
         var hidden = hiddenItems.indexOf(listKey + ':' + el.getAttribute('data-item')) >= 0;
-        el.hidden = hidden;
+        el.hidden = hidden && !document.documentElement.classList.contains('omni-editing');
         if (hidden) el.setAttribute('data-omni-hidden-item', 'true');
         else el.removeAttribute('data-omni-hidden-item');
       });
@@ -259,8 +262,8 @@
   var isAdmin = document.documentElement.hasAttribute('data-omni-admin');
   if (!isAdmin){
     applyDesign(site);
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ applyPageMeta(); applyLayout(site); });
-    else { applyPageMeta(); applyLayout(site); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ applyDesign(site); applyPageMeta(); applyLayout(site); });
+    else { applyDesign(site); applyPageMeta(); applyLayout(site); }
     document.addEventListener('omni:partials-ready', function(){ applyLayout(site); });
   }
 

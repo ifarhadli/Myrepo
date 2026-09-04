@@ -204,6 +204,50 @@ async function main(){
   await go('/index.html');
   state = await evaluate(`(() => { const sections=[...document.querySelectorAll('main > [data-section]')]; const hidden=document.querySelector('[data-section="index.s2"]'); return {editor:!!document.querySelector('.omni-bar'),display:getComputedStyle(hidden).display,order:sections.slice(0,2).map(x=>x.dataset.section).join(','),accent:document.querySelector('[data-section="index.s1"]').style.getPropertyValue('--acc')}; })()`);
   check('published section visibility, order and accent reach the public page', !state.editor && state.display === 'none' && state.order === 'index.s2,index.s1' && state.accent === 'var(--c1)', JSON.stringify(state));
+
+  /* ---- in-place catalogue, design controls and preview ---- */
+  await go('/services.html?edit=1'); await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')`), 10000);
+  const catalogueBefore = await evaluate(`document.querySelectorAll('.eng-row[data-n="1"] .eng-cols li').length`);
+  await evaluate(`(() => { let guard=100; while(document.querySelectorAll('.eng-row[data-n="1"] .eng-cols li').length>3&&guard--){document.querySelector('.eng-row[data-n="1"] .eng-cols li .omni-item-remove').click();} return document.querySelectorAll('.eng-row[data-n="1"] .eng-cols li').length; })()`);
+  state = await evaluate(`({ count:document.querySelectorAll('.eng-row[data-n="1"] .eng-cols li').length, model:window.OmniEditor.getState().draft.engines[0].groups.reduce((n,g)=>n+g.items.length,0) })`);
+  check('catalogue items can be removed in place from both the DOM and model', catalogueBefore > state.count && state.count === 3 && state.model === 3, JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-editor-publish]').click()`);await waitFor(() => evaluate(`!!document.querySelector('[data-dialog-confirm]')`), 3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`document.querySelector('[data-editor-publish]').disabled`), 10000);
+  await go('/index.html');await evaluate(`document.querySelector('.nav-item.has-mega > a').click()`);await pause(100);
+  state = await evaluate(`document.querySelectorAll('.mega-col[data-n="1"] ul a').length`);
+  check('published catalogue removal reduces the public mega-menu', state === 3, state);
+
+  await go('/index.html?edit=1');await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')`), 10000);await evaluate(`document.querySelector('[data-editor-design]').click()`);await pause(100);
+  state = await evaluate(`({ panel:document.querySelector('#omniPanelTitle').textContent, colours:document.querySelectorAll('.omni-colour-row').length, fonts:document.querySelectorAll('.omni-font-card').length, motion:document.querySelectorAll('[data-motion]').length })`);
+  check('Design opens the complete live palette sheet', state.panel === 'Design' && state.colours === 8 && state.fonts === 4 && state.motion === 3, JSON.stringify(state));
+  await evaluate(`(() => { const input=document.querySelector('#omniColour7');input.value='#135e4a';input.dispatchEvent(new Event('input',{bubbles:true})); })()`);await pause(80);
+  state = await evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--signal').trim()`);
+  check('colour chips repaint shared site tokens live', state.toLowerCase() === '#135e4a', state);
+  await evaluate(`document.querySelector('[data-editor-undo]').click()`);await pause(80);
+  const undoColour = await evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--signal').trim()`);
+  await evaluate(`document.querySelector('[data-editor-redo]').click()`);await pause(80);
+  const redoColour = await evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--signal').trim()`);
+  check('editor undo and redo restore design mutations', undoColour.toLowerCase() !== '#135e4a' && redoColour.toLowerCase() === '#135e4a', undoColour + ' → ' + redoColour);
+  await evaluate(`[...document.querySelectorAll('.omni-font-card')].find(x=>x.querySelector('strong').textContent==='Sora').click()`);await pause(80);
+  state = await evaluate(`getComputedStyle(document.documentElement).getPropertyValue('--font-display').trim()`);
+  check('font presets repaint the display family live', /Sora/.test(state), state);
+  await evaluate(`document.querySelector('[data-motion="off"]').click()`);await pause(80);
+  state = await evaluate(`({ mode:window.OmniEditor.getState().draft.design.motion, flags:['kineticHeadlines','marquee','customCursor','magneticButtons','reveal','countUp'].every(k=>window.OmniEditor.getState().draft.features[k]===false) })`);
+  check('motion mode writes the individual runtime flags', state.mode === 'off' && state.flags, JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-panel__close').click();document.querySelector('[data-editor-phone]').click()`);await pause(100);
+  state = await evaluate(`(() => { const f=document.querySelector('#omniPageFrame'),r=f.getBoundingClientRect();return{pressed:document.querySelector('[data-editor-phone]').getAttribute('aria-pressed'),width:r.width,overflow:f.scrollWidth-f.clientWidth,nav:getComputedStyle(f.querySelector('.primary-nav')).display,visual:getComputedStyle(f.querySelector('.hero-visual')).display,wide:[...f.querySelectorAll('*')].map(x=>({name:x.id||x.className||x.tagName,over:x.scrollWidth-x.clientWidth,sw:x.scrollWidth,cw:x.clientWidth})).filter(x=>x.over>2).sort((a,b)=>b.over-a.over).slice(0,12)};})()`);
+  check('phone preview uses a contained 390px responsive frame', state.pressed === 'true' && Math.round(state.width) === 390 && state.overflow <= 0 && state.nav === 'none' && state.visual === 'none', JSON.stringify(state));
+  await screenshot('editor-phone-preview-1366');
+  await evaluate(`(() => { const select=document.querySelector('#omniPageSelect');select.value='about';select.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  const switched = await waitFor(() => evaluate(`location.pathname.endsWith('/about.html')&&!!document.querySelector('.omni-bar')`), 10000);
+  check('page switcher carries the private draft into another real page', !!switched);
+  await evaluate(`(() => { const select=document.querySelector('#omniPageSelect');select.value='index';select.dispatchEvent(new Event('change',{bubbles:true})); })()`);await waitFor(() => evaluate(`location.pathname.endsWith('/index.html')&&!!document.querySelector('.omni-bar')`), 10000);
+  await evaluate(`document.querySelector('[data-list="index.cases"]>[data-item="c2"] .omni-item-remove').click()`);await pause(80);
+  state = await evaluate(`(() => { const item=document.querySelector('[data-list="index.cases"]>[data-item="c2"]');return{hidden:item.getAttribute('data-omni-hidden-item'),visible:!item.hidden};})()`);
+  check('static cards can be removed without disappearing from the editor', state.hidden === 'true' && state.visible, JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-editor-discard]').click()`);await waitFor(() => evaluate(`!!document.querySelector('[data-dialog-confirm]')`), 3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);
+  const discarded = await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')&&document.querySelector('[data-editor-publish]').disabled`), 10000);
+  state = await evaluate(`fetch('/api/draft',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x.draft===null)`);
+  check('Discard clears both server and client draft state', !!discarded && state);
   ws.close();
   console.log('\n' + pass + ' browser checks passed, ' + fail + ' failed');
 }

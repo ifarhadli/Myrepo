@@ -82,6 +82,14 @@
     return '<div class="dropdown" role="group" aria-label="Industries">'+links+'</div>';
   }
 
+  function industryStrip(list){
+    if(!list) return;
+    list.innerHTML = industries.map(function(item, idx){
+      if(idx === 0) return '<a href="industry.html" class="chip" data-item="i1" data-i18n="industries.0">'+esc(item)+'</a>';
+      return '<span class="chip is-coming" data-item="i'+(idx+1)+'"><span data-i18n="industries.'+idx+'">'+esc(item)+'</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>';
+    }).join('');
+  }
+
   function drawerServices(){
     return engines.map(function(e, idx){
       var k = engineKey(e, idx);
@@ -269,6 +277,7 @@
     if (f) { f.innerHTML = footer; f.className = (f.className + ' site-footer').trim(); }
     var mounts = document.querySelectorAll('[data-accordion]');
     for (var i = 0; i < mounts.length; i++) mounts[i].innerHTML = accordion(mounts[i].getAttribute('data-accordion'));
+    industryStrip(document.querySelector('[data-list="industry.strip"]'));
     bindSiteFields(document);
     /* skip-link target */
     var m = document.querySelector('main');
