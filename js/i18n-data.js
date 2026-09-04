@@ -33,7 +33,8 @@ window.OM_I18N = {
       featuredHeadline: "3.4&times; qualified pipeline in two quarters",
       featuredSub: "B2B SaaS · Series B",
       readCase: "Read the case &rarr;",
-      viewAll: "View all &rarr;"
+      viewAll: "View all &rarr;",
+      allServices: "All services &rarr;"
     },
     drawer: { viewEngine: "View engine &rarr;" },
     cookie: {
@@ -676,7 +677,8 @@ window.OM_I18N = {
       featuredHeadline: "İki rüb ərzində keyfiyyətli satış kanalı 3.4 dəfə artdı",
       featuredSub: "B2B SaaS · B seriyası",
       readCase: "Nümunəyə baxın &rarr;",
-      viewAll: "Hamısına bax &rarr;"
+      viewAll: "Hamısına bax &rarr;",
+      allServices: "Bütün xidmətlər &rarr;"
     },
     drawer: { viewEngine: "İstiqaməti gör &rarr;" },
     cookie: {

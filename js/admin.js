@@ -91,7 +91,7 @@
     settings: { siteName: 'OmniMark', siteUrl: 'https://www.omnimark.com', defaultLang: 'en', email: 'hello@omnimark.com',
       phone: '+1 (800) 555-1234', phoneHref: '+18005551234', address: '400 Commerce St, Austin, TX 78701',
       addressLine1: '400 Commerce St', addressLine2: 'Austin, TX 78701', geoEmail: 'austin@omnimark.com',
-      linkedin: 'https://www.linkedin.com', privacyUrl: '#', termsUrl: '#', schedulerUrl: '', ogImage: '' },
+      linkedin: 'https://www.linkedin.com', privacyUrl: '#', termsUrl: '#', schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4 },
     features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, customCursor: true,
       magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
     design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
@@ -113,6 +113,13 @@
     { k: '--c3', l: 'Engine 03 accent', d: '#C6F24E' },
     { k: '--c4', l: 'Engine 04 accent', d: '#12D6C4' },
     { k: '--c5', l: 'Engine 05 accent', d: '#FF3E88' },
+    { k: '--c1-on-light', l: 'Engine 01 text on light surfaces', d: '#4634F0' },
+    { k: '--c2-on-light', l: 'Engine 02 text on light surfaces', d: '#A63218' },
+    { k: '--c3-on-light', l: 'Engine 03 text on light surfaces', d: '#4D6500' },
+    { k: '--c4-on-light', l: 'Engine 04 text on light surfaces', d: '#006F66' },
+    { k: '--c5-on-light', l: 'Engine 05 text on light surfaces', d: '#B51457' },
+    { k: '--c1-on-dark', l: 'Engine 01 text on dark surfaces', d: '#9A8CFF' },
+    { k: '--alert-on-light', l: 'Error text on light surfaces', d: '#B8382F' },
     { k: '--surface', l: 'Cards / inputs', d: '#FFFFFF' },
     { k: '--surface-2', l: 'Secondary surface', d: '#EAE6DC' },
     { k: '--panel', l: 'Footer / dark panel background', d: '#0B0C10' },
@@ -152,6 +159,7 @@
     ['privacyUrl', 'Privacy policy URL', 'text', 'Footer link.'],
     ['termsUrl', 'Terms URL', 'text', 'Footer link.'],
     ['schedulerUrl', 'Meeting scheduler embed URL', 'url', 'Calendly / HubSpot Meetings / Chili Piper embed link (https). Leave empty and the scheduler block disappears from the contact page.'],
+    ['megaMenuLinkLimit', 'Mega-menu links per engine', 'number', 'Show 1–12 sub-services in each desktop mega-menu column.', ' min="1" max="12" step="1"'],
     ['ogImage', 'Social share image URL', 'url', 'Shown when a page is shared on LinkedIn, Slack, WhatsApp. 1200×630 px, https.']
   ];
 
@@ -604,7 +612,7 @@
     panel.innerHTML =
       '<div class="grid2">' +
         '<div><div class="card"><h2>Contact &amp; links</h2>' +
-          SETTINGS_FIELDS.map(function(f){ return '<div class="field"><label>' + esc(f[1]) + '</label><input type="' + f[2] + '" data-bind="settings.' + f[0] + '">' + (f[3] ? '<div class="hint">' + esc(f[3]) + '</div>' : '') + '</div>'; }).join('') +
+          SETTINGS_FIELDS.map(function(f){ return '<div class="field"><label>' + esc(f[1]) + '</label><input type="' + f[2] + '" data-bind="settings.' + f[0] + '"' + (f[4] || '') + '>' + (f[3] ? '<div class="hint">' + esc(f[3]) + '</div>' : '') + '</div>'; }).join('') +
           '<div class="field"><label>Default language</label><select data-bind="settings.defaultLang"><option value="en">English</option><option value="az">Azərbaycan</option></select><div class="hint">What first-time visitors see. Their own choice is remembered after that.</div></div>' +
         '</div></div>' +
         '<div>' +

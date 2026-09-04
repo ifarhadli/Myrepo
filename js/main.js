@@ -28,7 +28,6 @@
     initTestimonials();
     initForms();
     initScheduler();
-    initTeam();
     initFilters();
     initCookieBanner();
     initStagger();
@@ -83,11 +82,27 @@
     var closeBtn = document.getElementById('drawerClose');
     if(!btn || !drawer) return;
     var lastFocus = null;
+    var inertState = [];
+    function setBackgroundInert(makeInert){
+      if(makeInert){
+        inertState = [];
+        var targets = Array.prototype.slice.call(document.querySelectorAll('body > :not(#site-header):not(script):not(style):not(noscript), #site-header .topnav'));
+        targets.forEach(function(node){
+          inertState.push({ node: node, inert: node.inert });
+          node.inert = true;
+        });
+      } else {
+        inertState.forEach(function(entry){ entry.node.inert = entry.inert; });
+        inertState = [];
+      }
+    }
     function focusables(){
       return Array.prototype.filter.call(drawer.querySelectorAll('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'), function(el){ return el.offsetParent !== null; });
     }
     function open(){
       lastFocus = document.activeElement;
+      drawer.inert = false;
+      setBackgroundInert(true);
       drawer.classList.add('open'); scrim.classList.add('open');
       btn.setAttribute('aria-expanded','true'); drawer.setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
@@ -98,6 +113,8 @@
       if(!drawer.classList.contains('open')) return;
       drawer.classList.remove('open'); scrim.classList.remove('open');
       btn.setAttribute('aria-expanded','false'); drawer.setAttribute('aria-hidden','true');
+      drawer.inert = true;
+      setBackgroundInert(false);
       document.body.style.overflow = '';
       if(lastFocus && lastFocus.focus) lastFocus.focus();
     }
@@ -119,6 +136,7 @@
         if(!target) return;
         var open2 = target.classList.toggle('open');
         t.setAttribute('aria-expanded', open2 ? 'true':'false');
+        target.inert = !open2;
       });
     });
   }
@@ -130,6 +148,8 @@
       row.classList.toggle('open', open);
       var head = row.querySelector('.eng-head');
       if(head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+      var panel = row.querySelector('.eng-panel');
+      if(panel){ panel.setAttribute('aria-hidden', open ? 'false' : 'true'); panel.inert = !open; }
     }
     function openOnly(target){
       target.parentElement.querySelectorAll('.eng-row').forEach(function(r){ setOpen(r, r === target); });
@@ -137,7 +157,7 @@
     document.querySelectorAll('.eng-row').forEach(function(row){
       var head = row.querySelector('.eng-head');
       if(!head) return;
-      head.setAttribute('aria-expanded', row.classList.contains('open') ? 'true' : 'false');
+      setOpen(row, row.classList.contains('open'));
       head.addEventListener('click', function(){
         var willOpen = !row.classList.contains('open');
         if(willOpen) openOnly(row); else setOpen(row, false);
@@ -163,12 +183,13 @@
         if(!a.id) a.id = 'faq-a-' + (i + 1);
         q.setAttribute('aria-controls', a.id);
         a.setAttribute('aria-hidden', item.classList.contains('open') ? 'false' : 'true');
+        a.inert = !item.classList.contains('open');
       }
       q.setAttribute('aria-expanded', item.classList.contains('open') ? 'true' : 'false');
       q.addEventListener('click', function(){
         var open = item.classList.toggle('open');
         q.setAttribute('aria-expanded', open ? 'true' : 'false');
-        if(a) a.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if(a){ a.setAttribute('aria-hidden', open ? 'false' : 'true'); a.inert = !open; }
       });
     });
   }
@@ -253,11 +274,6 @@
         });
       });
     });
-  }
-
-  /* ---------- team cards: focusable so the name/role overlay is reachable by keyboard ---------- */
-  function initTeam(){
-    document.querySelectorAll('.team-card').forEach(function(c){ if(!c.hasAttribute('tabindex')) c.setAttribute('tabindex','0'); });
   }
 
   /* ---------- meeting scheduler (contact page) — iframe from Settings, or the

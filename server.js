@@ -59,7 +59,7 @@ const DEFAULT_SITE = {
     email: 'hello@omnimark.com', phone: '+1 (800) 555-1234', phoneHref: '+18005551234',
     address: '400 Commerce St, Austin, TX 78701', addressLine1: '400 Commerce St', addressLine2: 'Austin, TX 78701',
     geoEmail: 'austin@omnimark.com', linkedin: 'https://www.linkedin.com', privacyUrl: '#', termsUrl: '#',
-    schedulerUrl: '', ogImage: ''
+    schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4
   },
   features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, customCursor: true,
     magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
@@ -139,6 +139,8 @@ function validateSite(input){
   if (!isPlain(input)) throw new Error('config must be an object');
   const site = JSON.parse(JSON.stringify(DEFAULT_SITE));
   site.settings = Object.assign({}, site.settings, strMap(input.settings, 2000));
+  const megaMenuLinkLimit = Number.parseInt(input.settings && input.settings.megaMenuLinkLimit, 10);
+  site.settings.megaMenuLinkLimit = Number.isFinite(megaMenuLinkLimit) ? Math.max(1, Math.min(12, megaMenuLinkLimit)) : 4;
   if (!['en', 'az'].includes(site.settings.defaultLang)) site.settings.defaultLang = 'en';
   /* links the public pages will render as href — no javascript:/data: schemes */
   const safeLink = (v, schemes) => {

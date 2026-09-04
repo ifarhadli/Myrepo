@@ -19,7 +19,8 @@ window.OMNI_SITE = {
     "privacyUrl": "#",
     "termsUrl": "#",
     "schedulerUrl": "",
-    "ogImage": ""
+    "ogImage": "",
+    "megaMenuLinkLimit": 4
   },
   "features": {
     "langSwitch": true,

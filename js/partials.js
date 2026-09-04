@@ -16,6 +16,9 @@
   var settings = site.settings || {};
   var features = (window.OmniSite && window.OmniSite.flags()) || {};
   var page = document.body.getAttribute('data-page') || '';
+  var megaMenuLinkLimit = parseInt(settings.megaMenuLinkLimit, 10);
+  if(!isFinite(megaMenuLinkLimit)) megaMenuLinkLimit = 4;
+  megaMenuLinkLimit = Math.max(1, Math.min(12, megaMenuLinkLimit));
 
   /* Everything that comes from data.js / site.js is dropped into innerHTML,
      so escape it — the admin dashboard can put anything in those strings. */
@@ -29,6 +32,7 @@
   var siteName = settings.siteName || 'OmniMark';
   function markInner(){ return siteName === 'OmniMark' ? 'Omni<span>Mark</span>' : esc(siteName); }
   function engineKey(e, idx){ return 'engines.e' + (idx + 1); }
+  function engineAnchor(e, idx){ return 'services.html#engine-' + (e.num || ('0' + (idx + 1))); }
 
   var CARET = '<svg class="nav-caret" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M2 3.5 5 6.5 8 3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
@@ -49,14 +53,15 @@
   function megaMenu(){
     var cols = engines.map(function(e, idx){
       var n = idx + 1, k = engineKey(e, idx);
-      var items = flattenItems(e, idx, 7);
-      var li = items.map(function(it){ return '<li><a href="sub-service.html" data-i18n="'+it.key+'">'+esc(it.text)+'</a></li>'; }).join('');
+      var items = flattenItems(e, idx, megaMenuLinkLimit);
+      var parentAnchor = esc(engineAnchor(e, idx));
+      var li = items.map(function(it){ return '<li><a href="'+parentAnchor+'" data-i18n="'+it.key+'">'+esc(it.text)+'</a></li>'; }).join('');
       return '<div class="mega-col" data-n="'+n+'">'+
         '<span class="num">'+esc(e.num)+'</span>'+
         '<h5 data-i18n="'+k+'.name">'+esc(e.name)+'</h5>'+
         '<p class="promise" data-i18n="'+k+'.promise">'+esc(e.promise)+'</p>'+
         '<ul>'+li+'</ul>'+
-        '<a class="view-all" href="'+esc(e.href)+'" data-i18n="mega.viewAll" data-i18n-html>View all &rarr;</a>'+
+        '<a class="view-all" href="'+parentAnchor+'" data-i18n="mega.viewAll" data-i18n-html>View all &rarr;</a>'+
       '</div>';
     }).join('');
     return '<div class="mega" role="group" aria-label="Services">'+
@@ -64,6 +69,7 @@
       '<div class="mega-rail">'+
         '<div class="thumb" aria-hidden="true"></div>'+
         '<div class="txt"><span class="tag" data-i18n="mega.featuredCase">Featured case</span><h6 data-i18n="mega.featuredHeadline" data-i18n-html>3.4&times; qualified pipeline in two quarters</h6><p><span data-i18n="mega.featuredSub">B2B SaaS · Series B</span> &middot; <a href="case-study.html" style="color:inherit;text-decoration:underline" data-i18n="mega.readCase" data-i18n-html>Read the case &rarr;</a></p></div>'+
+        '<a class="btn btn-ghost all-services" href="services.html" data-i18n="mega.allServices" data-i18n-html>All services &rarr;</a>'+
       '</div>'+
     '</div>';
   }
@@ -79,12 +85,13 @@
     return engines.map(function(e, idx){
       var k = engineKey(e, idx);
       var items = flattenItems(e, idx, 6);
-      var li = items.map(function(it){ return '<a href="sub-service.html" data-i18n="'+it.key+'">'+esc(it.text)+'</a>'; }).join('');
+      var parentAnchor = esc(engineAnchor(e, idx));
+      var li = items.map(function(it){ return '<a href="'+parentAnchor+'" data-i18n="'+it.key+'">'+esc(it.text)+'</a>'; }).join('');
       var subId = 'd-eng-'+esc(e.id);
       return '<div class="d-engine-block">'+
         '<button class="d-engine" data-toggle="'+subId+'" aria-expanded="false" aria-controls="'+subId+'">'+esc(e.num)+' &middot; <span data-i18n="'+k+'.name">'+esc(e.name)+'</span> '+CARET+'</button>'+
-        '<div class="d-sub" id="'+subId+'">'+
-          li + '<a href="'+esc(e.href)+'" style="font-weight:600;color:var(--violet)" data-i18n="drawer.viewEngine" data-i18n-html>View engine &rarr;</a>'+
+        '<div class="d-sub" id="'+subId+'" inert>'+
+          li + '<a href="'+parentAnchor+'" style="font-weight:600;color:var(--violet)" data-i18n="drawer.viewEngine" data-i18n-html>View engine &rarr;</a>'+
         '</div>'+
       '</div>';
     }).join('');
@@ -113,7 +120,7 @@
           promise+
           '<svg class="en-arrow" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'+
         '</button>'+
-        '<div class="eng-panel" id="'+id+'-panel"><div class="eng-panel-in">'+
+        '<div class="eng-panel" id="'+id+'-panel" aria-hidden="'+(open?'false':'true')+'"'+(open?'':' inert')+'><div class="eng-panel-in">'+
           '<div class="eng-cols">'+cols+'</div>'+
           '<div class="eng-panel-foot"><a href="'+esc(explore)+'" class="btn-text" data-i18n="engines.explore" data-i18n-html>Explore the engine &rarr;</a></div>'+
         '</div></div>'+
@@ -150,12 +157,12 @@
       '</div>'+
     '</div>'+
   '</nav>'+
-  '<aside class="drawer" id="mobileDrawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true">'+
+  '<aside class="drawer" id="mobileDrawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true" inert>'+
     '<div class="drawer-top"><span class="mark">'+markInner()+'</span><button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button></div>'+
     '<nav>'+
       '<ul>'+
         '<li><button class="d-link" data-toggle="d-services" aria-expanded="false" aria-controls="d-services"><span data-i18n="nav.services">Services</span> '+CARET+'</button>'+
-          '<div class="d-sub" id="d-services">'+drawerServices()+'</div>'+
+          '<div class="d-sub" id="d-services" inert>'+drawerServices()+'</div>'+
         '</li>'+
         '<li><a class="d-link" href="work.html" data-i18n="nav.work">Work</a></li>'+
         '<li><a class="d-link" href="industry.html" data-i18n="nav.industries">Industries</a></li>'+
