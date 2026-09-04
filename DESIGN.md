@@ -138,7 +138,9 @@ The desktop mega-menu is viewport-bounded and internally scrollable. The mobile 
 The on-page editor bar is a 48px ink control rail above the public page. Its
 one expressive cue is the signal-green edit status; sheets, dialogs and item
 controls otherwise use neutral paper/ink surfaces and violet focus. Design is
-a non-modal left sheet; Inbox and Settings use the right operations edge.
+a non-modal left sheet; Inbox, Settings and This page use the right operations
+edge. Search and share previews stay inside bordered white cards, use authored
+content fallbacks, and show an explicit loading/unavailable image state.
 Phone preview centers one 390px page frame on a quiet gray work surface.
 
 ### Forms and overlays

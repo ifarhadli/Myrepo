@@ -52,6 +52,11 @@ p{margin:0 0 10px}
 .login-card{background:var(--a-surface);border-radius:18px;padding:32px;width:100%;max-width:420px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
 .admin-advanced-link{display:block;margin-top:16px;text-align:center;color:var(--a-muted);font-size:12px;text-decoration:underline;text-underline-offset:3px}
 .admin-advanced-link:hover{color:var(--a-accent)}
+.login-text-button{display:block;margin:14px auto 0;padding:5px;border:0;background:transparent;color:var(--a-accent);font:600 12px/1.4 var(--a-font);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.login-text-button:hover{text-decoration-thickness:2px}.login-text-button:focus-visible{outline:2px solid var(--a-accent);outline-offset:2px;border-radius:4px}
+.login-notice{margin:16px 0;padding:11px 12px;border:1px solid var(--a-border);border-radius:9px;background:var(--a-bg);font-size:12.5px;line-height:1.5}
+.login-notice[data-kind="success"]{border-color:rgba(30,158,98,.4);background:#f1fbf6;color:#176b46}
+.login-notice[data-kind="warning"]{border-color:rgba(226,87,76,.38);background:#fff6f4;color:#8c2b23}
 .login-card label{display:block;font-family:var(--a-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 8px}
 .login-card input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--a-border);font:inherit;font-size:15px;margin-bottom:12px}
 .password-row{position:relative}

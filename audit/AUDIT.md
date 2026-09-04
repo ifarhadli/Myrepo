@@ -29,10 +29,10 @@ The findings below were verified against the source and screenshots, then addres
 | P1 `role="menu"` misuse | **Fixed** — `role="group"` | `js/partials.js` |
 | P1 FAQ `aria-controls` / hidden answers | **Fixed** — `aria-controls` + `aria-hidden` | `js/main.js` |
 | P1 Filters `aria-pressed` | **Fixed** | `js/main.js` |
-| P1 No canonical / `og:image` / Twitter | **Fixed** — injected server-side on every page from *Site URL* + new *Social share image* setting | `server.js`, `js/admin.js` |
+| P1 No canonical / `og:image` / Twitter | **Fixed** — injected server-side on every page; *This page* owns per-page title, description, social image, noindex and live share/search previews | `server.js`, `js/editor.js`, `css/editor.css` |
 | P1 `robots.txt` blocks `/data/` | **Fixed** | `robots.txt`, `server.js` |
 | P1 AZ on same URL, no hreflang | **Open — architecture** | — |
-| P1 Last-write-wins, no revisions | **Open** (single-editor product for now; JSON export is the backup) | — |
+| P1 Last-write-wins, no revisions | **Partially fixed** — stale drafts and advanced saves now conflict instead of silently overwriting; the last 10 publishes are restorable. Per-field/multi-user history remains out of scope | `server.js`, `js/editor.js` |
 | P1 Admin usability / partial preview | **Fixed** — authenticated on-page editing previews EN/AZ copy, catalogue, layout, colours and fonts directly on every public page; drafts autosave before Publish | `EDITOR-PLAN.md`, `js/editor.js`, `css/editor.css`, `server.js` |
 | P1 Non-atomic `site.js` / sitemap / robots writes | **Fixed** — tmp + rename | `server.js` |
 | P2 Cookie without `Secure` | **Fixed** — set behind HTTPS (`x-forwarded-proto`) or `SECURE_COOKIES=1` | `server.js` |
@@ -41,9 +41,11 @@ The findings below were verified against the source and screenshots, then addres
 | P2 Rate limit behind proxy | **Fixed** — `TRUST_PROXY=1` keys on `X-Forwarded-For` | `server.js` |
 | P2 URL fields not scheme-validated | **Fixed** | `server.js` |
 | P2 Submissions plaintext, no retention | **Open** — small-scale JSON by design; revisit with a DB | — |
-| P2 No automated tests | **Fixed** — 85 integration checks plus 50 real-browser checks | `test/`, `package.json` |
+| P2 No automated tests | **Fixed** — 122 integration checks plus 55 real-browser checks | `test/`, `package.json` |
 | P2 Mobile Services drawer button UA styling | **Fixed** — button reset | `css/style.css` |
-| Post-audit: no email / CRM notification | **Fixed** — Resend email + generic webhook via env vars; admin overview warns when unset | `server.js`, `js/admin.js`, `README.md` |
+| Post-audit: no email / CRM notification | **Fixed** — Resend email + generic webhook; up to 10 private recipients are editable/testable and take precedence over the env fallback | `server.js`, `js/editor.js`, `js/admin.js`, `README.md` |
+| Admin plan 2: no password recovery | **Fixed** — private recovery email, non-enumerating request, expiring one-time token, password/session rotation, honest unavailable state | `server.js`, `admin.html`, `js/login.js`, `js/editor.js` |
+| Admin plan 2: per-page search control incomplete | **Fixed for current static pages** — per-page metadata, social image and noindex are draft/publish controlled; noindex pages leave the sitemap | `server.js`, `js/editor.js` |
 | Deep audit: mobile contact/service overflow | **Fixed** — all inline fixed-grid declarations swept; contact and service layouts collapse cleanly | `contact.html`, `css/style.css` |
 | Deep audit: mega-menu density/height | **Fixed** — admin-configurable link count (default 4), global All services link, viewport-bounded scroll | `js/partials.js`, `css/style.css`, `js/admin.js` |
 | Deep audit: hidden focus in drawer/accordions | **Fixed** — closed content is invisible and inert; modal background is inert | `js/main.js`, `js/partials.js`, `css/style.css` |

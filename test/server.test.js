@@ -40,6 +40,7 @@ fs.rmSync(path.join(TMP, 'data', 'submissions.json'), { force: true });
 const child = spawn(process.execPath, ['server.js'], {
   cwd: TMP,
   env: Object.assign({}, process.env, { PORT: String(PORT), HOST: '127.0.0.1', ADMIN_PASSWORD: PW,
+    NODE_ENV: 'test', RECOVERY_TTL_MS: '2000', TRUST_PROXY: '1',
     RESEND_API_KEY: 're_test', RESEND_API_URL: 'http://127.0.0.1:' + MAIL_PORT + '/emails',
     NOTIFY_EMAIL_FROM: 'OmniMark Test <test@example.test>', NOTIFY_WEBHOOK_URL: '', NOTIFY_EMAIL_TO: 'leads@example.test' })
 });
@@ -109,6 +110,11 @@ async function main(){
   /* ---- auth ---- */
   r = await req('GET', '/api/me');
   check('me: not authed', r.json && r.json.authed === false);
+  r = await req('GET', '/api/recover');
+  check('public recovery status is honest before setup', r.status === 200 && r.json.available === false);
+  const mailBeforeUnconfiguredRecovery = sentMail.length;
+  r = await req('POST', '/api/recover', {}, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.10' } });
+  check('recovery request never reveals missing configuration', r.status === 200 && r.json.ok && sentMail.length === mailBeforeUnconfiguredRecovery);
   r = await req('GET', '/?edit=1');
   check('anonymous edit query does not inject editor assets', r.status === 200 && !/js\/editor\.js/.test(r.text));
   r = await req('PUT', '/api/site', {}, { admin: true });
@@ -141,7 +147,24 @@ async function main(){
   r = await req('GET', '/?edit=1');
   check('authenticated edit query injects editor assets', r.status === 200 && /css\/editor\.css/.test(r.text) && /js\/editor\.js/.test(r.text));
   r = await req('GET', '/api/status');
-  check('status reports notification config', r.status === 200 && r.json.notifications && r.json.notifications.email === true && r.json.notifications.webhook === false && r.json.notifications.autoReply === true, r.text);
+  check('status reports notification and recovery config', r.status === 200 && r.json.notifications && r.json.notifications.email === true &&
+    r.json.notifications.emailSource === 'env' && r.json.notifications.webhook === false && r.json.notifications.autoReply === true &&
+    r.json.recovery && r.json.recovery.emailSet === false && r.json.recovery.resendConfigured === true, r.text);
+  r = await req('GET', '/api/account/notifications');
+  check('notification recipients start from the environment fallback', r.status === 200 && r.json.source === 'env' && r.json.emails[0] === 'leads@example.test', r.text);
+  r = await req('PUT', '/api/account/notifications', { emails: Array.from({ length: 11 }, (_, i) => 'lead' + i + '@example.test') }, { admin: true });
+  check('notification recipients are capped at ten', r.status === 400);
+  r = await req('PUT', '/api/account/notifications', { emails: ['valid@example.test', 'not-an-email'] }, { admin: true });
+  check('notification recipient validation rejects a bad address', r.status === 400);
+  r = await req('PUT', '/api/account/notifications', { emails: ['Owner@Example.test', 'ops@example.test'] }, { admin: true });
+  check('private notification recipients override the environment', r.status === 200 && r.json.source === 'settings' && r.json.emails.join(',') === 'owner@example.test,ops@example.test', r.text);
+  const mailBeforeNotifyTest = sentMail.length;
+  r = await req('POST', '/api/notify/test', {}, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.20' } });
+  check('test notification reports delivery to private recipients', r.status === 200 && r.json.delivered === true && r.json.source === 'settings' &&
+    sentMail.length === mailBeforeNotifyTest + 1 && sentMail[mailBeforeNotifyTest].to.join(',') === 'owner@example.test,ops@example.test', r.text);
+  let throttledTest;
+  for (let i = 0; i < 4; i++) throttledTest = await req('POST', '/api/notify/test', {}, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.21' } });
+  check('test notification endpoint is throttled at three sends', throttledTest.status === 429);
   r = await req('GET', '/api/pages');
   check('pages list (14, no 404/admin)', r.status === 200 && Array.isArray(r.json) && r.json.length === 14 && r.json.some(p => p.key === 'index' && p.sections.length === 13), r.text.slice(0, 200));
   const idx = r.json.find(p => p.key === 'index');
@@ -161,7 +184,8 @@ async function main(){
     sectionAccent: { 'index.s1': 3, low: 0, high: 6, text: 'x' },
     itemOrder: { 'index.cases': ['c2', 'BAD', 'c1', 'c2'], 'bad/list': ['c1'] },
     hiddenItems: ['index.cases:c3', 'bad item', 'index.cases:UPPER'],
-    pages: { about: { title: 'About us <b>', description: 'Desc "quoted"' } },
+    pages: { about: { title: 'About us <b>', description: 'Desc "quoted"', ogImage: 'https://example.test/about-og.png' },
+      contact: { noindex: true }, article: { noindex: false, ogImage: 'javascript:bad' } },
     i18n: { en: { 'nav.work': 'Cases' }, az: { 'nav.work': 'Keyslər' } },
     engines: [{ id: 'x', num: '01', name: 'E1 <script>', promise: 'p', href: 'a.html', detail: 'b.html', groups: [{ title: 'G', items: ['one', 'two'] }] }],
     enginesAz: [{ name: 'E1az', promise: 'paz', groups: [{ title: 'Gaz', items: ['bir', 'iki'] }] }],
@@ -181,14 +205,18 @@ async function main(){
   check('validation: editor layout fields cleaned', saved && saved.sectionOrder.index.length === 2 && saved.sectionOrder.about.length === 60 &&
     saved.sectionAccent['index.s1'] === 3 && !('low' in saved.sectionAccent) && !('high' in saved.sectionAccent) && !('text' in saved.sectionAccent) &&
     saved.itemOrder['index.cases'].join(',') === 'c2,c1' && !('bad/list' in saved.itemOrder) && saved.hiddenItems.join(',') === 'index.cases:c3', JSON.stringify(saved));
+  check('validation: page SEO fields are typed and URL-safe', saved && saved.pages.contact.noindex === true && saved.pages.article.noindex === false &&
+    saved.pages.article.ogImage === '' && saved.pages.about.ogImage === 'https://example.test/about-og.png', JSON.stringify(saved.pages));
   const siteJs = readTmp('data/site.js');
   check('site.js regenerated + </script escaped', /hi@example\.test/.test(siteJs) && !/<\/script/.test(siteJs) && !/<\//.test(siteJs.replace(/<\\\//g, '')));
-  check('sitemap uses new siteUrl', /https:\/\/example\.test\/about\.html/.test(readTmp('sitemap.xml')));
+  check('sitemap uses new siteUrl and excludes noindex pages', /https:\/\/example\.test\/about\.html/.test(readTmp('sitemap.xml')) && !/contact\.html/.test(readTmp('sitemap.xml')));
   r = await req('GET', '/about.html');
   check('meta injection: title escaped', /<title>About us &lt;b&gt;<\/title>/.test(r.text), (r.text.match(/<title>[^<]*<\/title>/) || [])[0]);
   check('meta injection: description', /name="description" content="Desc &quot;quoted&quot;"/.test(r.text));
   check('meta injection: og:title', /property="og:title" content="About us &lt;b&gt;"/.test(r.text));
-  check('meta injection: og:image after save', /property="og:image" content="https:\/\/example\.test\/og\.png"/.test(r.text) && /twitter:card" content="summary_large_image"/.test(r.text));
+  check('meta injection: per-page og:image overrides the site default', /property="og:image" content="https:\/\/example\.test\/about-og\.png"/.test(r.text) && /twitter:card" content="summary_large_image"/.test(r.text));
+  r = await req('GET', '/contact.html');
+  check('noindex page emits robots metadata', /<meta name="robots" content="noindex,nofollow">/.test(r.text));
   r = await req('GET', '/article.html');
   check('Article structured data emitted with publishing fields', /"@type":"Article"/.test(r.text) && /"name":"Priya Anand"/.test(r.text) && /"datePublished":"2026-09-01"/.test(r.text));
   r = await req('GET', '/role-detail.html');
@@ -254,6 +282,7 @@ async function main(){
 
   /* ---- submissions ---- */
   cookie = '';
+  const formMailStart = sentMail.length;
   r = await req('POST', '/api/submit', { form: 'contact', email: 'a@b.co' });
   check('submit contact enforces server-side required fields', r.status === 400 && r.json.fields.name && r.json.fields.company && r.json.fields.spend && r.json.fields.consent, r.text);
   r = await req('POST', '/api/submit', { form: 'contact', name: 'A', email: 'a@b.co', company: 'C', spend: '$10k', consent: true, message: 'hi' });
@@ -265,10 +294,12 @@ async function main(){
   r = await req('POST', '/api/submit', { form: 'newsletter' });
   check('submit empty rejected', r.status === 400 && r.json.fields.email);
   const mailUntil = Date.now() + 3000;
-  while (sentMail.length < 4 && Date.now() < mailUntil) await new Promise(resolve => setTimeout(resolve, 25));
-  check('Resend receives internal and visitor messages', sentMail.length === 4, JSON.stringify(sentMail));
-  check('contact acknowledgement matches public promise', sentMail.some(m => /^We received your enquiry/.test(m.subject || '') && /within one business day/.test(m.text || '') && Array.isArray(m.to) && m.to[0] === 'a@b.co'));
-  check('newsletter welcome includes unsubscribe mailto', sentMail.some(m => /^Welcome to/.test(m.subject || '') && /mailto:hi@example\.test\?subject=Unsubscribe%20from%20OmniMark/.test(m.text || '')));
+  while (sentMail.length < formMailStart + 4 && Date.now() < mailUntil) await new Promise(resolve => setTimeout(resolve, 25));
+  const formMail = sentMail.slice(formMailStart);
+  check('Resend receives internal and visitor messages', formMail.length === 4, JSON.stringify(formMail));
+  check('submission notifications use private recipients over the environment', formMail.some(m => /^\[OmniMark\] New contact/.test(m.subject || '') && m.to.join(',') === 'owner@example.test,ops@example.test'));
+  check('contact acknowledgement matches public promise', formMail.some(m => /^We received your enquiry/.test(m.subject || '') && /within one business day/.test(m.text || '') && Array.isArray(m.to) && m.to[0] === 'a@b.co'));
+  check('newsletter welcome includes unsubscribe mailto', formMail.some(m => /^Welcome to/.test(m.subject || '') && /mailto:hi@example\.test\?subject=Unsubscribe%20from%20OmniMark/.test(m.text || '')));
   r = await req('POST', '/api/login', { password: PW }, { admin: true });
   r = await req('GET', '/api/submissions');
   const contactSub = r.json.find(s => s.form === 'contact');
@@ -297,6 +328,51 @@ async function main(){
   check('logged out', r.json && r.json.authed === false);
   r = await req('POST', '/api/login', { password: PW }, { admin: true });
   check('old password no longer works', r.status === 401);
+
+  /* ---- password recovery ---- */
+  r = await req('POST', '/api/login', { password: 'newpass-5678' }, { admin: true });
+  check('new password signs in for recovery setup', r.status === 200);
+  r = await req('POST', '/api/account/recovery-email', { current: 'wrong', email: 'owner@example.test' }, { admin: true });
+  check('recovery email change requires the current password', r.status === 401);
+  r = await req('POST', '/api/account/recovery-email', { current: 'newpass-5678', email: 'Recovery@Example.test' }, { admin: true });
+  check('recovery email saves privately after password verification', r.status === 200 && r.json.email === 'recovery@example.test');
+  r = await req('GET', '/api/account/recovery-email');
+  check('authenticated recovery settings return the saved address', r.status === 200 && r.json.email === 'recovery@example.test' && r.json.resendConfigured === true);
+  r = await req('GET', '/api/recover');
+  check('public recovery becomes available after setup', r.status === 200 && r.json.available === true);
+  const mailBeforeRecovery = sentMail.length;
+  r = await req('POST', '/api/recover', {}, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.30' } });
+  const firstRecoveryMail = sentMail[mailBeforeRecovery];
+  const firstToken = firstRecoveryMail && ((firstRecoveryMail.text || '').match(/reset=([a-f0-9]{64})/) || [])[1];
+  check('configured recovery request sends exactly one private reset email', r.status === 200 && sentMail.length === mailBeforeRecovery + 1 &&
+    firstRecoveryMail.to[0] === 'recovery@example.test' && /https:\/\/example\.test\/admin\.html\?reset=/.test(firstRecoveryMail.text || '') && !!firstToken, JSON.stringify(firstRecoveryMail));
+  await new Promise(resolve => setTimeout(resolve, 2200));
+  r = await req('POST', '/api/reset', { token: firstToken, next: 'recovered-pass-1' }, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.40' } });
+  check('expired reset token gets the generic failure', r.status === 400 && /invalid or expired/.test(r.json.error));
+  const mailBeforeValidRecovery = sentMail.length;
+  r = await req('POST', '/api/recover', {}, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.30' } });
+  const validRecoveryMail = sentMail[mailBeforeValidRecovery];
+  const validToken = validRecoveryMail && ((validRecoveryMail.text || '').match(/reset=([a-f0-9]{64})/) || [])[1];
+  check('a fresh recovery request replaces the expired token', r.status === 200 && sentMail.length === mailBeforeValidRecovery + 1 && !!validToken);
+  r = await req('POST', '/api/reset', { token: '0'.repeat(64), next: 'recovered-pass-1' }, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.40' } });
+  check('wrong reset token gets the same generic failure', r.status === 400 && /invalid or expired/.test(r.json.error));
+  const oldSession = cookie;
+  r = await req('POST', '/api/reset', { token: validToken, next: 'recovered-pass-1' }, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.40' } });
+  check('valid reset changes the password and consumes the token', r.status === 200 && r.json.ok);
+  cookie = oldSession;
+  r = await req('GET', '/api/me');
+  check('password reset invalidates the old session', r.status === 200 && r.json.authed === false);
+  r = await req('POST', '/api/reset', { token: validToken, next: 'another-pass-1' }, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.40' } });
+  check('used reset token cannot be reused', r.status === 400 && /invalid or expired/.test(r.json.error));
+  cookie = '';
+  r = await req('POST', '/api/login', { password: 'recovered-pass-1' }, { admin: true });
+  check('recovered password signs in', r.status === 200);
+  let recoverThrottle;
+  for (let i = 0; i < 4; i++) recoverThrottle = await req('POST', '/api/recover', {}, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.31' } });
+  check('recovery requests are throttled at three per 15 minutes', recoverThrottle.status === 429);
+  let resetThrottle;
+  for (let i = 0; i < 6; i++) resetThrottle = await req('POST', '/api/reset', { token: 'f'.repeat(64), next: 'long-enough' }, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.41' } });
+  check('reset attempts are throttled at five per 15 minutes', resetThrottle.status === 429);
 
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
 }

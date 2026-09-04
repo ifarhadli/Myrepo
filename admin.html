@@ -13,18 +13,46 @@
 </head>
 <body>
 <div id="login" class="login">
-  <form class="login-card" id="loginForm" autocomplete="off" novalidate>
+  <div class="login-card">
     <div class="brand">Omni<span>Mark</span> <em>editor</em></div>
-    <p class="muted">Sign in to edit the real website directly. Drafts save automatically and stay private until you publish.</p>
-    <label for="loginPw">Password</label>
-    <div class="password-row">
-      <input id="loginPw" type="password" autocomplete="current-password" aria-describedby="loginErr" aria-invalid="false" required autofocus>
-      <button type="button" class="password-toggle" data-password-toggle="loginPw" aria-pressed="false">Show</button>
-    </div>
-    <p class="err" id="loginErr" role="alert" hidden></p>
-    <button type="submit" class="btn primary block">Sign in</button>
+    <form id="loginForm" autocomplete="off" novalidate>
+      <p class="muted">Sign in to edit the real website directly. Drafts save automatically and stay private until you publish.</p>
+      <p class="login-notice" id="loginStatus" role="status" aria-live="polite" hidden></p>
+      <label for="loginPw">Password</label>
+      <div class="password-row">
+        <input id="loginPw" type="password" autocomplete="current-password" maxlength="200" aria-describedby="loginErr" aria-invalid="false" required autofocus>
+        <button type="button" class="password-toggle" data-password-toggle="loginPw" aria-pressed="false">Show</button>
+      </div>
+      <p class="err" id="loginErr" role="alert" hidden></p>
+      <button type="submit" class="btn primary block">Sign in</button>
+      <button type="button" class="login-text-button" id="forgotPassword">Forgot password?</button>
+    </form>
+    <section id="recoverView" aria-labelledby="recoverTitle" hidden>
+      <h1 id="recoverTitle">Reset your password</h1>
+      <p class="muted" id="recoverHelp">We will email a private, one-time reset link to the recovery address saved by the site owner.</p>
+      <p class="login-notice" id="recoverStatus" role="status" aria-live="polite" hidden></p>
+      <button type="button" class="btn primary block" id="sendRecovery">Send reset link</button>
+      <button type="button" class="login-text-button" data-back-login>Back to sign in</button>
+    </section>
+    <form id="resetForm" autocomplete="off" novalidate hidden>
+      <h1>Choose a new password</h1>
+      <p class="muted">Use at least 8 characters. Saving it will sign out every existing editor session.</p>
+      <label for="resetPw">New password</label>
+      <div class="password-row">
+        <input id="resetPw" type="password" autocomplete="new-password" minlength="8" maxlength="200" aria-describedby="resetErr" required>
+        <button type="button" class="password-toggle" data-password-toggle="resetPw" aria-pressed="false">Show</button>
+      </div>
+      <label for="resetPw2">Repeat new password</label>
+      <div class="password-row">
+        <input id="resetPw2" type="password" autocomplete="new-password" minlength="8" maxlength="200" aria-describedby="resetErr" required>
+        <button type="button" class="password-toggle" data-password-toggle="resetPw2" aria-pressed="false">Show</button>
+      </div>
+      <p class="err" id="resetErr" role="alert" hidden></p>
+      <button type="submit" class="btn primary block">Save new password</button>
+      <button type="button" class="login-text-button" data-back-login>Back to sign in</button>
+    </form>
     <a href="admin-advanced.html" class="admin-advanced-link">Advanced dashboard</a>
-  </form>
+  </div>
 </div>
 <div id="noServer" class="login" hidden>
   <div class="login-card">

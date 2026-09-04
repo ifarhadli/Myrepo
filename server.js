@@ -5,7 +5,7 @@
    - /admin is the editor sign-in; /admin-advanced.html is the developer dashboard.
    - Persists to data/site.json (+ regenerates data/site.js, sitemap.xml
      and robots.txt so a plain static host still gets the saved state),
-     data/admin.json (password hash + session secret) and
+     data/admin.json (password/recovery + private notification settings) and
      data/submissions.json (contact / teardown / newsletter forms).
 
    Run:  node server.js            (PORT=3000 by default)
@@ -34,6 +34,7 @@ const HOST = process.env.HOST || (process.env.PORT ? '0.0.0.0' : '127.0.0.1');
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const COOKIE = 'om_admin';
 const SESSION_TTL = 1000 * 60 * 60 * 12; // 12h
+const RECOVERY_TTL = process.env.NODE_ENV === 'test' && Number(process.env.RECOVERY_TTL_MS) > 0 ? Number(process.env.RECOVERY_TTL_MS) : 30 * 60 * 1000;
 const MAX_BODY = 2 * 1024 * 1024;        // 2 MB — site.json with full copy overrides
 const PRIVATE_FILES = new Set(['admin.json', 'submissions.json', 'draft.json']);
 
@@ -91,7 +92,10 @@ function listPages(){
 function writeSeoFiles(site){
   const base = String((site.settings && site.settings.siteUrl) || '').replace(/\/+$/, '');
   const today = new Date().toISOString().slice(0, 10);
-  const urls = listPages().map(f => {
+  const urls = listPages().filter(f => {
+    const key = f.replace(/\.html$/i, '');
+    return !(site.pages && site.pages[key] && site.pages[key].noindex === true);
+  }).map(f => {
     const loc = base + '/' + (f === 'index.html' ? '' : f);
     return '  <url><loc>' + escapeXml(loc) + '</loc><lastmod>' + today + '</lastmod></url>';
   });
@@ -242,7 +246,11 @@ function validateSite(input){
   }
   if (isPlain(input.pages)) for (const k of Object.keys(input.pages)){
     if (!/^[a-z0-9-]{1,60}$/i.test(k) || !isPlain(input.pages[k])) continue;
-    const p = strMap(input.pages[k], 1000);
+    const raw = input.pages[k], p = {};
+    if (typeof raw.title === 'string') p.title = raw.title.slice(0, 1000);
+    if (typeof raw.description === 'string') p.description = raw.description.slice(0, 1000);
+    if (typeof raw.ogImage === 'string') p.ogImage = /^https?:\/\//i.test(raw.ogImage.trim()) ? raw.ogImage.trim().slice(0, 2000) : '';
+    if (typeof raw.noindex === 'boolean') p.noindex = raw.noindex;
     if (Object.keys(p).length) site.pages[k] = p;
   }
   if (isPlain(input.i18n)){ site.i18n.en = strMap(input.i18n.en); site.i18n.az = strMap(input.i18n.az); }
@@ -287,8 +295,8 @@ function publishSummary(before, after){
     catalogue: diffCount({ engines: before.engines, enginesAz: before.enginesAz, industries: before.industries, industriesAz: before.industriesAz },
       { engines: after.engines, enginesAz: after.enginesAz, industries: after.industries, industriesAz: after.industriesAz }),
     design: diffCount(before.design || {}, after.design || {}),
-    settings: diffCount({ settings: before.settings || {}, features: before.features || {}, analytics: before.analytics || {}, structured: before.structured || {} },
-      { settings: after.settings || {}, features: after.features || {}, analytics: after.analytics || {}, structured: after.structured || {} })
+    settings: diffCount({ settings: before.settings || {}, features: before.features || {}, analytics: before.analytics || {}, structured: before.structured || {}, pages: before.pages || {} },
+      { settings: after.settings || {}, features: after.features || {}, analytics: after.analytics || {}, structured: after.structured || {}, pages: after.pages || {} })
   };
 }
 
@@ -306,13 +314,25 @@ function verifyPassword(pw, rec){
 }
 function loadAdmin(){
   let admin = readJson(ADMIN_JSON, null);
-  if (admin && admin.hash && admin.secret) return { admin, generated: null };
+  if (admin && admin.hash && admin.secret){
+    const recoveryEmail = typeof admin.recoveryEmail === 'string' ? admin.recoveryEmail.trim().toLowerCase().slice(0, 254) : '';
+    admin.recoveryEmail = isEmail(recoveryEmail) ? recoveryEmail : '';
+    admin.notifyEmails = cleanEmails(admin.notifyEmails);
+    if (!isPlain(admin.recovery) || !/^[a-f0-9]{64}$/.test(admin.recovery.hash || '') || !admin.recovery.exp) admin.recovery = null;
+    return { admin, generated: null };
+  }
   const pw = process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-  admin = Object.assign(hashPassword(pw), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString() });
+  admin = Object.assign(hashPassword(pw), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString(),
+    recoveryEmail: '', recovery: null, notifyEmails: [] });
   writeJsonAtomic(ADMIN_JSON, admin);
   return { admin, generated: process.env.ADMIN_PASSWORD ? null : pw };
 }
 let ADMIN = null;
+function saveAdmin(next){
+  ADMIN = next;
+  writeJsonAtomic(ADMIN_JSON, ADMIN);
+  return ADMIN;
+}
 function sign(payload){
   const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const sig = crypto.createHmac('sha256', ADMIN.secret).update(body).digest('base64url');
@@ -363,6 +383,9 @@ function limiter(max, windowMs){
 }
 const loginLimiter = limiter(10, 15 * 60 * 1000);
 const submitLimiter = limiter(30, 10 * 60 * 1000);
+const recoverLimiter = limiter(3, 15 * 60 * 1000);
+const resetLimiter = limiter(5, 15 * 60 * 1000);
+const notifyTestLimiter = limiter(3, 10 * 60 * 1000);
 
 /* ---------- http helpers ---------- */
 function send(res, status, body, headers){
@@ -415,13 +438,28 @@ function clientIp(req){
 
 /* ---------- submission notifications ----------
    Secrets live in the environment, never in site.json (which is public).
-     RESEND_API_KEY + NOTIFY_EMAIL_TO [+ NOTIFY_EMAIL_FROM]  → email via api.resend.com
+     RESEND_API_KEY + editor recipients or NOTIFY_EMAIL_TO  → email via api.resend.com
      NOTIFY_WEBHOOK_URL                                       → JSON POST (Slack, Zapier, Make, a CRM)
    Fire-and-forget after the submission is on disk; failures are logged,
    never surfaced to the visitor. */
+function isEmail(value){
+  return typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+function cleanEmails(values){
+  if (!Array.isArray(values)) return [];
+  return Array.from(new Set(values.map(value => String(value || '').trim().toLowerCase()).filter(isEmail))).slice(0, 10);
+}
+function notificationRecipients(){
+  const stored = cleanEmails(ADMIN && ADMIN.notifyEmails);
+  if (stored.length) return { emails: stored, source: 'settings' };
+  const env = cleanEmails(String(process.env.NOTIFY_EMAIL_TO || '').split(','));
+  return { emails: env, source: env.length ? 'env' : 'none' };
+}
 function notifyConfig(){
+  const recipients = notificationRecipients();
   return {
-    email: !!(process.env.RESEND_API_KEY && process.env.NOTIFY_EMAIL_TO),
+    email: !!(process.env.RESEND_API_KEY && recipients.emails.length),
+    emailSource: recipients.source,
     webhook: /^https:\/\//i.test(process.env.NOTIFY_WEBHOOK_URL || ''),
     autoReply: !!process.env.RESEND_API_KEY
   };
@@ -434,12 +472,30 @@ async function postWithTimeout(url, headers, body){
     if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + (await r.text()).slice(0, 200));
   } finally { clearTimeout(timer); }
 }
+function resendDetails(site){
+  const name = String((site.settings && site.settings.siteName) || 'OmniMark').replace(/[\r\n]+/g, ' ').trim().slice(0, 100) || 'OmniMark';
+  return {
+    name,
+    sender: process.env.NOTIFY_EMAIL_FROM || (name + ' <onboarding@resend.dev>'),
+    url: process.env.RESEND_API_URL || 'https://api.resend.com/emails',
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.RESEND_API_KEY }
+  };
+}
+function sendLeadEmail(sub, site){
+  const recipients = notificationRecipients();
+  if (!process.env.RESEND_API_KEY || !recipients.emails.length) return Promise.resolve({ ok: false, reason: 'not-configured', recipients: [] });
+  const mail = resendDetails(site);
+  const lines = Object.keys(sub.fields).map(k => k + ': ' + sub.fields[k]).join('\n');
+  const text = 'New ' + sub.form + ' submission on ' + mail.name + '\n' + sub.at + '\n\n' + lines + '\n\nPage: ' + sub.page + '\nLanguage: ' + sub.lang;
+  return postWithTimeout(mail.url, mail.headers,
+    { from: mail.sender, to: recipients.emails, reply_to: sub.fields.email || undefined,
+      subject: '[' + mail.name + '] New ' + sub.form + ' submission' + (sub.fields.name ? ' from ' + sub.fields.name : ''), text })
+    .then(() => ({ ok: true, recipients: recipients.emails, source: recipients.source }));
+}
 function notify(sub, site){
   const cfg = notifyConfig();
-  const name = String((site.settings && site.settings.siteName) || 'OmniMark').replace(/[\r\n]+/g, ' ').trim().slice(0, 100) || 'OmniMark';
-  const sender = process.env.NOTIFY_EMAIL_FROM || (name + ' <onboarding@resend.dev>');
-  const resendUrl = process.env.RESEND_API_URL || 'https://api.resend.com/emails';
-  const resendHeaders = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.RESEND_API_KEY };
+  const mail = resendDetails(site);
+  const name = mail.name;
   const lines = Object.keys(sub.fields).map(k => k + ': ' + sub.fields[k]).join('\n');
   const text = 'New ' + sub.form + ' submission on ' + name + '\n' + sub.at + '\n\n' + lines + '\n\nPage: ' + sub.page + '\nLanguage: ' + sub.lang;
   if (cfg.webhook){
@@ -449,12 +505,7 @@ function notify(sub, site){
       .catch(e => console.error('[notify] webhook failed:', e.message));
   }
   if (cfg.email){
-    postWithTimeout(resendUrl, resendHeaders,
-      { from: sender,
-        to: process.env.NOTIFY_EMAIL_TO.split(',').map(s => s.trim()).filter(Boolean),
-        reply_to: sub.fields.email || undefined,
-        subject: '[' + name + '] New ' + sub.form + ' submission' + (sub.fields.name ? ' from ' + sub.fields.name : ''),
-        text })
+    sendLeadEmail(sub, site)
       .catch(e => console.error('[notify] email failed:', e.message));
   }
   if (cfg.autoReply && sub.fields.email){
@@ -472,8 +523,8 @@ function notify(sub, site){
       subject = 'We received your enquiry — ' + name;
       replyText = hello + '\n\nThanks for contacting ' + name + '. Your enquiry is safely in our queue, and we will reply within one business day.\n\nThis is an automated confirmation; you can reply directly if you need to add context.\n\n' + name;
     }
-    postWithTimeout(resendUrl, resendHeaders,
-      { from: sender, to: [sub.fields.email], reply_to: (site.settings && site.settings.email) || undefined, subject, text: replyText })
+    postWithTimeout(mail.url, mail.headers,
+      { from: mail.sender, to: [sub.fields.email], reply_to: (site.settings && site.settings.email) || undefined, subject, text: replyText })
       .catch(e => console.error('[notify] visitor acknowledgement failed:', e.message));
   }
 }
@@ -568,6 +619,27 @@ function jsonLd(value){
   return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 }
 
+function recoveryAvailable(){ return !!(ADMIN && ADMIN.recoveryEmail && process.env.RESEND_API_KEY); }
+function requestBase(req){
+  const site = loadSite();
+  const configured = String((site.settings && site.settings.siteUrl) || '').replace(/\/+$/, '');
+  if (/^https?:\/\//i.test(configured)) return configured;
+  const forwarded = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase();
+  const scheme = forwarded === 'https' ? 'https' : 'http';
+  const host = String(req.headers.host || '').trim();
+  return /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(host) ? scheme + '://' + host : '';
+}
+async function sendRecoveryEmail(req, token){
+  const site = loadSite(), mail = resendDetails(site), base = requestBase(req);
+  if (!base) throw new Error('No safe public base URL is configured.');
+  const link = base + '/admin.html?reset=' + encodeURIComponent(token);
+  await postWithTimeout(mail.url, mail.headers, {
+    from: mail.sender, to: [ADMIN.recoveryEmail], subject: 'Reset your ' + mail.name + ' admin password',
+    text: 'A password reset was requested for the ' + mail.name + ' website editor.\n\nReset your password within 30 minutes:\n' + link +
+      '\n\nIf you did not request this, you can ignore this email.'
+  });
+}
+
 /* Inject admin-set title / description / og into a page as it is served. */
 function injectMeta(html, key, site){
   const pg = (site.pages && site.pages[key]) || {};
@@ -589,8 +661,16 @@ function injectMeta(html, key, site){
     extra.push('<link rel="canonical" href="' + escapeHtml(loc) + '">');
     extra.push('<meta property="og:url" content="' + escapeHtml(loc) + '">');
   }
-  const img = site.settings && site.settings.ogImage;
-  if (img && !/property="og:image"/i.test(html)) extra.push('<meta property="og:image" content="' + escapeHtml(img) + '">');
+  if (pg.noindex === true){
+    if (/<meta\s+name="robots"[^>]*>/i.test(html)) html = html.replace(/<meta\s+name="robots"[^>]*>/i, '<meta name="robots" content="noindex,nofollow">');
+    else extra.push('<meta name="robots" content="noindex,nofollow">');
+  }
+  const img = pg.ogImage || (site.settings && site.settings.ogImage);
+  if (img){
+    const tag = '<meta property="og:image" content="' + escapeHtml(img) + '">';
+    if (/property="og:image"/i.test(html)) html = html.replace(/<meta\s+property="og:image"[^>]*>/i, tag);
+    else extra.push(tag);
+  }
   if (!/name="twitter:card"/i.test(html)) extra.push('<meta name="twitter:card" content="' + (img ? 'summary_large_image' : 'summary') + '">');
   const schema = structuredData(html, key, site, base, loc);
   if (schema) extra.push('<script type="application/ld+json">' + jsonLd(schema) + '</script>');
@@ -605,6 +685,36 @@ async function api(req, res, url){
 
   if (p === '/site' && method === 'GET') return json(res, 200, loadSite());
   if (p === '/me' && method === 'GET') return json(res, 200, { authed: isAuthed(req) });
+  if (p === '/recover' && method === 'GET') return json(res, 200, { available: recoveryAvailable() });
+
+  if (p === '/recover' && method === 'POST'){
+    if (!sameOrigin(req)) return json(res, 403, { error: 'forbidden' });
+    if (!recoverLimiter(clientIp(req))) return json(res, 429, { error: 'Too many reset requests. Wait 15 minutes.' });
+    if (recoveryAvailable()){
+      const token = crypto.randomBytes(32).toString('hex');
+      const recovery = { hash: crypto.createHash('sha256').update(token).digest('hex'), exp: new Date(Date.now() + RECOVERY_TTL).toISOString() };
+      saveAdmin(Object.assign({}, ADMIN, { recovery }));
+      try { await sendRecoveryEmail(req, token); }
+      catch (e) { console.error('[recovery] email failed:', e.message); }
+    }
+    return json(res, 200, { ok: true });
+  }
+  if (p === '/reset' && method === 'POST'){
+    if (!sameOrigin(req)) return json(res, 403, { error: 'forbidden' });
+    if (!resetLimiter(clientIp(req))) return json(res, 429, { error: 'Too many reset attempts. Wait 15 minutes.' });
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: 'The reset link is invalid or expired.' }); }
+    const token = String(body.token || ''), next = String(body.next || ''), recovery = ADMIN && ADMIN.recovery;
+    let valid = /^[a-f0-9]{64}$/.test(token) && next.length >= 8 && next.length <= 200 && recovery && /^[a-f0-9]{64}$/.test(recovery.hash || '') && Date.parse(recovery.exp) > Date.now();
+    if (valid){
+      const got = Buffer.from(crypto.createHash('sha256').update(token).digest('hex'), 'hex');
+      const want = Buffer.from(recovery.hash, 'hex');
+      valid = got.length === want.length && crypto.timingSafeEqual(got, want);
+    }
+    if (!valid) return json(res, 400, { error: 'The reset link is invalid or expired.' });
+    saveAdmin(Object.assign({}, ADMIN, hashPassword(next), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), recovery: null }));
+    return json(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', 0, isSecure(req)) });
+  }
 
   if (p === '/submit' && method === 'POST'){
     if (!submitLimiter(clientIp(req))) return json(res, 429, { error: 'Too many submissions, try again later.' });
@@ -722,7 +832,48 @@ async function api(req, res, url){
     return json(res, 200, { ok: true, savedAt, draft, restoredFrom: rec.id });
   }
   if (p === '/status' && method === 'GET'){
-    return json(res, 200, { notifications: notifyConfig(), trustProxy: TRUST_PROXY, secure: isSecure(req), node: process.version });
+    return json(res, 200, { notifications: notifyConfig(), recovery: { emailSet: !!ADMIN.recoveryEmail, resendConfigured: !!process.env.RESEND_API_KEY },
+      trustProxy: TRUST_PROXY, secure: isSecure(req), node: process.version });
+  }
+  if (p === '/account/recovery-email' && method === 'GET') return json(res, 200, { email: ADMIN.recoveryEmail || '', resendConfigured: !!process.env.RESEND_API_KEY });
+  if (p === '/account/recovery-email' && method === 'POST'){
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (!verifyPassword(body.current || '', ADMIN)) return json(res, 401, { error: 'Current password is wrong.' });
+    const email = String(body.email || '').trim().toLowerCase();
+    if (email && !isEmail(email)) return json(res, 400, { error: 'Enter a valid recovery email.' });
+    saveAdmin(Object.assign({}, ADMIN, { recoveryEmail: email, recovery: null }));
+    return json(res, 200, { ok: true, email });
+  }
+  if (p === '/account/notifications' && method === 'GET'){
+    const recipients = notificationRecipients();
+    return json(res, 200, { emails: recipients.emails, source: recipients.source, resendConfigured: !!process.env.RESEND_API_KEY,
+      webhookConfigured: /^https:\/\//i.test(process.env.NOTIFY_WEBHOOK_URL || '') });
+  }
+  if (p === '/account/notifications' && method === 'PUT'){
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (!Array.isArray(body.emails) || body.emails.length > 10) return json(res, 400, { error: 'Use a list of up to 10 email addresses.' });
+    const raw = body.emails.map(value => String(value || '').trim().toLowerCase());
+    if (raw.some(value => !isEmail(value))) return json(res, 400, { error: 'Every notification recipient must be a valid email address.' });
+    saveAdmin(Object.assign({}, ADMIN, { notifyEmails: Array.from(new Set(raw)) }));
+    const recipients = notificationRecipients();
+    return json(res, 200, { ok: true, emails: recipients.emails, source: recipients.source, resendConfigured: !!process.env.RESEND_API_KEY,
+      webhookConfigured: /^https:\/\//i.test(process.env.NOTIFY_WEBHOOK_URL || '') });
+  }
+  if (p === '/notify/test' && method === 'POST'){
+    if (!notifyTestLimiter(clientIp(req))) return json(res, 429, { error: 'Too many test emails. Wait 10 minutes.' });
+    const now = new Date().toISOString();
+    const sample = { id: crypto.randomBytes(8).toString('hex'), form: 'test lead', at: now, page: '/admin', lang: 'en',
+      fields: { name: 'OmniMark test lead', email: (loadSite().settings && loadSite().settings.email) || 'hello@example.test', company: 'Notification test', message: 'This is a test from the website editor. No action is needed.' } };
+    try {
+      const result = await sendLeadEmail(sample, loadSite());
+      if (!result.ok) return json(res, 409, { error: 'Email notifications are not configured.' });
+      return json(res, 200, { ok: true, delivered: true, recipients: result.recipients, source: result.source });
+    } catch (e) {
+      console.error('[notify] test email failed:', e.message);
+      return json(res, 502, { error: 'The test email could not be delivered.' });
+    }
   }
   if (p === '/pages' && method === 'GET'){
     return json(res, 200, listPages().map(pageInfo));
@@ -757,9 +908,8 @@ async function api(req, res, url){
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     if (!verifyPassword(body.current || '', ADMIN)) return json(res, 401, { error: 'Current password is wrong.' });
     const next = String(body.next || '');
-    if (next.length < 8) return json(res, 400, { error: 'New password must be at least 8 characters.' });
-    ADMIN = Object.assign({}, ADMIN, hashPassword(next), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString() });
-    writeJsonAtomic(ADMIN_JSON, ADMIN);
+    if (next.length < 8 || next.length > 200) return json(res, 400, { error: 'New password must be 8–200 characters.' });
+    saveAdmin(Object.assign({}, ADMIN, hashPassword(next), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), recovery: null }));
     const tok = sign({ exp: Date.now() + SESSION_TTL, v: ADMIN.createdAt, n: crypto.randomBytes(6).toString('hex') });
     return json(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie(tok, SESSION_TTL / 1000, isSecure(req)) });
   }
@@ -830,8 +980,9 @@ function main(){
     console.log('OmniMark site   →  ' + base + '/');
     console.log('Admin dashboard →  ' + base + '/admin');
     const n = notifyConfig();
-    console.log('Notifications   →  email ' + (n.email ? 'on' : 'off') + ', webhook ' + (n.webhook ? 'on' : 'off') + ', visitor acknowledgement ' + (n.autoReply ? 'on' : 'off') +
-      (n.email || n.webhook ? '' : '   (set RESEND_API_KEY + NOTIFY_EMAIL_TO and/or NOTIFY_WEBHOOK_URL)'));
+    const emailHint = n.emailSource === 'settings' ? 'set RESEND_API_KEY' : 'add recipients in Settings or set RESEND_API_KEY + NOTIFY_EMAIL_TO';
+    console.log('Notifications   →  email ' + (n.email ? 'on' : 'off') + ' (' + n.emailSource + '), webhook ' + (n.webhook ? 'on' : 'off') + ', visitor acknowledgement ' + (n.autoReply ? 'on' : 'off') +
+      (n.email || n.webhook ? '' : '   (' + emailHint + ' and/or NOTIFY_WEBHOOK_URL)'));
     if (boot.generated){
       console.log('\nFirst run: generated admin password  →  ' + boot.generated);
       console.log('Change it from Admin → Account. (Stored hashed in data/admin.json.)\n');

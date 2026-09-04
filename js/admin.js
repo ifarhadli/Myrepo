@@ -343,9 +343,11 @@
       var n = st.notifications || {}, el = $('#ovNotify');
       if (!el) return;
       if (n.email || n.webhook){
-        el.innerHTML = 'Every submission is forwarded: <b>email ' + (n.email ? 'on' : 'off') + '</b>, <b>webhook ' + (n.webhook ? 'on' : 'off') + '</b>. Visitor acknowledgements: <b>' + (n.autoReply ? 'on' : 'off') + '</b>. Submissions are also kept in the dashboard.';
+        var source = n.emailSource === 'settings' ? 'private editor settings' : n.emailSource === 'env' ? '<code>NOTIFY_EMAIL_TO</code>' : 'none';
+        el.innerHTML = 'Every submission is forwarded: <b>email ' + (n.email ? 'on' : 'off') + '</b> (source: ' + source + '), <b>webhook ' + (n.webhook ? 'on' : 'off') + '</b>. Visitor acknowledgements: <b>' + (n.autoReply ? 'on' : 'off') + '</b>. Submissions are also kept in the dashboard.';
       } else {
-        el.innerHTML = '<span style="color:var(--a-alert);font-weight:600">Not configured</span> — nobody is notified when a form comes in; you must check the Submissions tab. Set <code>RESEND_API_KEY</code> + <code>NOTIFY_EMAIL_TO</code> (email) and/or <code>NOTIFY_WEBHOOK_URL</code> (Slack / Zapier / CRM). Visitor acknowledgements are <b>' + (n.autoReply ? 'on' : 'off') + '</b>.';
+        var emailSetup = n.emailSource === 'settings' ? 'Set <code>RESEND_API_KEY</code> to activate the private recipient list' : 'add recipients in editor Settings or set <code>RESEND_API_KEY</code> + <code>NOTIFY_EMAIL_TO</code>';
+        el.innerHTML = '<span style="color:var(--a-alert);font-weight:600">Not configured</span> — nobody is notified when a form comes in; you must check the Submissions tab. For email, ' + emailSetup + '; for Slack / Zapier / CRM, set <code>NOTIFY_WEBHOOK_URL</code>. Visitor acknowledgements are <b>' + (n.autoReply ? 'on' : 'off') + '</b>.';
       }
     }).catch(function(){});
   }

@@ -25,12 +25,12 @@ No external business policy is maintained in this repository yet. `README.md` do
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 |---|---|---|---|---|
 | Select/Listbox | Native select | This contract | native | browser keyboard smoke |
-| Form | Public form controller + server validator | `js/main.js`, `server.js` | lead / newsletter / admin | integration + browser validation |
+| Form | Public/admin form controllers + server validator | `js/main.js`, `js/login.js`, `js/editor.js`, `server.js` | lead / newsletter / login / recovery / account | integration + browser validation |
 | Scrollbar | Global application stylesheets | `DESIGN.md`, `css/style.css`, `css/admin.css` | geometry exceptions | static audit + browser overflow smoke |
 | Toast | Editor/admin toast utilities | `js/editor.js`, `js/admin.js` | success / error | live region + browser smoke |
 | Dialog | Native `<dialog>` with owned focus/return contract | `js/editor.js`, `js/admin.js` | publish / discard / destructive | keyboard browser smoke |
 | Drawer/Sheet | Non-modal editor sheet | `js/editor.js`, `css/editor.css` | design-left / operations-right | browser responsive smoke |
-| CRUD | Editor/admin API clients + server routes | `js/editor.js`, `js/admin.js`, `server.js` | draft / publish / submission state / delete / reset | integration suite |
+| CRUD | Editor/admin API clients + server routes | `js/editor.js`, `js/admin.js`, `server.js` | draft / publish / submission state / account / notification recipients / delete / reset | integration suite |
 
 Table selection and date-picker ownership are omitted because the editor has neither selection nor a date-picker; structured-data dates use typed ISO text fields.
 
@@ -39,6 +39,12 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - Buttons expose hover, focus-visible, disabled, and pending states where a request occurs.
 - Inputs retain values after validation failure; public forms show linked inline errors and focus the first invalid field.
 - Secret inputs are masked by default and provide an explicit Show/Hide control.
+- Password recovery never confirms whether a private address exists. Reset
+  tokens are one-time, expire after 30 minutes, and a completed reset rotates
+  the session secret so every prior session becomes invalid.
+- Lead-recipient chips accept at most ten unique valid addresses. A non-empty
+  private list owns delivery; an empty list deliberately falls back to the
+  environment recipient list.
 - Textareas use a stable minimum height and do not resize into adjacent editor controls.
 - The submissions table owns horizontal overflow at narrow widths.
 - On-page text editing uses Enter to commit and Escape to cancel. Shift+Enter
@@ -67,6 +73,12 @@ Table selection and date-picker ownership are omitted because the editor has nei
 | Publish editor draft | Publish + summary confirm | button disabled + publishing label | current page | toast + zero counter | server draft retained + error toast | trigger restored | `js/editor.js` |
 | Discard editor draft | Discard + confirm | confirm disabled during delete | current live page reload | clean disabled Publish | draft retained on failure | trigger restored or page reload | `js/editor.js` |
 | Mark lead read/unread | Inbox action | pessimistic request | open Inbox | unread count updates | list retained + error toast | refreshed lead list | `js/editor.js` |
+| Request password reset | Forgot password? → Send reset link | button disabled + sending label | recovery view | generic sent-if-configured status | retry after surfaced throttle/server error | request trigger | `js/login.js` |
+| Complete password reset | reset-link form | button disabled + saving label | sign-in form | persistent success status | values retained + generic invalid/expired error | first invalid field | `js/login.js` |
+| Save recovery email | Settings → Account | button disabled + saving label | open Settings | inline success | values retained + linked error | failing field | `js/editor.js` |
+| Save lead recipients | Settings → Lead notifications | button disabled | open Settings | inline success + source refresh | chip list retained + linked error | action remains available | `js/editor.js` |
+| Send notification test | Send a test email | pessimistic, duplicate blocked | open Settings | exact delivered recipients | no automatic retry; inline failure | trigger remains available | `js/editor.js` |
+| Edit page SEO | This page fields | local commit + normal draft autosave | open This page sheet | live search/share previews | invalid URL retained with linked correction | invalid field | `js/editor.js` |
 
 ## Navigation and responsive behavior
 
@@ -87,7 +99,7 @@ Table selection and date-picker ownership are omitted because the editor has nei
   Discard and lead deletion. Dialogs trap focus, Escape cancels, and focus
   returns to the invoking control.
 - Editor Design is a non-modal left sheet so the owner can inspect the page
-  while changing it. Inbox and Settings are non-modal right sheets. Escape
+  while changing it. Inbox, Settings and This page are non-modal right sheets. Escape
   closes a sheet and returns focus; dialogs opened from a sheet sit above it.
 - Cancel is initially focused, Escape cancels, and the browser restores focus to the invoking control.
 - Admin toast messages use a polite live region, appear at the bottom center, and clear after 3.2 seconds.
@@ -96,12 +108,15 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 ## Async and resilience
 
-- Mutations are pessimistic. Publish disables its trigger; public forms suppress duplicate submit while pending. Editor drafts debounce for 1.5 seconds and retain an immediate local browser copy.
+- Mutations are pessimistic. Publish, password/account writes and external
+  test-email delivery disable their triggers; test email is non-idempotent and
+  is never retried automatically. Public forms suppress duplicate submit while
+  pending. Editor drafts debounce for 1.5 seconds and retain an immediate local browser copy.
 - Failed publish keeps the draft. Failed lead notifications never discard the already persisted submission.
 - Session expiry returns to sign-in. Configuration writes use temporary files and atomic rename.
 - Offline editor changes remain in one local browser copy and reconcile by the
   newest save timestamp when that browser returns. There is no multi-device
-  merge, conflict resolution, multi-user editing, or revision history.
+  merge, automatic conflict resolution, multi-user editing, or per-field history.
 
 ## Drafts, history and conflicts
 
@@ -123,8 +138,11 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 - Public lead validation is owned by `js/main.js` and mirrored by `server.js`.
 - Public forms use `novalidate`, inline linked messages, `aria-invalid`, first-invalid focus, and server field-error mapping.
-- Admin configuration is normalized and scheme/date constrained on the server. Password changes enforce the server policy.
-- Secrets remain environment-only and are never copied into the public configuration or toast text.
+- Admin configuration is normalized and scheme/date constrained on the server.
+  Password changes and resets enforce the server policy; recovery failures use
+  one generic response. Per-page `ogImage` accepts only HTTP(S), and `noindex`
+  pages are omitted from the generated sitemap.
+- Secrets remain environment-only and are never copied into the public configuration or toast text. Recovery and lead-recipient addresses live only in private `data/admin.json`.
 
 ## Permission and clipboard
 

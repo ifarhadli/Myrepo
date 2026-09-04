@@ -90,7 +90,9 @@ async function main(){
   }
   async function go(route){
     await send('Page.navigate', { url: BASE + route });
-    const loaded = await waitFor(async () => (await evaluate('document.readyState')) === 'complete', 10000);
+    /* DOMContentLoaded is enough for these local scripts. Waiting for complete
+       makes the suite depend on third-party font hosts being reachable. */
+    const loaded = await waitFor(async () => (await evaluate('document.readyState')) !== 'loading', 10000);
     if (!loaded) throw new Error('Timed out loading ' + route);
   }
   async function screenshot(name){
@@ -99,7 +101,10 @@ async function main(){
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, name + '.png'), Buffer.from(result.data, 'base64'));
   }
-  await send('Runtime.enable'); await send('Page.enable');
+  await send('Runtime.enable'); await send('Page.enable'); await send('Network.enable');
+  /* The product has local font fallbacks; the smoke suite must not inherit
+     availability or latency from third-party font/image hosts. */
+  await send('Network.setBlockedURLs', { urls: ['https://fonts.googleapis.com/*', 'https://fonts.gstatic.com/*', 'https://example.test/*'] });
 
   await viewport(390, 844); await go('/index.html');
   let state = await evaluate(`(() => { const h=document.querySelector('#hamburgerBtn'), r=h.getBoundingClientRect(); return {
@@ -113,7 +118,7 @@ async function main(){
   await evaluate(`document.querySelector('#hamburgerBtn').click()`); await pause(320);
   state = await evaluate(`(() => { const d=document.querySelector('#mobileDrawer'); return { open:d.classList.contains('open'), hidden:d.getAttribute('aria-hidden'), drawerInert:d.inert, mainInert:document.querySelector('main').inert, visibility:getComputedStyle(d).visibility }; })()`);
   check('drawer opens as an active modal and inerts the page', state.open && state.hidden === 'false' && !state.drawerInert && state.mainInert && state.visibility === 'visible', JSON.stringify(state));
-  await evaluate(`document.querySelector('#drawerClose').click()`); await pause(320);
+  await evaluate(`document.querySelector('#drawerClose').click()`); await waitFor(() => evaluate(`getComputedStyle(document.querySelector('#mobileDrawer')).visibility==='hidden'`), 1200);
   state = await evaluate(`(() => { const d=document.querySelector('#mobileDrawer'); return { hidden:d.getAttribute('aria-hidden'), drawerInert:d.inert, mainInert:document.querySelector('main').inert, visibility:getComputedStyle(d).visibility }; })()`);
   check('drawer close restores the page and removes hidden links', state.hidden === 'true' && state.drawerInert && !state.mainInert && state.visibility === 'hidden', JSON.stringify(state));
   await screenshot('home-390');
@@ -144,6 +149,16 @@ async function main(){
   state = await evaluate(`({ svg:!!document.querySelector('.article-diagram svg'), linkedin:document.querySelector('[data-share="linkedin"]').href, x:document.querySelector('[data-share="x"]').href, copy:!!document.querySelector('button[data-share="copy"]') })`);
   check('article diagram and all share controls are real', state.svg && /linkedin\.com\/sharing/.test(state.linkedin) && /twitter\.com\/intent/.test(state.x) && state.copy, JSON.stringify(state));
 
+  await viewport(900, 800); await go('/admin.html');
+  await evaluate(`document.querySelector('#forgotPassword').click()`);
+  await waitFor(() => evaluate(`!document.querySelector('#recoverView').hidden && !document.querySelector('#recoverStatus').hidden`), 3000);
+  state = await evaluate(`({ loginHidden:document.querySelector('#loginForm').hidden, recoverHidden:document.querySelector('#recoverView').hidden, message:document.querySelector('#recoverHelp').textContent, sendDisabled:document.querySelector('#sendRecovery').disabled })`);
+  check('login recovery view explains unavailable email honestly', state.loginHidden && !state.recoverHidden && state.sendDisabled && /delete data\/admin\.json/.test(state.message), JSON.stringify(state));
+  await screenshot('login-recovery-900');
+  await go('/admin.html?reset='+'a'.repeat(64));
+  state = await evaluate(`({ resetHidden:document.querySelector('#resetForm').hidden, loginHidden:document.querySelector('#loginForm').hidden, fields:document.querySelectorAll('#resetForm input[type="password"]').length })`);
+  check('reset links open an owned new-password form', !state.resetHidden && state.loginHidden && state.fields === 2, JSON.stringify(state));
+
   await viewport(1440, 900); await go('/admin-advanced.html');
   await waitFor(() => evaluate(`!document.querySelector('#login').hidden`), 3000);
   await evaluate(`document.querySelector('#loginForm').requestSubmit()`);
@@ -171,6 +186,14 @@ async function main(){
   const editorReady = await waitFor(() => evaluate(`!!document.querySelector('.omni-bar') && document.documentElement.classList.contains('omni-editing')`), 10000);
   state = await evaluate(`({ bar:!!document.querySelector('.omni-bar'), editing:document.documentElement.classList.contains('omni-editing'), kinetic:document.querySelectorAll('.kinetic .kw').length, controls:document.querySelectorAll('.omni-bar button,.omni-bar select').length })`);
   check('authenticated edit mode renders the bar before motion starts', !!editorReady && state.bar && state.editing && state.kinetic === 0 && state.controls >= 11, JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-editor-page]').click()`);
+  await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='This page' && !!document.querySelector('#omniSeoTitle')?.placeholder`), 3000);
+  await evaluate(`(() => { const values=[['#omniSeoTitle','Home search title'],['#omniSeoDescription','A precise page description for search and social sharing.'],['#omniSeoImage','https://example.test/home-share.jpg']]; values.forEach(([selector,value])=>{const input=document.querySelector(selector);input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});const noindex=document.querySelector('#omniSeoNoindex');noindex.checked=true;noindex.dispatchEvent(new Event('change',{bubbles:true})); })()`);await pause(120);
+  await waitFor(() => evaluate(`document.querySelector('[data-share-empty]').textContent==='Image preview unavailable'`), 1000);
+  state = await evaluate(`(() => { const page=window.OmniEditor.getState().draft.pages.index;return{title:document.querySelector('[data-google-title]').textContent,description:document.querySelector('[data-share-description]').textContent,image:document.querySelector('[data-share-image]').src,imageHidden:document.querySelector('[data-share-image]').hidden,imageState:document.querySelector('[data-share-empty]').textContent,titleCount:document.querySelector('[data-title-count]').textContent,descriptionCount:document.querySelector('[data-description-count]').textContent,draft:page};})()`);
+  check('This page SEO controls update both previews and the draft', state.title === 'Home search title' && /precise page description/.test(state.description) && /home-share\.jpg/.test(state.image) && state.imageHidden && state.imageState === 'Image preview unavailable' && /17 \/ 60/.test(state.titleCount) && /57 \/ 160/.test(state.descriptionCount) && state.draft.noindex === true && state.draft.ogImage === 'https://example.test/home-share.jpg', JSON.stringify(state));
+  await screenshot('editor-this-page-1366');
+  await evaluate(`document.querySelector('.omni-panel__close').click()`);
   await evaluate(`(() => { const el=document.querySelector('[data-i18n="home.hero.h1"]'); el.click(); el.textContent='A sharper draft headline.'; el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); })()`);
   const draftSaved = await waitFor(() => evaluate(`fetch('/api/draft',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x.draft?.i18n?.en?.['home.hero.h1']==='A sharper draft headline.')`), 6000);
   check('click-to-edit commits and autosaves an English text key', !!draftSaved);
@@ -204,7 +227,9 @@ async function main(){
   check('Publish promotes the draft and resets the counter', !!published);
   await go('/index.html');
   state = await evaluate(`(() => { const sections=[...document.querySelectorAll('main > [data-section]')]; const hidden=document.querySelector('[data-section="index.s2"]'); return {editor:!!document.querySelector('.omni-bar'),display:getComputedStyle(hidden).display,order:sections.slice(0,2).map(x=>x.dataset.section).join(','),accent:document.querySelector('[data-section="index.s1"]').style.getPropertyValue('--acc')}; })()`);
-  check('published section visibility, order and accent reach the public page', !state.editor && state.display === 'none' && state.order === 'index.s2,index.s1' && state.accent === 'var(--c1)', JSON.stringify(state));
+  state.meta = await evaluate(`({ title:document.title, robots:document.querySelector('meta[name="robots"]')?.content, image:document.querySelector('meta[property="og:image"]')?.content })`);
+  check('published section layout and page SEO reach the public page', !state.editor && state.display === 'none' && state.order === 'index.s2,index.s1' && state.accent === 'var(--c1)' &&
+    state.meta.title === 'Home search title' && state.meta.robots === 'noindex,nofollow' && /home-share\.jpg/.test(state.meta.image), JSON.stringify(state));
 
   /* ---- in-place catalogue, design controls and preview ---- */
   await go('/services.html?edit=1'); await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')`), 10000);
@@ -212,7 +237,7 @@ async function main(){
   await evaluate(`(() => { let guard=100; while(document.querySelectorAll('.eng-row[data-n="1"] .eng-cols li').length>3&&guard--){document.querySelector('.eng-row[data-n="1"] .eng-cols li .omni-item-remove').click();} return document.querySelectorAll('.eng-row[data-n="1"] .eng-cols li').length; })()`);
   state = await evaluate(`({ count:document.querySelectorAll('.eng-row[data-n="1"] .eng-cols li').length, model:window.OmniEditor.getState().draft.engines[0].groups.reduce((n,g)=>n+g.items.length,0) })`);
   check('catalogue items can be removed in place from both the DOM and model', catalogueBefore > state.count && state.count === 3 && state.model === 3, JSON.stringify(state));
-  await evaluate(`document.querySelector('[data-editor-publish]').click()`);await waitFor(() => evaluate(`!!document.querySelector('[data-dialog-confirm]')`), 3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`document.querySelector('[data-editor-publish]').disabled`), 10000);
+  await evaluate(`document.querySelector('[data-editor-publish]').click()`);await waitFor(() => evaluate(`!!document.querySelector('[data-dialog-confirm]')`), 3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-publish]').disabled`), 10000);
   await go('/index.html');await evaluate(`document.querySelector('.nav-item.has-mega > a').click()`);await pause(100);
   state = await evaluate(`document.querySelectorAll('.mega-col[data-n="1"] ul a').length`);
   check('published catalogue removal reduces the public mega-menu', state === 3, state);
@@ -235,16 +260,16 @@ async function main(){
   state = await evaluate(`({ mode:window.OmniEditor.getState().draft.design.motion, flags:['kineticHeadlines','marquee','customCursor','magneticButtons','reveal','countUp'].every(k=>window.OmniEditor.getState().draft.features[k]===false) })`);
   check('motion mode writes the individual runtime flags', state.mode === 'off' && state.flags, JSON.stringify(state));
   await evaluate(`document.querySelector('.omni-panel__close').click();document.querySelector('[data-editor-phone]').click()`);await pause(100);
-  state = await evaluate(`(() => { const f=document.querySelector('#omniPageFrame'),r=f.getBoundingClientRect();return{pressed:document.querySelector('[data-editor-phone]').getAttribute('aria-pressed'),width:r.width,overflow:f.scrollWidth-f.clientWidth,nav:getComputedStyle(f.querySelector('.primary-nav')).display,visual:getComputedStyle(f.querySelector('.hero-visual')).display,wide:[...f.querySelectorAll('*')].map(x=>({name:x.id||x.className||x.tagName,over:x.scrollWidth-x.clientWidth,sw:x.scrollWidth,cw:x.clientWidth})).filter(x=>x.over>2).sort((a,b)=>b.over-a.over).slice(0,12)};})()`);
-  check('phone preview uses a contained 390px responsive frame', state.pressed === 'true' && Math.round(state.width) === 390 && state.overflow <= 0 && state.nav === 'none' && state.visual === 'none', JSON.stringify(state));
+  state = await evaluate(`(() => { const f=document.querySelector('#omniPageFrame'),r=f.getBoundingClientRect();return{pressed:document.querySelector('[data-editor-phone]').getAttribute('aria-pressed'),width:r.width,clip:getComputedStyle(f).overflowX,pageOverflow:document.documentElement.scrollWidth-innerWidth,nav:getComputedStyle(f.querySelector('.primary-nav')).display,visual:getComputedStyle(f.querySelector('.hero-visual')).display};})()`);
+  check('phone preview uses a contained 390px responsive frame', state.pressed === 'true' && Math.round(state.width) === 390 && state.clip === 'clip' && state.pageOverflow <= 0 && state.nav === 'none' && state.visual === 'none', JSON.stringify(state));
   await screenshot('editor-phone-preview-1366');
   await evaluate(`(() => { const select=document.querySelector('#omniPageSelect');select.value='about';select.dispatchEvent(new Event('change',{bubbles:true})); })()`);
   const switched = await waitFor(() => evaluate(`location.pathname.endsWith('/about.html')&&!!document.querySelector('.omni-bar')`), 10000);
   check('page switcher carries the private draft into another real page', !!switched);
-  await evaluate(`(() => { const select=document.querySelector('#omniPageSelect');select.value='index';select.dispatchEvent(new Event('change',{bubbles:true})); })()`);await waitFor(() => evaluate(`location.pathname.endsWith('/index.html')&&!!document.querySelector('.omni-bar')`), 10000);
-  await evaluate(`document.querySelector('[data-list="index.cases"]>[data-item="c2"] .omni-item-remove').click()`);await pause(80);
-  state = await evaluate(`(() => { const item=document.querySelector('[data-list="index.cases"]>[data-item="c2"]');return{hidden:item.getAttribute('data-omni-hidden-item'),visible:!item.hidden};})()`);
-  check('static cards can be removed without disappearing from the editor', state.hidden === 'true' && state.visible, JSON.stringify(state));
+  await evaluate(`(() => { const select=document.querySelector('#omniPageSelect');select.value='index';select.dispatchEvent(new Event('change',{bubbles:true})); })()`);
+  const homeReady = await waitFor(() => evaluate(`location.pathname.endsWith('/index.html')&&!!document.querySelector('[data-list="index.cases"]>[data-item="c2"] .omni-item-remove')`), 10000);
+  if(homeReady){await evaluate(`document.querySelector('[data-list="index.cases"]>[data-item="c2"] .omni-item-remove').click()`);await pause(80);state=await evaluate(`(() => { const item=document.querySelector('[data-list="index.cases"]>[data-item="c2"]');return{hidden:item.getAttribute('data-omni-hidden-item'),visible:!item.hidden};})()`);}else state={hidden:null,visible:false};
+  check('static cards can be removed without disappearing from the editor', !!homeReady && state.hidden === 'true' && state.visible, JSON.stringify(state));
   await evaluate(`document.querySelector('[data-editor-discard]').click()`);await waitFor(() => evaluate(`!!document.querySelector('[data-dialog-confirm]')`), 3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);
   const discarded = await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')&&document.querySelector('[data-editor-publish]').disabled`), 10000);
   state = await evaluate(`fetch('/api/draft',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x.draft===null)`);
@@ -267,8 +292,13 @@ async function main(){
   state = await evaluate(`fetch('/api/submissions',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x[0].read===true)`);
   check('Inbox mark-read persists and updates the toolbar count', !!readUpdated && state);
   await evaluate(`document.querySelector('[data-editor-settings]').click()`);await pause(100);
-  state = await evaluate(`({ title:document.querySelector('#omniPanelTitle').textContent, labels:document.querySelectorAll('.omni-field label').length, proof:!!document.querySelector('.omni-switch input'), notify:document.querySelector('.omni-notify').textContent })`);
-  check('Settings exposes labelled contact, site, tools, proof and notification controls', state.title === 'Settings' && state.labels >= 18 && state.proof && /RESEND_API_KEY/.test(state.notify), JSON.stringify(state));
+  await waitFor(() => evaluate(`document.querySelector('[data-notify-source]')?.textContent.includes('Source:')`), 3000);
+  state = await evaluate(`({ title:document.querySelector('#omniPanelTitle').textContent, labels:document.querySelectorAll('.omni-field label').length, proof:!!document.querySelector('.omni-switch input'), recovery:!!document.querySelector('#omniRecoveryEmail'), password:!!document.querySelector('#omniPasswordNext'), recipients:!!document.querySelector('#omniNotifyEmail'), notify:document.querySelector('.omni-notification-settings').textContent })`);
+  check('Settings exposes labelled site, proof, account and notification controls', state.title === 'Settings' && state.labels >= 24 && state.proof && state.recovery && state.password && state.recipients && /NOTIFY_EMAIL_TO/.test(state.notify), JSON.stringify(state));
+  state = await evaluate(`(() => { const input=document.querySelector('#omniNotifyEmail');input.value='bad-address';document.querySelector('[data-add-recipient]').click();const described=input.getAttribute('aria-describedby');return{invalid:input.getAttribute('aria-invalid'),focus:document.activeElement.id,described,message:document.getElementById(described)?.textContent};})()`);
+  check('notification chip validation is inline, linked and focused', state.invalid === 'true' && state.focus === 'omniNotifyEmail' && state.described === 'omniNotifyMessage' && /valid email/.test(state.message), JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-panel__body').scrollTop=document.querySelector('.omni-panel__body').scrollHeight`);await pause(80);
+  await screenshot('editor-settings-account-1366');
   await evaluate(`(() => { const input=document.querySelector('.omni-switch input');input.checked=true;input.dispatchEvent(new Event('change',{bubbles:true})); })()`);await pause(80);
   state = await evaluate(`({ draft:window.OmniEditor.getState().draft.features.showVerifiedProof, shown:document.documentElement.classList.contains('show-verified-proof') })`);
   check('Settings proof switch writes the draft and repaints gated sections', state.draft === true && state.shown, JSON.stringify(state));

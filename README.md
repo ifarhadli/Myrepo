@@ -37,7 +37,7 @@ server.js            static server + /api for the dashboard (Node built-ins only
 data/site.json       what the dashboard saved (source of truth)
 data/site.js         generated from site.json; loaded in <head> on every page
 data/draft.json      private unpublished editor draft (git-ignored)
-data/admin.json      password hash + session secret   (git-ignored)
+data/admin.json      password/recovery + private notification settings (git-ignored)
 data/submissions.json  contact / teardown / newsletter entries (git-ignored)
 sitemap.xml, robots.txt  regenerated on every publish from Settings → Site URL
 DESIGN.md            maintained visual direction and design-token contract
@@ -77,15 +77,18 @@ overwriting, and the advanced dashboard asks before saving while an editor
 draft exists.
 
 The **Inbox** panel lists submissions newest first, tracks unread state,
-opens a reply in the owner's mail app and exports CSV. **Settings** covers
-contact details, public site settings, scheduler/analytics tools, proof
-gating and notification status.
+opens a reply in the owner's mail app and exports CSV. **This page** edits the
+current page's search title, description, social image and index visibility,
+with live Google and LinkedIn/WhatsApp previews. **Settings** covers contact
+details, public site settings, scheduler/analytics tools, proof gating,
+private lead recipients and account recovery/password controls.
 
 ### Advanced dashboard
 
 `/admin-advanced.html` keeps the original structured dashboard for developer
 work: custom CSS and layout tokens, full catalogue records, per-page SEO,
-structured data, account/password, JSON backup/import and reset. It links
+structured data, account/password, JSON backup/import and reset. The on-page
+**This page** panel is now the preferred SEO workflow. The dashboard links
 back to the on-page editor. Both admin routes are excluded from the sitemap
 and disallowed in `robots.txt`.
 
@@ -103,8 +106,12 @@ false links; add the approved URLs in *Settings* before launch.
 
 On first start the server generates a password, prints it once, and stores
 only a scrypt hash in `data/admin.json`. Set `ADMIN_PASSWORD=…` in the
-environment before the first run to choose it yourself. Change it any time
-from *Account*. Lost it? Delete `data/admin.json` and restart.
+environment before the first run to choose it yourself. In editor
+*Settings → Account*, set a recovery email (Resend must also be configured)
+and change the password. *Forgot password?* then sends a single-use link that
+expires after 30 minutes; completing it rotates the session secret and signs
+out every existing session. Without recovery configuration, the sign-in page
+honestly explains the server-side `data/admin.json` reset fallback.
 
 ### Form notifications (set before launch)
 
@@ -115,12 +122,15 @@ forwarded as well, set these in the server's environment — never in
 | Variable | Effect |
 |---|---|
 | `RESEND_API_KEY` | Send a transactional acknowledgement to each valid form submitter via [Resend](https://resend.com). Contact/teardown confirmations promise a reply within one business day; newsletter welcomes include an unsubscribe `mailto:` link. |
-| `NOTIFY_EMAIL_TO` | With `RESEND_API_KEY`, email each new submission to this comma-separated recipient list. |
+| `NOTIFY_EMAIL_TO` | With `RESEND_API_KEY`, fallback comma-separated lead recipients when no private recipients are saved in the editor. |
 | `NOTIFY_EMAIL_FROM` | Optional verified sender; otherwise Resend's onboarding sender is used. |
 | `NOTIFY_WEBHOOK_URL` | JSON `POST` of every submission to a Slack incoming webhook, Zapier/Make, or a CRM endpoint. |
 
-The server prints the notification status on boot; the admin *Overview*
-warns when neither is configured.
+In editor *Settings → Lead notifications*, up to ten recipients can be saved
+privately and tested with one click. A non-empty saved list takes precedence
+over `NOTIFY_EMAIL_TO`; the UI and advanced *Overview* identify the active
+source. The server prints the notification status on boot and the dashboard
+warns when neither email nor webhook forwarding is configured.
 
 Newsletter records include `consentAt` and `consentSource`. There is no bulk
 newsletter sender in this repository yet, so unsubscribe requests go to the
@@ -141,8 +151,10 @@ suppression list there rather than deleting consent records.
 
 Session = HMAC-signed, `HttpOnly`, `SameSite=Strict` cookie, 12 h. Mutating
 API calls additionally require an `X-Requested-With` header and a matching
-`Origin`. Login is throttled (10 / 15 min per IP), form submissions too
-(30 / 10 min). Every saved value is validated and length-capped server-side,
+`Origin`. Login is throttled (10 / 15 min per IP), recovery requests are
+limited to 3 / 15 min, reset attempts to 5 / 15 min, notification tests to
+3 / 10 min, and form submissions to 30 / 10 min. Every saved value is
+validated and length-capped server-side,
 and all catalogue / settings strings are HTML-escaped when rendered.
 `data/admin.json`, `data/submissions.json`, `data/draft.json` and
 `data/history/` are never served.
@@ -182,11 +194,11 @@ is reachable at `/api/submit` on the same origin.
 - Adding a string: put it in both `en` and `az` in `js/i18n-data.js` and
   reference it with `data-i18n="ns.key"`. It shows up in *Copy* at once.
 - `npm run check` syntax-checks every script.
-- `npm test` also runs [test/server.test.js](test/server.test.js): 85
+- `npm test` also runs [test/server.test.js](test/server.test.js): 122
   integration checks in a disposable copy covering serving, auth, publish
   validation, structured data, submissions, acknowledgements and passwords.
 - `npm run test:browser` drives an installed Chrome/Edge through its debugging
-  protocol: 50 responsive, focus, inert-state, validation, editor and admin
+  protocol: 55 responsive, focus, inert-state, validation, editor and admin
   checks. Set `BROWSER_BIN` if Chromium is installed somewhere non-standard.
 - Static design rules live in [DESIGN.md](DESIGN.md) and shared UI behavior in
   [UX-CONTRACT.md](UX-CONTRACT.md). Audit screenshots are intentionally ignored;
