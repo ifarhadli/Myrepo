@@ -24,6 +24,9 @@ const SITE_JS = path.join(DATA, 'site.js');
 const ADMIN_JSON = path.join(DATA, 'admin.json');
 const SUBS_JSON = path.join(DATA, 'submissions.json');
 const DRAFT_JSON = path.join(DATA, 'draft.json');
+/* the last few published versions — restorable from the editor's History panel */
+const HISTORY_DIR = path.join(DATA, 'history');
+const HISTORY_KEEP = 10;
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 /* local dev binds to loopback; a platform that injects PORT (Railway, Render,
    Fly…) needs 0.0.0.0 or its proxy can't reach the process */
@@ -98,7 +101,25 @@ function writeSeoFiles(site){
     /* data/site.js must stay crawlable — it carries the published copy */
     'User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /admin-advanced.html\nDisallow: /api/\n\nSitemap: ' + base + '/sitemap.xml\n');
 }
+/* Keep the outgoing live version so a publish can be undone from the editor. */
+function listHistory(){
+  let names = [];
+  try { names = fs.readdirSync(HISTORY_DIR).filter(f => /^[0-9TZ-]+\.json$/.test(f)); } catch (e) { return []; }
+  return names.sort().reverse().map(f => {
+    const rec = readJson(path.join(HISTORY_DIR, f), null);
+    return rec && isPlain(rec.site) ? { id: f.replace(/\.json$/, ''), archivedAt: rec.archivedAt || null, publishedAt: rec.publishedAt || null, site: rec.site } : null;
+  }).filter(Boolean);
+}
+function archiveCurrent(){
+  const prev = readJson(SITE_JSON, null);
+  if (!isPlain(prev)) return;
+  fs.mkdirSync(HISTORY_DIR, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  writeJsonAtomic(path.join(HISTORY_DIR, stamp + '.json'), { archivedAt: new Date().toISOString(), publishedAt: prev.updatedAt || null, site: prev });
+  listHistory().slice(HISTORY_KEEP).forEach(h => { try { fs.rmSync(path.join(HISTORY_DIR, h.id + '.json')); } catch (e) {} });
+}
 function saveSite(site){
+  archiveCurrent();
   site.updatedAt = new Date().toISOString();
   writeJsonAtomic(SITE_JSON, site);
   writeTextAtomic(SITE_JS, siteToJs(site));
@@ -235,7 +256,7 @@ function validateSite(input){
 function readDraft(){
   const record = readJson(DRAFT_JSON, null);
   if (!record || !isPlain(record.draft)) return null;
-  return { draft: record.draft, savedAt: record.savedAt || null };
+  return { draft: record.draft, savedAt: record.savedAt || null, baseUpdatedAt: record.baseUpdatedAt || null, restoredFrom: record.restoredFrom || null };
 }
 function removeDraft(){
   try { fs.rmSync(DRAFT_JSON, { force: true }); } catch (e) { if (e.code !== 'ENOENT') throw e; }
@@ -633,6 +654,10 @@ async function api(req, res, url){
   if (p === '/site' && method === 'PUT'){
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    /* the on-page editor may hold an unpublished draft; a direct save from the
+       advanced dashboard would later be overwritten by it — make that explicit */
+    const pending = readDraft();
+    if (pending && body.force !== true) return json(res, 409, { error: 'An unpublished draft exists in the on-page editor.', code: 'draft-exists', savedAt: pending.savedAt });
     let site;
     try { site = validateSite(body); } catch (e) { return json(res, 400, { error: e.message }); }
     saveSite(site);
@@ -640,7 +665,8 @@ async function api(req, res, url){
   }
   if (p === '/draft' && method === 'GET'){
     const record = readDraft();
-    return json(res, 200, { draft: record ? record.draft : null, savedAt: record ? record.savedAt : null, live: loadSite() });
+    return json(res, 200, { draft: record ? record.draft : null, savedAt: record ? record.savedAt : null,
+      baseUpdatedAt: record ? record.baseUpdatedAt : null, restoredFrom: record ? record.restoredFrom : null, live: loadSite() });
   }
   if (p === '/draft' && method === 'PUT'){
     let body;
@@ -648,22 +674,52 @@ async function api(req, res, url){
     let draft;
     try { draft = validateSite(body); } catch (e) { return json(res, 400, { error: e.message }); }
     const savedAt = new Date().toISOString();
-    writeJsonAtomic(DRAFT_JSON, { savedAt, draft });
-    return json(res, 200, { ok: true, savedAt });
+    /* remember which live version this draft was started from, so publish
+       can refuse to silently overwrite a change made elsewhere meanwhile */
+    const existing = readDraft();
+    /* once a draft exists its base is fixed — a client reloading later must
+       not be able to "refresh" it and hide a conflict */
+    const baseUpdatedAt = (existing && existing.baseUpdatedAt)
+      || (typeof body.baseUpdatedAt === 'string' ? body.baseUpdatedAt.slice(0, 40) : null)
+      || loadSite().updatedAt || null;
+    writeJsonAtomic(DRAFT_JSON, { savedAt, baseUpdatedAt, draft, restoredFrom: existing ? existing.restoredFrom : null });
+    return json(res, 200, { ok: true, savedAt, baseUpdatedAt });
   }
   if (p === '/draft' && method === 'DELETE'){
     removeDraft();
     return json(res, 200, { ok: true });
   }
   if (p === '/publish' && method === 'POST'){
+    let body = {};
+    try { body = await readBody(req); } catch (e) { body = {}; }
     const record = readDraft();
-    if (!record) return json(res, 409, { error: 'No draft to publish.' });
+    if (!record) return json(res, 409, { error: 'No draft to publish.', code: 'no-draft' });
+    const live = loadSite();
+    if (body.force !== true && record.baseUpdatedAt && live.updatedAt && record.baseUpdatedAt !== live.updatedAt){
+      return json(res, 409, { error: 'The live site changed after this draft was started.', code: 'stale', baseUpdatedAt: record.baseUpdatedAt, liveUpdatedAt: live.updatedAt });
+    }
     let site;
     try { site = validateSite(record.draft); } catch (e) { return json(res, 400, { error: e.message }); }
-    const summary = publishSummary(loadSite(), site);
+    const summary = publishSummary(live, site);
     saveSite(site);
     removeDraft();
     return json(res, 200, { ok: true, site, summary });
+  }
+  /* published-version history: list, and restore one INTO THE DRAFT (never
+     straight to live — the owner reviews and publishes) */
+  if (p === '/history' && method === 'GET'){
+    const live = loadSite();
+    return json(res, 200, listHistory().map(h => ({ id: h.id, archivedAt: h.archivedAt, publishedAt: h.publishedAt, changes: diffCount(live, h.site) })));
+  }
+  const restore = p.match(/^\/history\/([0-9TZ-]{10,40})\/restore$/);
+  if (restore && method === 'POST'){
+    const rec = listHistory().find(h => h.id === restore[1]);
+    if (!rec) return json(res, 404, { error: 'No such version.' });
+    let draft;
+    try { draft = validateSite(rec.site); } catch (e) { return json(res, 400, { error: e.message }); }
+    const savedAt = new Date().toISOString();
+    writeJsonAtomic(DRAFT_JSON, { savedAt, baseUpdatedAt: loadSite().updatedAt || null, draft, restoredFrom: rec.id });
+    return json(res, 200, { ok: true, savedAt, draft, restoredFrom: rec.id });
   }
   if (p === '/status' && method === 'GET'){
     return json(res, 200, { notifications: notifyConfig(), trustProxy: TRUST_PROXY, secure: isSecure(req), node: process.version });
@@ -721,7 +777,7 @@ function serveStatic(req, res, url){
   let file = path.normalize(path.join(ROOT, pathname));
   if (!file.startsWith(ROOT + path.sep) && file !== ROOT) return send(res, 403, 'Forbidden');
   const rel = path.relative(ROOT, file).split(path.sep);
-  if (rel[0] === 'data' && PRIVATE_FILES.has(rel[1])) return send(res, 403, 'Forbidden');
+  if (rel[0] === 'data' && (PRIVATE_FILES.has(rel[1]) || rel[1] === 'history')) return send(res, 403, 'Forbidden');
   if (rel[0].startsWith('.') || rel[0] === 'node_modules' || rel[0] === 'server.js' || rel[0] === 'package.json') return send(res, 404, 'Not found');
 
   /* clean URLs: /about -> about.html */

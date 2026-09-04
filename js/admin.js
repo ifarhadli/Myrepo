@@ -794,7 +794,15 @@
   function save(){
     if (!isDirty()) return;
     var btn = $('#saveBtn'); btn.disabled = true; btn.textContent = 'Publishing…';
-    api('PUT', 'api/site', state.site).then(function(r){
+    /* the on-page editor may hold an unpublished draft — the server says so
+       with 409; make the owner choose rather than overwrite silently */
+    var put = function(force){ return api('PUT', 'api/site', force ? Object.assign({}, state.site, { force: true }) : state.site); };
+    put(false).catch(function(e){
+      if (e.status === 409 && /draft/i.test(e.message || '')){
+        if (confirm('The on-page editor has an unpublished draft. Saving here works, but publishing that draft later will overwrite what you save now.\n\nSave anyway?')) return put(true);
+      }
+      throw e;
+    }).then(function(r){
       state.saved = normalize(r.site); state.site = normalize(r.site);
       markDirty(); toast('Published. The live site is updated.', 'ok');
       var f = $('#preview'); if (f) f.src = f.src;

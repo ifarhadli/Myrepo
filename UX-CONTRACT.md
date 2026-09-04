@@ -103,6 +103,22 @@ Table selection and date-picker ownership are omitted because the editor has nei
   newest save timestamp when that browser returns. There is no multi-device
   merge, conflict resolution, multi-user editing, or revision history.
 
+## Drafts, history and conflicts
+
+- One draft at a time (`data/draft.json`). It records `baseUpdatedAt`, the
+  live version it was started from.
+- Publish compares that base with the live `updatedAt`. If they differ the
+  server answers `409 stale`; the editor shows a "The live site changed
+  meanwhile" dialog and only republishes with an explicit *Publish anyway*.
+- The advanced dashboard's direct save gets `409 draft-exists` while an
+  editor draft is pending; it asks before saving with `force: true`.
+- Every publish archives the outgoing live version to `data/history/`
+  (last 10). *History → Restore* loads a version **into the draft** — never
+  straight to live — so the normal review-then-publish path still applies.
+  Restore replaces the current draft and says so before doing it.
+- Undo/Redo are session-scoped and cleared on publish; History is the
+  cross-session way back.
+
 ## Validation
 
 - Public lead validation is owned by `js/main.js` and mirrored by `server.js`.

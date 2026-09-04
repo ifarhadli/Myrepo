@@ -44,7 +44,7 @@
       headers:{'Content-Type':'application/json','X-Requested-With':'OmniAdmin'},
       body:body === undefined ? undefined : JSON.stringify(body) }).then(function(response){
       return response.json().catch(function(){ return {}; }).then(function(data){
-        if(!response.ok){ var error=new Error(data.error || ('HTTP '+response.status)); error.status=response.status; throw error; }
+        if(!response.ok){ var error=new Error(data.error || ('HTTP '+response.status)); error.status=response.status; error.data=data; throw error; }
         return data;
       });
     });
@@ -97,7 +97,7 @@
       return api('DELETE','/api/draft',undefined,keepalive).then(function(){clearLocal();setSaveStatus('All changes published');}).catch(handleSaveError);
     }
     var snapshot=JSON.stringify(state.draft),seq=++state.saveSeq;state.saving=true;updateBar();setSaveStatus('Saving…');
-    return api('PUT','/api/draft',state.draft,keepalive).then(function(result){
+    return api('PUT','/api/draft',draftPayload(),keepalive).then(function(result){
       if(seq!==state.saveSeq)return result; state.saving=false;
       if(snapshot===JSON.stringify(state.draft)){state.savedAt=result.savedAt;setSaveStatus('Saved · '+new Date(result.savedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}));}
       else scheduleSave(); updateBar(); return result;
@@ -107,9 +107,12 @@
     if(error && error.status===401){location.replace('admin.html');return;}
     setSaveStatus('Offline — changes kept locally','offline');
   }
+  /* the draft travels with the live version it was started from, so the server
+     can refuse to publish over a change made elsewhere (advanced dashboard) */
+  function draftPayload(){ return Object.assign({}, state.draft, { baseUpdatedAt: state.baseUpdatedAt || (state.live && state.live.updatedAt) || null }); }
   function flushSync(){
     if(!state.draft || !totalChanges())return;
-    try{var xhr=new XMLHttpRequest();xhr.open('PUT','/api/draft',false);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('X-Requested-With','OmniAdmin');xhr.send(JSON.stringify(state.draft));}catch(e){}
+    try{var xhr=new XMLHttpRequest();xhr.open('PUT','/api/draft',false);xhr.setRequestHeader('Content-Type','application/json');xhr.setRequestHeader('X-Requested-With','OmniAdmin');xhr.send(JSON.stringify(draftPayload()));}catch(e){}
   }
 
   function defaultEnginesAz(){
@@ -359,6 +362,32 @@
   function openSettings(){openPanel('Settings','right',renderSettings);}
 
   function closePanel(){var panel=$('.omni-panel');if(!panel)return;panel.remove();if(state.panelReturnFocus&&state.panelReturnFocus.isConnected)state.panelReturnFocus.focus();state.panelReturnFocus=null;}
+  /* ---------- History: the last published versions, restorable into the draft ---------- */
+  function openHistory(){ finishEdit(true); openPanel('History','right',renderHistory); }
+  function renderHistory(root){
+    root.innerHTML='<p class="omni-panel__hint">The last 10 published versions. Restoring one loads it into your draft so you can review it and publish — the live site does not change until you do.</p><div class="omni-history" aria-live="polite">Loading…</div>';
+    var list=$('.omni-history',root);
+    api('GET','/api/history').then(function(items){
+      list.innerHTML='';
+      if(!items.length){var empty=document.createElement('p');empty.className='omni-panel-state';empty.textContent='No published versions yet. Every Publish adds one here.';list.appendChild(empty);return;}
+      items.forEach(function(item,index){
+        var row=document.createElement('div');row.className='omni-history__item';
+        var when=document.createElement('strong');var stamp=new Date(item.publishedAt||item.archivedAt);
+        when.textContent=(index===0?'Previous live · ':'')+(isNaN(stamp)?item.id:stamp.toLocaleString([], {dateStyle:'medium',timeStyle:'short'}));
+        var meta=document.createElement('span');meta.textContent=item.changes?item.changes+' difference'+(item.changes===1?'':'s')+' from the live site':'Identical to the live site';
+        var button=document.createElement('button');button.type='button';button.textContent='Restore';button.disabled=!item.changes;button.setAttribute('aria-label','Restore version from '+when.textContent);
+        button.addEventListener('click',function(){
+          var pending=totalChanges();
+          openDialog({title:'Restore this version?',message:(pending?'It replaces your current draft ('+pending+' unpublished change'+(pending===1?'':'s')+'). ':'')+'The live site stays as it is until you publish.',confirm:'Restore into draft',action:function(confirmBtn,dialog){
+            confirmBtn.disabled=true;
+            api('POST','/api/history/'+encodeURIComponent(item.id)+'/restore').then(function(){clearLocal();state.allowNavigate=true;dialog.close('restored');location.reload();})
+              .catch(function(error){confirmBtn.disabled=false;toast(error.message||'Could not restore that version.','error');});
+          }});
+        });
+        row.append(when,meta,button);list.appendChild(row);
+      });
+    }).catch(function(error){list.innerHTML='';var p=document.createElement('p');p.className='omni-panel-state';p.textContent=error.message||'Could not load history.';list.appendChild(p);});
+  }
   function openPanel(title,side,render){
     closePanel();state.panelReturnFocus=document.activeElement;var panel=document.createElement('aside');panel.className='omni-panel omni-panel--'+side;panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','omniPanelTitle');panel.innerHTML='<header class="omni-panel__head"><h2 id="omniPanelTitle"></h2><button type="button" class="omni-panel__close" aria-label="Close panel">×</button></header><div class="omni-panel__body"></div>';$('#omniPanelTitle',panel).textContent=title;$('.omni-panel__close',panel).addEventListener('click',closePanel);document.body.appendChild(panel);render($('.omni-panel__body',panel));$('.omni-panel__close',panel).focus();return panel;
   }
@@ -393,7 +422,22 @@
   function publish(){
     finishEdit(true);if(!totalChanges())return;var counts=summaryCounts(),labels={texts:'Texts',sections:'Sections',items:'Items',catalogue:'Catalogue',design:'Design',settings:'Settings'};
     var html='<p>Review the scope of this publish. The live site will update immediately.</p><ul class="omni-summary">'+Object.keys(labels).map(function(key){return'<li><strong>'+counts[key]+'</strong>'+labels[key]+'</li>';}).join('')+'</ul>';
-    openDialog({title:'Publish changes?',html:html,confirm:'Publish',action:function(button,dialog){button.disabled=true;button.textContent='Publishing…';saveDraft().then(function(){return api('POST','/api/publish');}).then(function(result){state.live=clone(result.site);state.draft=clone(result.site);state.undo=[];state.redo=[];clearLocal();dialog.close('published');applyDraft();setSaveStatus('Published just now');toast('Published successfully.');}).catch(function(error){button.disabled=false;button.textContent='Publish';toast(error.message||'Publish failed. Your draft is safe.','error');});}});
+    openDialog({title:'Publish changes?',html:html,confirm:'Publish',action:function(button,dialog){doPublish(button,dialog,false);}});
+  }
+  function doPublish(button,dialog,force){
+    button.disabled=true;button.textContent='Publishing…';
+    saveDraft().then(function(){return api('POST','/api/publish',force?{force:true}:undefined);}).then(function(result){
+      state.live=clone(result.site);state.draft=clone(result.site);state.baseUpdatedAt=(result.site&&result.site.updatedAt)||null;state.undo=[];state.redo=[];clearLocal();dialog.close('published');applyDraft();setSaveStatus('Published just now');toast('Published successfully.');
+    }).catch(function(error){
+      /* the live site moved on since this draft started (e.g. a save from the
+         advanced dashboard) — never overwrite that silently */
+      if(error.status===409&&error.data&&error.data.code==='stale'){
+        dialog.close('cancel');
+        openDialog({title:'The live site changed meanwhile',message:'Someone saved changes to the live site after this draft was started — for example from the advanced dashboard. Publishing now replaces those changes with this draft.',confirm:'Publish anyway',danger:true,action:function(b2,d2){doPublish(b2,d2,true);}});
+        return;
+      }
+      button.disabled=false;button.textContent='Publish';toast(error.message||'Publish failed. Your draft is safe.','error');
+    });
   }
   function discard(){
     finishEdit(false);if(!totalChanges())return;openDialog({title:'Discard this draft?',message:'All unpublished edits will be removed. The live site will not change.',confirm:'Discard draft',danger:true,action:function(button,dialog){button.disabled=true;api('DELETE','/api/draft').then(function(){clearLocal();state.draft=clone(state.live);state.undo=[];state.redo=[];state.allowNavigate=true;dialog.close('discarded');location.reload();}).catch(function(error){button.disabled=false;toast(error.message||'Could not discard the draft.','error');});}});
@@ -402,12 +446,12 @@
   function buildBar(){
     var bar=document.createElement('div');bar.className='omni-bar';bar.setAttribute('role','toolbar');bar.setAttribute('aria-label','On-page editor');
     var options=PAGE_FILES.map(function(key){return'<option value="'+key+'"'+(key===pageKey()?' selected':'')+'>'+PAGE_LABELS[key]+'</option>';}).join('');
-    bar.innerHTML='<div class="omni-bar__brand"><span class="omni-bar__dot"></span>Edit mode</div><div class="omni-bar__group"><label class="omni-sr" for="omniPageSelect">Page</label><select id="omniPageSelect" aria-label="Page">'+options+'</select></div><div class="omni-bar__group"><button type="button" data-editor-lang="en">EN</button><button type="button" data-editor-lang="az">AZ</button></div><div class="omni-bar__group"><button type="button" data-editor-phone aria-pressed="false" aria-label="Phone preview">Phone</button><button type="button" data-editor-undo aria-label="Undo" title="Undo">↶</button><button type="button" data-editor-redo aria-label="Redo" title="Redo">↷</button></div><div class="omni-bar__group"><button type="button" data-editor-design>Design</button><button type="button" data-editor-inbox>Inbox <span data-unread></span></button><button type="button" data-editor-settings>Settings</button></div><span class="omni-bar__spacer"></span><span class="omni-bar__status" data-editor-status aria-live="polite">Draft ready</span><div class="omni-bar__group"><button type="button" data-editor-discard>Discard</button><button type="button" class="omni-bar__publish" data-editor-publish>Publish (0)</button></div>';
+    bar.innerHTML='<div class="omni-bar__brand"><span class="omni-bar__dot"></span>Edit mode</div><div class="omni-bar__group"><label class="omni-sr" for="omniPageSelect">Page</label><select id="omniPageSelect" aria-label="Page">'+options+'</select></div><div class="omni-bar__group"><button type="button" data-editor-lang="en">EN</button><button type="button" data-editor-lang="az">AZ</button></div><div class="omni-bar__group"><button type="button" data-editor-phone aria-pressed="false" aria-label="Phone preview">Phone</button><button type="button" data-editor-undo aria-label="Undo last change" title="Undo (Ctrl+Z)">↶ Undo</button><button type="button" data-editor-redo aria-label="Redo change" title="Redo (Ctrl+Shift+Z)">Redo ↷</button><button type="button" data-editor-history title="Restore a previously published version">History</button></div><div class="omni-bar__group"><button type="button" data-editor-design>Design</button><button type="button" data-editor-inbox>Inbox <span data-unread></span></button><button type="button" data-editor-settings>Settings</button></div><span class="omni-bar__spacer"></span><span class="omni-bar__status" data-editor-status aria-live="polite">Draft ready</span><div class="omni-bar__group"><button type="button" data-editor-discard>Discard</button><button type="button" class="omni-bar__publish" data-editor-publish>Publish (0)</button></div>';
     document.body.prepend(bar);var toastEl=document.createElement('div');toastEl.className='omni-toast';toastEl.setAttribute('role','status');toastEl.setAttribute('aria-live','polite');document.body.appendChild(toastEl);
     $('#omniPageSelect').addEventListener('change',function(){var file=this.value==='index'?'index.html':this.value+'.html';finishEdit(true);saveDraft(true).catch(function(){}).then(function(){state.allowNavigate=true;location.href=file+'?edit=1';});});
     $$('[data-editor-lang]').forEach(function(button){button.addEventListener('click',function(){finishEdit(true);state.lang=button.getAttribute('data-editor-lang');window.OmniI18n.setLang(state.lang);applyDraft();});});
     $('[data-editor-undo]').addEventListener('click',undo);$('[data-editor-redo]').addEventListener('click',redo);$('[data-editor-publish]').addEventListener('click',publish);$('[data-editor-discard]').addEventListener('click',discard);
-    $('[data-editor-design]').addEventListener('click',function(){openPanel('Design','left',renderDesignPanel);});$('[data-editor-inbox]').addEventListener('click',openInbox);$('[data-editor-settings]').addEventListener('click',openSettings);$('[data-editor-phone]').addEventListener('click',togglePhone);
+    $('[data-editor-design]').addEventListener('click',function(){openPanel('Design','left',renderDesignPanel);});$('[data-editor-inbox]').addEventListener('click',openInbox);$('[data-editor-settings]').addEventListener('click',openSettings);$('[data-editor-history]').addEventListener('click',openHistory);$('[data-editor-phone]').addEventListener('click',togglePhone);
   }
   function rewriteLinks(){
     $$('a[href]').forEach(function(link){if(link.closest('.omni-bar,.omni-panel,.omni-dialog'))return;var raw=link.getAttribute('href');if(!raw||/^(https?:|mailto:|tel:|#)/i.test(raw)||raw.indexOf('admin')===0)return;try{var url=new URL(raw,location.href);if(url.origin===location.origin){url.searchParams.set('edit','1');link.setAttribute('href',url.pathname.replace(/^\//,'')+url.search+url.hash);}}catch(e){}});
@@ -432,6 +476,8 @@
     api('GET','/api/me').then(function(me){if(!me.authed){location.replace('admin.html');throw new Error('Not signed in');}return api('GET','/api/draft');}).then(function(data){
       state.live=clone(data.live);var local=readLocal(),serverAt=data.savedAt?Date.parse(data.savedAt):0,localAt=local&&local.savedAt?Date.parse(local.savedAt):0;
       state.draft=clone(local&&local.draft&&localAt>serverAt?local.draft:(data.draft||data.live));state.savedAt=localAt>serverAt?local.savedAt:data.savedAt;
+      /* the live version this draft started from — handed back by the server for an existing draft, else "now" */
+      state.baseUpdatedAt=data.draft?(data.baseUpdatedAt||(data.live&&data.live.updatedAt)||null):((data.live&&data.live.updatedAt)||null);
       state.lang=(window.OmniI18n&&window.OmniI18n.getLang())||'en';state.defaults=(window.OmniSite&&window.OmniSite.getDefaults())||{engines:clone(window.OMNI_ENGINES||[]),industries:clone(window.OMNI_INDUSTRIES||[]),i18n:clone(window.OM_I18N||{en:{},az:{}})};
       buildBar();buildPageFrame();mergeDraftDict();if(window.OmniI18n)window.OmniI18n.setLang(state.lang);applyDraft();rewriteLinks();bindEvents();loadUnread();setSaveStatus(state.savedAt?'Draft restored':'Draft ready');
       document.dispatchEvent(new CustomEvent('omni:editor-ready'));

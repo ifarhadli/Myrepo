@@ -273,6 +273,11 @@ async function main(){
   state = await evaluate(`({ draft:window.OmniEditor.getState().draft.features.showVerifiedProof, shown:document.documentElement.classList.contains('show-verified-proof') })`);
   check('Settings proof switch writes the draft and repaints gated sections', state.draft === true && state.shown, JSON.stringify(state));
   await evaluate(`document.querySelector('.omni-panel__close').click()`);
+  await evaluate(`document.querySelector('[data-editor-history]').click()`);await pause(150);
+  await waitFor(() => evaluate(`!!document.querySelector('.omni-history__item, .omni-panel-state')`), 5000);
+  state = await evaluate(`({ title:document.querySelector('#omniPanelTitle').textContent, items:document.querySelectorAll('.omni-history__item').length, restore:!!document.querySelector('.omni-history__item button'), undoLabel:document.querySelector('[data-editor-undo]').textContent.trim() })`);
+  check('History panel lists published versions with Restore, and Undo is labelled', state.title === 'History' && state.items >= 1 && state.restore && /Undo/.test(state.undoLabel), JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-panel__close').click()`);
   const tabCount = await evaluate(`document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])').length`);
   await evaluate(`document.querySelector('.omni-bar select,.omni-bar button:not([disabled])').focus()`);
   const reached = [await evaluate(`[...document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])')].indexOf(document.activeElement)`)];

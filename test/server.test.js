@@ -224,6 +224,34 @@ async function main(){
   r = await req('DELETE', '/api/draft', undefined, { admin: true });
   check('DELETE draft discards it', r.status === 200 && !fs.existsSync(path.join(TMP, 'data', 'draft.json')));
 
+  /* ---- published-version history + conflict guards ---- */
+  r = await req('GET', '/api/history');
+  check('history lists the version replaced by publish', r.status === 200 && Array.isArray(r.json) && r.json.length >= 1 && r.json[0].changes >= 1 && /^[0-9TZ-]+$/.test(r.json[0].id), r.text.slice(0, 200));
+  const versionId = r.json[0].id;
+  r = await req('GET', '/data/history/' + versionId + '.json');
+  check('history files are not served', r.status === 403);
+  r = await req('POST', '/api/history/' + versionId + '/restore', undefined, { admin: true });
+  check('restore loads a version into the draft, not live', r.status === 200 && r.json.ok && r.json.draft.i18n.en['home.hero.h1'] !== 'Draft headline', r.text.slice(0, 200));
+  r = await req('GET', '/api/draft');
+  check('restored draft records its origin; live untouched', r.json.restoredFrom === versionId && r.json.live.i18n.en['home.hero.h1'] === 'Draft headline');
+  r = await req('POST', '/api/history/nope-1/restore', undefined, { admin: true });
+  check('restore of unknown version is 404', r.status === 404);
+  r = await req('PUT', '/api/site', draftCfg, { admin: true });
+  check('advanced save is refused while a draft exists', r.status === 409 && r.json.code === 'draft-exists', r.text.slice(0, 200));
+  r = await req('PUT', '/api/site', Object.assign({}, draftCfg, { force: true }), { admin: true });
+  check('advanced save with force succeeds', r.status === 200 && r.json.ok);
+  /* an editor that reloads after the live site moved must not be able to
+     "refresh" the draft's base and hide the conflict */
+  const liveNow = r.json.site.updatedAt;
+  r = await req('PUT', '/api/draft', Object.assign({}, draftCfg, { baseUpdatedAt: liveNow }), { admin: true });
+  check('re-saving an existing draft keeps its original base', r.status === 200 && r.json.baseUpdatedAt && r.json.baseUpdatedAt !== liveNow, r.text.slice(0, 200));
+  r = await req('POST', '/api/publish', undefined, { admin: true });
+  check('publishing a draft older than live is refused as stale', r.status === 409 && r.json.code === 'stale', r.text.slice(0, 200));
+  r = await req('POST', '/api/publish', { force: true }, { admin: true });
+  check('stale draft publishes with force', r.status === 200 && r.json.ok && r.json.site.i18n.en['home.hero.h1'] === 'Draft headline', r.text.slice(0, 200));
+  r = await req('GET', '/api/history');
+  check('history grows with each publish and is capped at 10', r.json.length >= 2 && r.json.length <= 10);
+
   /* ---- submissions ---- */
   cookie = '';
   r = await req('POST', '/api/submit', { form: 'contact', email: 'a@b.co' });

@@ -67,6 +67,15 @@ category summary, then writes `data/site.json` and regenerates `data/site.js`,
 `sitemap.xml` and `robots.txt`. **Discard** removes the unpublished draft.
 Closing the browser does not publish anything.
 
+**Going back.** ↶ Undo / Redo ↷ step through the current session's edits.
+**History** lists the last 10 published versions (kept in the private
+`data/history/`); *Restore* loads one into the draft — you review it and
+publish, the live site never changes by itself. Every draft remembers which
+live version it started from: if the live site was changed meanwhile (for
+example from the advanced dashboard), Publish stops and asks before
+overwriting, and the advanced dashboard asks before saving while an editor
+draft exists.
+
 The **Inbox** panel lists submissions newest first, tracks unread state,
 opens a reply in the owner's mail app and exports CSV. **Settings** covers
 contact details, public site settings, scheduler/analytics tools, proof
@@ -135,7 +144,14 @@ API calls additionally require an `X-Requested-With` header and a matching
 `Origin`. Login is throttled (10 / 15 min per IP), form submissions too
 (30 / 10 min). Every saved value is validated and length-capped server-side,
 and all catalogue / settings strings are HTML-escaped when rendered.
-`data/admin.json` and `data/submissions.json` are never served.
+`data/admin.json`, `data/submissions.json`, `data/draft.json` and
+`data/history/` are never served.
+
+Copy that may contain markup (strings tagged `html`) is sanitised in the
+on-page editor (allow-list: `b strong em i a[href] br`), but the server only
+length-caps it: the admin role is trusted at code-execution level anyway
+(it can paste analytics snippets). Do not hand the password to anyone you
+would not let edit the site's JavaScript.
 
 The server binds to `127.0.0.1` by default; set `HOST=0.0.0.0` to expose it,
 and put it behind HTTPS (nginx / Caddy / a platform proxy) before doing so.
