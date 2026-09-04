@@ -6,7 +6,7 @@ colors:
   ink: "#0B0C10"
   paper: "#F4F1EA"
   signal: "#C6F24E"
-  violet: "#4634F0"
+  primary: "#4634F0"
   graphite: "#5B616E"
   alert: "#E2574C"
   surface: "#FFFFFF"
@@ -35,12 +35,50 @@ spacing:
   page-gutter-desktop: "32px"
   page-gutter-mobile: "20px"
 components:
-  button: {}
-  card: {}
-  field: {}
-  navigation-drawer: {}
-  service-accordion: {}
-  admin-editor: {}
+  button-primary:
+    backgroundColor: "{colors.signal}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "12px"
+  button-secondary:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.primary}"
+    rounded: "{rounded.pill}"
+    padding: "12px"
+  reading-surface:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.DEFAULT}"
+  secondary-surface:
+    backgroundColor: "{colors.surface-secondary}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.DEFAULT}"
+  muted-copy:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.graphite}"
+  engine-01-label:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.engine-01-on-light}"
+  engine-02-label:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.engine-02-on-light}"
+  engine-03-label:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.engine-03-on-light}"
+  engine-04-label:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.engine-04-on-light}"
+  engine-05-label:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.engine-05-on-light}"
+  alert-brand-swatch:
+    backgroundColor: "{colors.alert}"
+  alert-light:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.alert-on-light}"
+  alert-dark:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.alert-on-dark}"
 ---
 
 # OmniMark Design System
@@ -65,7 +103,7 @@ The public site should feel like an accountable campaign control room expressed 
 
 ## Colors
 
-Ink and paper form the primary reading contrast. Signal lime is reserved for high-priority actions and expressive dark-surface moments. Violet owns links and focus. The five base engine colours remain the artwork/background palette; `*-on-light` variants are the semantic text colours on paper and white surfaces. Error copy uses `alert-on-light` or `alert-on-dark` according to its surface. Colour never carries availability, validation, or selection by itself.
+Ink and paper form the primary reading contrast. Signal lime is reserved for high-priority actions and expressive dark-surface moments. Primary violet (the runtime `--violet` token) owns links and focus. The five base engine colours remain the artwork/background palette; `*-on-light` variants are the semantic text colours on paper and white surfaces. Error copy uses `alert-on-light` or `alert-on-dark` according to its surface. Colour never carries availability, validation, or selection by itself.
 
 ## Typography
 

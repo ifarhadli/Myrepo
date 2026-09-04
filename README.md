@@ -23,7 +23,7 @@ admin.html           the dashboard (needs server.js)
 css/style.css        design tokens + every site component
 css/admin.css        dashboard styles (independent of the site's tokens)
 js/data.js           service catalogue: 5 engines × groups × sub-services, industries
-js/i18n-data.js      EN + AZ dictionary — every string on the site (517 keys each)
+js/i18n-data.js      EN + AZ dictionary — every string on the site (540 keys each)
 js/site-config.js    applies the admin-saved config (tokens, fonts, copy, catalogue…)
 js/partials.js       renders header, mega-menu, drawer, footer AND both accordions from data.js
 js/i18n.js           swaps text on [data-i18n] elements, persists language choice
@@ -35,6 +35,9 @@ data/site.js         generated from site.json; loaded in <head> on every page
 data/admin.json      password hash + session secret   (git-ignored)
 data/submissions.json  contact / teardown / newsletter entries (git-ignored)
 sitemap.xml, robots.txt  regenerated on every publish from Settings → Site URL
+DESIGN.md            maintained visual direction and design-token contract
+UX-CONTRACT.md       shared admin/public interaction and resilience decisions
+premium-ui.json      machine-readable UI ownership and verification commands
 ```
 
 Script order on every page: `data/site.js` + `js/site-config.js` in `<head>`
@@ -68,6 +71,8 @@ Organization structured data is rendered server-side from the site settings
 on every page. Article schema appears only when author and publication date
 are filled in; JobPosting appears only when every required job field is
 complete. Keep those fields empty until they exactly match the visible page.
+Unconfigured privacy/terms destinations render as muted non-links rather than
+false links; add the approved URLs in *Settings* before launch.
 
 ### Password
 
@@ -144,8 +149,13 @@ is reachable at `/api/submit` on the same origin.
   *Pages & SEO* and the sitemap automatically.
 - Adding a string: put it in both `en` and `az` in `js/i18n-data.js` and
   reference it with `data-i18n="ns.key"`. It shows up in *Copy* at once.
-- `npm run check` syntax-checks every script; `npm test` also runs
-  [test/server.test.js](test/server.test.js) — an end-to-end suite that boots
-  the server in a temp copy and exercises static serving, auth, publish
-  validation, meta injection, submissions and the password lifecycle
-  (50+ checks, no dependencies).
+- `npm run check` syntax-checks every script.
+- `npm test` also runs [test/server.test.js](test/server.test.js): 66
+  integration checks in a disposable copy covering serving, auth, publish
+  validation, structured data, submissions, acknowledgements and passwords.
+- `npm run test:browser` drives an installed Chrome/Edge through its debugging
+  protocol: 19 responsive, focus, inert-state, validation, affordance and admin
+  checks. Set `BROWSER_BIN` if Chromium is installed somewhere non-standard.
+- Static design rules live in [DESIGN.md](DESIGN.md) and shared UI behavior in
+  [UX-CONTRACT.md](UX-CONTRACT.md). Audit screenshots are intentionally ignored;
+  the Markdown findings remain versioned under `audit/`.

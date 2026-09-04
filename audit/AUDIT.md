@@ -14,9 +14,9 @@ The findings below were verified against the source and screenshots, then addres
 | P0-2 Consent UI only on homepage | **Fixed** — banner rendered by `partials.js` on every page; analytics gating now site-wide | `js/partials.js`, `index.html` |
 | P0-3 Mobile header overflow | **Fixed** — Contact drops out of the bar ≤600 px (kept in drawer); 390 px, no overflow | `css/style.css` |
 | P0-3 Drawer focus / dialog semantics / layering | **Fixed** — `role="dialog"`, `aria-modal`, focus in, Tab trap, focus return; cookie banner z-index below drawer | `js/main.js`, `js/partials.js`, `css/style.css` |
-| P0-3 Team names hover-only | **Fixed** — always visible on `hover:none`; cards focusable | `css/style.css`, `js/main.js` |
+| P0-3 Team names hover-only | **Fixed** — names and roles are always visible on desktop and touch | `css/style.css`, `js/main.js` |
 | P0-4 Scheduler placeholder | **Fixed** — removed; *Settings → Meeting scheduler URL* renders an iframe, empty hides the block | `contact.html`, `js/main.js`, `server.js`, `js/admin.js` |
-| P0-4 Placeholder team / logos / stats / legal / contact | **Open — content**, owner to supply | — |
+| P0-4 Placeholder team / logos / stats / legal / contact | **Open — content**, owner to supply; proof is hidden by default and missing legal URLs are non-links | `js/site-config.js`, `js/partials.js` |
 | P0-5 Careers switch desktop-only | **Fixed** | `js/partials.js` |
 | P0-5 Hard-coded “OmniMark” marks | **Fixed** — follow *Site name* | `js/partials.js` |
 | P0-5 `formFallbackNote` dead field | **Fixed** — removed | `server.js`, `js/admin.js`, `data/site.*` |
@@ -24,7 +24,7 @@ The findings below were verified against the source and screenshots, then addres
 | P0-5 Collections, media, nav editor, page CRUD, revisions, roles | **Open — scope**, needs a product decision | — |
 | P1 1,111 unlabelled admin controls | **Fixed** — `labelize()` links every `.field` label and adds `aria-label` (key + language, engine + field) to the rest | `js/admin.js` |
 | P1 Admin nav no focus style | **Fixed** | `css/admin.css` |
-| P1 Form errors without `aria-invalid` / focus | **Fixed** — `aria-invalid`, `aria-describedby`, focus to first invalid | `js/main.js` |
+| P1 Form errors without `aria-invalid` / focus | **Fixed** — linked text under every required field, autocomplete, `aria-invalid`, server field mapping, focus to first invalid | `js/main.js`, `server.js` |
 | P1 No skip link / `aria-current` | **Fixed** | `js/partials.js`, `css/style.css` |
 | P1 `role="menu"` misuse | **Fixed** — `role="group"` | `js/partials.js` |
 | P1 FAQ `aria-controls` / hidden answers | **Fixed** — `aria-controls` + `aria-hidden` | `js/main.js` |
@@ -41,11 +41,21 @@ The findings below were verified against the source and screenshots, then addres
 | P2 Rate limit behind proxy | **Fixed** — `TRUST_PROXY=1` keys on `X-Forwarded-For` | `server.js` |
 | P2 URL fields not scheme-validated | **Fixed** | `server.js` |
 | P2 Submissions plaintext, no retention | **Open** — small-scale JSON by design; revisit with a DB | — |
-| P2 No automated tests | **Fixed** — `npm test` runs `test/server.test.js` (50+ end-to-end checks) | `test/`, `package.json` |
+| P2 No automated tests | **Fixed** — 66 integration checks plus 19 real-browser checks | `test/`, `package.json` |
 | P2 Mobile Services drawer button UA styling | **Fixed** — button reset | `css/style.css` |
 | Post-audit: no email / CRM notification | **Fixed** — Resend email + generic webhook via env vars; admin overview warns when unset | `server.js`, `js/admin.js`, `README.md` |
+| Deep audit: mobile contact/service overflow | **Fixed** — all inline fixed-grid declarations swept; contact and service layouts collapse cleanly | `contact.html`, `css/style.css` |
+| Deep audit: mega-menu density/height | **Fixed** — admin-configurable link count (default 4), global All services link, viewport-bounded scroll | `js/partials.js`, `css/style.css`, `js/admin.js` |
+| Deep audit: hidden focus in drawer/accordions | **Fixed** — closed content is invisible and inert; modal background is inert | `js/main.js`, `js/partials.js`, `css/style.css` |
+| Deep audit: contrast and false destinations | **Fixed** — semantic on-light tokens; only real cards link; sub-services lead to relevant parent anchors | `css/style.css`, public templates |
+| Deep audit: dead article figure/share actions | **Fixed** — real inline SVG funnels plus LinkedIn, X, and copy-link behavior | `article.html`, `js/main.js` |
+| Deep audit: false response promise | **Fixed** — one-business-day message plus Resend visitor acknowledgement | `js/i18n-data.js`, `server.js` |
+| Deep audit: proof publication risk | **Fixed** — *Show verified proof content* defaults off and requires owner approval | `js/site-config.js`, `js/admin.js`, `data/site.*` |
+| Deep audit: schema opportunity | **Fixed** — Organization globally, guarded Article, and JobPosting only from a complete real record | `server.js`, `js/admin.js` |
+| Deep audit: newsletter consent | **Fixed to current scope** — stores consent timestamp/source; welcome provides unsubscribe mailto; suppression belongs in the future sending platform | `server.js`, `README.md` |
+| Deep audit: native admin confirmations | **Fixed** — owned accessible dialog with cancel-first focus and focus return | `admin.html`, `js/admin.js`, `css/admin.css` |
 
-Everything marked **Fixed** is covered by `npm test` where it is testable server-side; the visual items were re-measured in the browser.
+Everything marked **Fixed** is covered by `npm test` where it is testable server-side; the current browser suite also checks 390 px, 1366×768, article actions, legal affordances, drawer/accordion state, and the admin dialog. The historical findings below preserve the original evidence; this resolution table is the current status.
 
 ---
 

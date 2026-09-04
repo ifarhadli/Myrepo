@@ -1,0 +1,19 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["css", "js"],
+  "locale": "en-US",
+  "canonicalMap": "UX-CONTRACT.md",
+  "requiredCapabilities": ["Select/Listbox", "Form", "Scrollbar", "Toast", "CRUD"],
+  "ownership": {
+    "Select/Listbox": "native"
+  },
+  "requiredCommands": ["integration", "browser"],
+  "commands": {
+    "integration": "npm test",
+    "browser": "npm run test:browser"
+  },
+  "evidence": {
+    "crudFullFlow": "test/server.test.js",
+    "failurePaths": "test/server.test.js"
+  }
+}

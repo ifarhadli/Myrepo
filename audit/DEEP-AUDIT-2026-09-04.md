@@ -4,6 +4,24 @@ Date: 4 September 2026
 Scope: 15 public pages, the EN/AZ experience, primary navigation, lead forms, and the admin dashboard.  
 Evidence: fresh current-run screenshots at desktop, laptop, and mobile sizes; source review; response-header checks; a 54-test end-to-end run; and a throttled local performance sample.
 
+## Implementation resolution — same-day follow-up
+
+The audit below is preserved as the point-in-time evidence that drove the work. The selected launch-hardening scope is now implemented:
+
+| Area | Current result |
+|---|---|
+| Responsive layouts | Contact and both service-detail templates collapse at phone width; a repository-wide inline fixed-layout sweep found no additional blocking grid declarations. |
+| Navigation/disclosures | Mega-menu density is editable (default four links), viewport-bounded, and scrollable. Drawer and collapsed panels synchronize visibility, ARIA, and `inert`. |
+| Forms | Every required lead field has linked text, autocomplete where applicable, mirrored server validation, honest one-business-day success copy, and a Resend acknowledgement when configured. |
+| Trust/content | Proof is off by default. Only content with a real destination links; missing legal URLs are non-interactive. Sub-services retain useful links to their parent engine anchors. |
+| Design/accessibility | Semantic on-light accent tokens pass their text role; team identity is always visible; the admin uses an owned confirmation dialog and revealable secret inputs. |
+| Article | The fake gradient figure is a labelled inline SVG; LinkedIn, X, and copy-link actions are wired. |
+| SEO/schema | Organization is global; Article is guarded by publishing fields; JobPosting is omitted until every real required value exists. |
+| Newsletter scope | Consent timestamp/source are stored and the welcome has an unsubscribe mailto. A real suppression lifecycle waits for the chosen sending platform. |
+| Evidence | `npm test`: 66/66. `npm run test:browser`: 19/19. Premium strict static audit: 0 findings. `designmd lint`: 0 errors, 0 warnings. |
+
+Still owner-blocked: approved cases/assets/logos/portraits/numbers/testimonials, real contact and legal details, production notification credentials, and a decision on AZ URLs and future CMS/multi-user scope.
+
 ## Overall verdict
 
 The product has a strong foundation, but it is not ready to represent a large agency publicly yet.
