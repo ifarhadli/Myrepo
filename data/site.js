@@ -16,8 +16,8 @@ window.OMNI_SITE = {
     "addressLine2": "Austin, TX 78701",
     "geoEmail": "austin@omnimark.com",
     "linkedin": "https://www.linkedin.com",
-    "privacyUrl": "#",
-    "termsUrl": "#",
+    "privacyUrl": "",
+    "termsUrl": "",
     "schedulerUrl": "",
     "ogImage": "",
     "megaMenuLinkLimit": 4

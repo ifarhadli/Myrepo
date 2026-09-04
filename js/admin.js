@@ -42,6 +42,38 @@
     var el = $('#toast'); el.textContent = msg; el.className = 'toast show ' + (kind || '');
     clearTimeout(toastT); toastT = setTimeout(function(){ el.className = 'toast'; }, 3200);
   }
+  var confirmResolve = null, confirmReturnFocus = null;
+  function confirmAction(message, actionLabel){
+    var dialog = $('#confirmDialog');
+    confirmReturnFocus = document.activeElement;
+    $('#confirmMessage').textContent = message;
+    $('#confirmProceed').textContent = actionLabel || 'Continue';
+    if (dialog.open) dialog.close('cancel');
+    dialog.returnValue = 'cancel';
+    dialog.showModal();
+    return new Promise(function(resolve){ confirmResolve = resolve; });
+  }
+  $('#confirmDialog').addEventListener('close', function(){
+    if (!confirmResolve) return;
+    var resolve = confirmResolve; confirmResolve = null;
+    var returnFocus = confirmReturnFocus; confirmReturnFocus = null;
+    if (returnFocus && returnFocus.isConnected) returnFocus.focus();
+    resolve(this.returnValue === 'confirm');
+  });
+  function bindPasswordToggles(root){
+    $$('[data-password-toggle]', root || document).forEach(function(button){
+      if (button.getAttribute('data-bound')) return;
+      button.setAttribute('data-bound', '1');
+      button.addEventListener('click', function(){
+        var input = document.getElementById(button.getAttribute('data-password-toggle'));
+        if (!input) return;
+        var showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        button.textContent = showing ? 'Show' : 'Hide';
+        button.setAttribute('aria-pressed', String(!showing));
+      });
+    });
+  }
   function api(method, path, body){
     return fetch(path, {
       method: method, credentials: 'same-origin',
@@ -91,7 +123,7 @@
     settings: { siteName: 'OmniMark', siteUrl: 'https://www.omnimark.com', defaultLang: 'en', email: 'hello@omnimark.com',
       phone: '+1 (800) 555-1234', phoneHref: '+18005551234', address: '400 Commerce St, Austin, TX 78701',
       addressLine1: '400 Commerce St', addressLine2: 'Austin, TX 78701', geoEmail: 'austin@omnimark.com',
-      linkedin: 'https://www.linkedin.com', privacyUrl: '#', termsUrl: '#', schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4 },
+      linkedin: 'https://www.linkedin.com', privacyUrl: '', termsUrl: '', schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4 },
     features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false, customCursor: true,
       magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
     design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
@@ -300,7 +332,7 @@
           '<ul class="muted small"><li><b>Design</b> — colours, fonts, spacing, motion, custom CSS, with live preview.</li><li><b>Copy &amp; translations</b> — every dictionary string in English and Azerbaijani (a handful of figures, names and logos still live in the page HTML).</li><li><b>Services catalogue</b> — the five engines and their sub-services (mega-menu, drawer, footer and both accordions all follow).</li><li><b>Pages &amp; SEO</b> — titles, descriptions, show/hide sections.</li><li><b>Submissions</b> — contact, teardown and newsletter forms.</li></ul>' +
         '</div>' +
         '<div class="card"><h2>Launch checklist</h2>' + (todo.length ?
-          '<ul>' + todo.map(function(t){ return '<li><a href="#" data-goto="' + t[0] + '">' + esc(t[1]) + '</a></li>'; }).join('') + '</ul>' :
+          '<ul>' + todo.map(function(t){ return '<li><button type="button" class="link-button" data-goto="' + t[0] + '">' + esc(t[1]) + '</button></li>'; }).join('') + '</ul>' :
           '<p class="muted">Nothing outstanding.</p>') +
           '<h2 style="margin-top:18px">Deploy</h2><p class="muted small">Run <code>node server.js</code> on the host to serve the site with this admin. Or copy the folder to any static host — the last published <code>data/site.js</code> ships with it (forms then need the server to be reachable).</p>' +
           '<h2 style="margin-top:18px">Form notifications</h2><p class="muted small" id="ovNotify">Checking…</p>' +
@@ -352,7 +384,7 @@
               .map(function(f){ return '<label class="check"><input type="checkbox" data-bind="features.' + f[0] + '"><span>' + esc(f[1]) + (f[2] ? '<div class="d">' + esc(f[2]) + '</div>' : '') + '</span></label>'; }).join('') +
           '</div></div>' +
           '<div class="card"><h2>Custom CSS</h2><p class="muted small">Injected last on every page, so it beats everything in <code>style.css</code>. Use the site\'s class names, e.g. <code>.hero h1{font-size:72px}</code>.</p>' +
-            '<div class="field"><textarea class="code" data-bind="design.customCss" spellcheck="false" placeholder="/* your CSS */"></textarea></div></div>' +
+            '<div class="field"><textarea class="code resize-none" data-bind="design.customCss" spellcheck="false" placeholder="/* your CSS */"></textarea></div></div>' +
         '</div>' +
         '<div class="preview-wrap">' +
           '<div class="preview-bar"><select id="previewPage" aria-label="Preview page">' +
@@ -411,8 +443,8 @@
       var changed = en != null || az != null;
       return '<div class="row-i18n' + (changed ? ' changed' : '') + '" data-row="' + esc(k) + '">' +
         '<div class="key"><span>' + esc(k) + '</span>' + (HTML_KEYS[k] ? '<span class="html">html</span>' : '') + (changed ? '<button class="btn icon" data-reset-row="' + esc(k) + '">↺ reset</button>' : '') + '</div>' +
-        '<textarea data-lang="en" data-key="' + esc(k) + '" placeholder="' + esc(FLAT_EN[k] || '') + '">' + esc(en != null ? en : (FLAT_EN[k] || '')) + '</textarea>' +
-        '<textarea data-lang="az" data-key="' + esc(k) + '" placeholder="' + esc(FLAT_AZ[k] || '') + '">' + esc(az != null ? az : (FLAT_AZ[k] || '')) + '</textarea>' +
+        '<textarea class="resize-none" data-lang="en" data-key="' + esc(k) + '" placeholder="' + esc(FLAT_EN[k] || '') + '">' + esc(en != null ? en : (FLAT_EN[k] || '')) + '</textarea>' +
+        '<textarea class="resize-none" data-lang="az" data-key="' + esc(k) + '" placeholder="' + esc(FLAT_AZ[k] || '') + '">' + esc(az != null ? az : (FLAT_AZ[k] || '')) + '</textarea>' +
       '</div>';
     }
     function draw(){
@@ -473,8 +505,8 @@
         '<div class="g2">' +
           '<div class="field"><label>Name (EN)</label><input data-eng="' + i + '.name" value="' + esc(e.name) + '"></div>' +
           '<div class="field"><label>Name (AZ)</label><input data-engaz="' + i + '.name" value="' + esc(a.name || '') + '"></div>' +
-          '<div class="field"><label>Promise (EN)</label><textarea data-eng="' + i + '.promise">' + esc(e.promise) + '</textarea></div>' +
-          '<div class="field"><label>Promise (AZ)</label><textarea data-engaz="' + i + '.promise">' + esc(a.promise || '') + '</textarea></div>' +
+          '<div class="field"><label>Promise (EN)</label><textarea class="resize-none" data-eng="' + i + '.promise">' + esc(e.promise) + '</textarea></div>' +
+          '<div class="field"><label>Promise (AZ)</label><textarea class="resize-none" data-engaz="' + i + '.promise">' + esc(a.promise || '') + '</textarea></div>' +
           '<div class="field"><label>Codename</label><input data-eng="' + i + '.codename" value="' + esc(e.codename || '') + '"></div>' +
           '<div class="field"><label>Number</label><input data-eng="' + i + '.num" value="' + esc(e.num) + '"></div>' +
           '<div class="field"><label>View-all link</label><input data-eng="' + i + '.href" value="' + esc(e.href) + '"><div class="hint">e.g. services.html#engine-02</div></div>' +
@@ -511,11 +543,11 @@
       else return;
       markDirty();
     });
-    panel.addEventListener('click', function(e){
+    panel.addEventListener('click', async function(e){
       var b = e.target.closest('button'); if (!b) return;
       var v, parts;
       if (b.id === 'resetEngines'){
-        if (!confirm('Discard all catalogue edits and go back to the code defaults?')) return;
+        if (!await confirmAction('Discard all catalogue edits and go back to the code defaults?', 'Discard edits')) return;
         state.site.engines = null; state.site.enginesAz = null;
       } else if ((v = b.getAttribute('data-add-item'))){
         ensureEngines(); parts = v.split('.').map(Number);
@@ -538,7 +570,7 @@
         state.site.engines[+v].groups.push({ title: 'New group', items: [] });
         state.site.enginesAz[+v].groups.push({ title: 'Yeni qrup', items: [] });
       } else if ((v = b.getAttribute('data-del-group'))){
-        if (!confirm('Remove this group and its services?')) return;
+        if (!await confirmAction('Remove this group and its services?', 'Remove group')) return;
         ensureEngines(); parts = v.split('.').map(Number);
         state.site.engines[parts[0]].groups.splice(parts[1], 1);
         state.site.enginesAz[parts[0]].groups.splice(parts[1], 1);
@@ -567,11 +599,11 @@
       else return;
       markDirty();
     });
-    panel.addEventListener('click', function(e){
+    panel.addEventListener('click', async function(e){
       var b = e.target.closest('button'); if (!b) return;
       var v;
       if (b.id === 'addInd'){ ensureIndustries(); state.site.industries.push('New industry'); state.site.industriesAz.push('Yeni sahə'); }
-      else if (b.id === 'resetInd'){ if (!confirm('Discard industry edits?')) return; state.site.industries = null; state.site.industriesAz = null; }
+      else if (b.id === 'resetInd'){ if (!await confirmAction('Discard industry edits?', 'Discard edits')) return; state.site.industries = null; state.site.industriesAz = null; }
       else if ((v = b.getAttribute('data-idel')) != null){ ensureIndustries(); state.site.industries.splice(+v, 1); state.site.industriesAz.splice(+v, 1); }
       else if ((v = b.getAttribute('data-imove'))){
         ensureIndustries(); var p = v.split('.').map(Number), to = p[0] + p[1];
@@ -590,7 +622,7 @@
         return '<div class="card page-card"><h2>' + esc(p.title || p.key) + ' <code>' + esc(p.file) + '</code> <a class="small" href="' + esc(p.file) + '" target="_blank" rel="noopener">open ↗</a></h2>' +
           '<div class="g2 grid2">' +
             '<div class="field"><label>Browser / search title</label><input type="text" data-page="' + esc(p.key) + '.title" value="' + esc(ov.title || '') + '" placeholder="' + esc(p.title) + '"></div>' +
-            '<div class="field"><label>Meta description</label><textarea data-page="' + esc(p.key) + '.description" placeholder="' + esc(p.description) + '">' + esc(ov.description || '') + '</textarea></div>' +
+            '<div class="field"><label>Meta description</label><textarea class="resize-none" data-page="' + esc(p.key) + '.description" placeholder="' + esc(p.description) + '">' + esc(ov.description || '') + '</textarea></div>' +
           '</div>' +
           (p.sections.length ? '<h3>Sections</h3><div class="sections">' + p.sections.map(function(s){
             var hidden = state.site.hiddenSections.indexOf(s.key) >= 0;
@@ -639,7 +671,7 @@
           '</div></div>' +
           '<div class="card"><h2>JobPosting schema</h2><p class="muted small">Published only when every required field is complete. Keep this empty until it exactly matches the visible role page.</p>' +
             '<div class="field"><label>Job title</label><input type="text" data-bind="structured.jobTitle"></div>' +
-            '<div class="field"><label>Job description</label><textarea data-bind="structured.jobDescription"></textarea></div>' +
+            '<div class="field"><label>Job description</label><textarea class="resize-none" data-bind="structured.jobDescription"></textarea></div>' +
             '<div class="grid2"><div class="field"><label>Date posted</label><input type="text" inputmode="numeric" data-bind="structured.jobDatePosted" placeholder="YYYY-MM-DD"></div><div class="field"><label>Valid through</label><input type="text" inputmode="numeric" data-bind="structured.jobValidThrough" placeholder="YYYY-MM-DD"></div></div>' +
             '<div class="field"><label>Employment type</label><select data-bind="structured.jobEmploymentType"><option value="">Select…</option><option value="FULL_TIME">Full time</option><option value="PART_TIME">Part time</option><option value="CONTRACTOR">Contractor</option><option value="TEMPORARY">Temporary</option><option value="INTERN">Intern</option><option value="OTHER">Other</option></select></div>' +
             '<div class="field"><label>Location</label><input type="text" data-bind="structured.jobLocation" placeholder="Austin, TX, US"></div>' +
@@ -648,7 +680,7 @@
           '</div>' +
           '<div class="card"><h2>Analytics</h2><p class="muted small">Loaded only after a visitor accepts cookies (or always, if the banner is off).</p>' +
             '<div class="field"><label>Google Analytics measurement ID</label><input type="text" data-bind="analytics.gaId" placeholder="G-XXXXXXXXXX"></div>' +
-            '<div class="field"><label>Other tag snippets (GTM, Meta pixel, …)</label><textarea class="code" data-bind="analytics.consentScript" spellcheck="false" placeholder="<script>…</script>"></textarea><div class="hint">Paste the full snippet including &lt;script&gt; tags.</div></div>' +
+            '<div class="field"><label>Other tag snippets (GTM, Meta pixel, …)</label><textarea class="code resize-none" data-bind="analytics.consentScript" spellcheck="false" placeholder="<script>…</script>"></textarea><div class="hint">Paste the full snippet including &lt;script&gt; tags.</div></div>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -688,8 +720,8 @@
       a.download = 'submissions-' + new Date().toISOString().slice(0, 10) + '.csv';
       document.body.appendChild(a); a.click(); a.remove();
     });
-    $('#subClear').addEventListener('click', function(){
-      if (!confirm('Delete every submission? This cannot be undone.')) return;
+    $('#subClear').addEventListener('click', async function(){
+      if (!await confirmAction('Delete every submission? This cannot be undone.', 'Delete all')) return;
       api('DELETE', 'api/submissions').then(load).catch(function(e){ toast(e.message, 'err'); });
     });
     panel.addEventListener('click', function(e){
@@ -702,10 +734,11 @@
   function renderAccount(panel){
     panel.innerHTML =
       '<div class="grid2">' +
-        '<div class="card"><h2>Change password</h2><form id="pwForm">' +
-          '<div class="field"><label>Current password</label><input type="password" id="pwCur" autocomplete="current-password" required></div>' +
-          '<div class="field"><label>New password (8+ characters)</label><input type="password" id="pwNew" autocomplete="new-password" minlength="8" required></div>' +
-          '<div class="field"><label>Repeat new password</label><input type="password" id="pwNew2" autocomplete="new-password" required></div>' +
+        '<div class="card"><h2>Change password</h2><form id="pwForm" novalidate>' +
+          '<div class="field"><label>Current password</label><div class="password-row"><input type="password" id="pwCur" autocomplete="current-password" required><button type="button" class="password-toggle" data-password-toggle="pwCur" aria-pressed="false">Show</button></div></div>' +
+          '<div class="field"><label>New password (8+ characters)</label><div class="password-row"><input type="password" id="pwNew" autocomplete="new-password" minlength="8" required><button type="button" class="password-toggle" data-password-toggle="pwNew" aria-pressed="false">Show</button></div></div>' +
+          '<div class="field"><label>Repeat new password</label><div class="password-row"><input type="password" id="pwNew2" autocomplete="new-password" required><button type="button" class="password-toggle" data-password-toggle="pwNew2" aria-pressed="false">Show</button></div></div>' +
+          '<p class="err" id="pwErr" role="alert" hidden></p>' +
           '<button class="btn primary" type="submit">Update password</button></form></div>' +
         '<div>' +
           '<div class="card"><h2>Backup &amp; restore</h2><p class="muted small">The whole configuration is one JSON file. Export before big changes; import to restore or to move settings to another install.</p>' +
@@ -713,12 +746,25 @@
           '<div class="card"><h2>Reset</h2><p class="muted small">Puts every setting, colour, string and catalogue back to the code defaults. Submissions and your password are kept. You still need to Save &amp; publish.</p><button class="btn danger" id="resetAll">Reset everything to defaults</button></div>' +
         '</div>' +
       '</div>';
+    bindPasswordToggles(panel);
+    $('#pwForm').addEventListener('input', function(e){
+      if (!e.target.matches('input[type="password"]')) return;
+      e.target.setAttribute('aria-invalid', 'false'); e.target.removeAttribute('aria-describedby'); $('#pwErr').hidden = true;
+    });
     $('#pwForm').addEventListener('submit', function(e){
       e.preventDefault();
-      if ($('#pwNew').value !== $('#pwNew2').value) return toast('New passwords do not match.', 'err');
+      var err = $('#pwErr'), current = $('#pwCur'), next = $('#pwNew'), repeat = $('#pwNew2');
+      [current, next, repeat].forEach(function(input){ input.setAttribute('aria-invalid', 'false'); input.removeAttribute('aria-describedby'); });
+      function invalid(input, message){ err.textContent = message; err.hidden = false; input.setAttribute('aria-invalid', 'true'); input.setAttribute('aria-describedby', 'pwErr'); input.focus(); }
+      if (!current.value) return invalid(current, 'Enter your current password.');
+      if (next.value.length < 8) return invalid(next, 'Use at least 8 characters for the new password.');
+      if (next.value !== repeat.value) return invalid(repeat, 'New passwords do not match.');
+      err.hidden = true;
+      var submit = e.target.querySelector('[type="submit"]'); submit.disabled = true; submit.textContent = 'Updating…';
       api('POST', 'api/password', { current: $('#pwCur').value, next: $('#pwNew').value })
         .then(function(){ toast('Password updated.', 'ok'); e.target.reset(); })
-        .catch(function(err){ toast(err.message, 'err'); });
+        .catch(function(ex){ err.textContent = ex.message; err.hidden = false; })
+        .then(function(){ submit.disabled = false; submit.textContent = 'Update password'; });
     });
     $('#exportBtn').addEventListener('click', function(){
       var a = document.createElement('a');
@@ -738,8 +784,8 @@
       };
       r.readAsText(f);
     });
-    $('#resetAll').addEventListener('click', function(){
-      if (!confirm('Reset every setting to the code defaults? (Not saved until you publish.)')) return;
+    $('#resetAll').addEventListener('click', async function(){
+      if (!await confirmAction('Reset every setting to the code defaults? It will not take effect until you publish.', 'Reset defaults')) return;
       state.site = normalize(clone(DEFAULT_SITE)); markDirty(); toast('Reset to defaults — Save & publish to apply.', 'ok'); showTab('overview');
     });
   }
@@ -758,8 +804,8 @@
       if (e.status === 401){ $('#app').hidden = true; $('#login').hidden = false; }
     }).then(function(){ btn.textContent = 'Save & publish'; btn.disabled = !isDirty(); });
   }
-  function discard(){
-    if (!isDirty() || !confirm('Throw away unsaved changes?')) return;
+  async function discard(){
+    if (!isDirty() || !await confirmAction('Throw away unsaved changes?', 'Discard changes')) return;
     state.site = clone(state.saved); markDirty(); showTab(state.tab);
   }
 
@@ -782,11 +828,16 @@
   }
   $('#loginForm').addEventListener('submit', function(e){
     e.preventDefault();
-    var err = $('#loginErr'); err.hidden = true;
-    api('POST', 'api/login', { password: $('#loginPw').value }).then(load).catch(function(ex){ err.textContent = ex.message; err.hidden = false; });
+    var err = $('#loginErr'), input = $('#loginPw'), submit = e.target.querySelector('[type="submit"]');
+    err.hidden = true; input.setAttribute('aria-invalid', 'false');
+    if (!input.value){ err.textContent = 'Enter your password.'; err.hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
+    submit.disabled = true; submit.textContent = 'Signing in…';
+    api('POST', 'api/login', { password: input.value }).then(load).catch(function(ex){ err.textContent = ex.message; err.hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus(); })
+      .then(function(){ submit.disabled = false; submit.textContent = 'Sign in'; });
   });
-  $('#logoutBtn').addEventListener('click', function(){
-    if (isDirty() && !confirm('You have unsaved changes. Sign out anyway?')) return;
+  $('#loginPw').addEventListener('input', function(){ this.setAttribute('aria-invalid', 'false'); $('#loginErr').hidden = true; });
+  $('#logoutBtn').addEventListener('click', async function(){
+    if (isDirty() && !await confirmAction('You have unsaved changes. Sign out anyway?', 'Sign out')) return;
     api('POST', 'api/logout').then(function(){ location.reload(); });
   });
   $('#saveBtn').addEventListener('click', save);
@@ -801,5 +852,6 @@
   });
   window.addEventListener('beforeunload', function(e){ if (isDirty()){ e.preventDefault(); e.returnValue = ''; } });
   window.addEventListener('hashchange', function(){ var id = location.hash.slice(1); if (id && id !== state.tab && state.site) showTab(id); });
+  bindPasswordToggles(document);
   boot();
 })();

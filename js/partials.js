@@ -182,6 +182,11 @@
   var address = settings.address || '400 Commerce St, Austin, TX';
   var linkedin = settings.linkedin || 'https://www.linkedin.com';
   var yearNow = new Date().getFullYear();
+  function legalItem(url, key, label){
+    return url
+      ? '<a href="'+esc(url)+'" style="color:var(--panel-muted)" data-i18n="'+key+'">'+label+'</a>'
+      : '<span class="legal-missing" aria-disabled="true" data-i18n="'+key+'">'+label+'</span>';
+  }
 
   var newsletter = features.newsletter === false ? '' :
     '<div class="nb-title" style="margin-top:22px" data-i18n="footer.signalTitle">The Signal</div>'+
@@ -228,9 +233,9 @@
     '<div class="footer-legal">'+
       '<span>&copy; '+yearNow+' '+esc(settings.siteName || 'OmniMark')+'. <span data-i18n="footer.rights">All rights reserved.</span></span>'+
       '<div class="links">'+
-        '<a href="'+esc(settings.privacyUrl || '#')+'" style="color:var(--panel-muted)" data-i18n="footer.privacy">Privacy Policy</a>'+
-        '<a href="'+esc(settings.termsUrl || '#')+'" style="color:var(--panel-muted)" data-i18n="footer.terms">Terms</a>'+
-        (features.cookieBanner === false ? '' : '<a href="#" id="cookiePrefsLink" style="color:var(--panel-muted)" data-i18n="footer.cookiePrefs">Cookie Preferences</a>')+
+        legalItem(settings.privacyUrl, 'footer.privacy', 'Privacy Policy')+
+        legalItem(settings.termsUrl, 'footer.terms', 'Terms')+
+        (features.cookieBanner === false ? '' : '<button type="button" id="cookiePrefsLink" data-i18n="footer.cookiePrefs">Cookie Preferences</button>')+
       '</div>'+
     '</div>'+
     '<div class="footer-word" aria-hidden="true">'+esc(settings.siteName || 'OmniMark')+'</div>'+

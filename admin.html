@@ -15,11 +15,14 @@
 
 <!-- sign-in -->
 <div id="login" class="login" hidden>
-  <form class="login-card" id="loginForm" autocomplete="off">
+  <form class="login-card" id="loginForm" autocomplete="off" novalidate>
     <div class="brand">Omni<span>Mark</span> <em>admin</em></div>
     <p class="muted">Sign in to edit the site. The password was printed in the terminal the first time <code>node server.js</code> ran.</p>
     <label for="loginPw">Password</label>
-    <input id="loginPw" type="password" autocomplete="current-password" required>
+    <div class="password-row">
+      <input id="loginPw" type="password" autocomplete="current-password" aria-describedby="loginErr" aria-invalid="false" required>
+      <button type="button" class="password-toggle" data-password-toggle="loginPw" aria-pressed="false">Show</button>
+    </div>
     <p class="err" id="loginErr" role="alert" hidden></p>
     <button type="submit" class="btn primary block">Sign in</button>
   </form>
@@ -67,6 +70,17 @@
     <section id="panel" class="panel" aria-live="polite"></section>
   </main>
 </div>
+
+<dialog id="confirmDialog" class="confirm-dialog" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+  <form method="dialog" novalidate>
+    <h2 id="confirmTitle">Confirm change</h2>
+    <p id="confirmMessage"></p>
+    <div class="confirm-actions">
+      <button class="btn" value="cancel" autofocus>Cancel</button>
+      <button class="btn danger" id="confirmProceed" value="confirm">Continue</button>
+    </div>
+  </form>
+</dialog>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 

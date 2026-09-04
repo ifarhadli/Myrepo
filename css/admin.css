@@ -13,6 +13,10 @@
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--a-bg);color:var(--a-text);font-family:var(--a-font);font-size:14px;line-height:1.5}
+html{scrollbar-width:thin;scrollbar-color:rgba(91,97,110,.65) transparent}
+html::-webkit-scrollbar{width:10px;height:10px}
+html::-webkit-scrollbar-track{background:transparent}
+html::-webkit-scrollbar-thumb{background:rgba(91,97,110,.65);border:2px solid transparent;border-radius:999px;background-clip:padding-box}
 a{color:var(--a-accent)}
 code{font-family:var(--a-mono);font-size:12px;background:var(--a-surface-2);padding:1px 6px;border-radius:5px}
 h1,h2,h3{margin:0 0 10px;letter-spacing:-.01em}
@@ -39,12 +43,20 @@ p{margin:0 0 10px}
 .btn.icon{padding:6px 9px;font-size:12px;font-family:var(--a-mono)}
 .btn.block{width:100%}
 .btn:disabled{opacity:.6;cursor:not-allowed}
+.link-button{all:unset;color:var(--a-accent);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+.link-button:hover{text-decoration-thickness:2px}
+.link-button:focus-visible{outline:2px solid var(--a-accent);outline-offset:3px;border-radius:2px}
 
 /* ---------- login ---------- */
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--a-ink)}
 .login-card{background:var(--a-surface);border-radius:18px;padding:32px;width:100%;max-width:420px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
 .login-card label{display:block;font-family:var(--a-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 8px}
 .login-card input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--a-border);font:inherit;font-size:15px;margin-bottom:12px}
+.password-row{position:relative}
+.password-row input{padding-right:68px}
+.password-toggle{position:absolute;right:8px;top:7px;border:0;background:transparent;color:var(--a-accent);font:inherit;font-size:12px;font-weight:700;padding:6px 7px;border-radius:7px;cursor:pointer}
+.password-toggle:hover{background:rgba(70,52,240,.08)}
+.password-toggle:focus-visible{outline:2px solid var(--a-accent);outline-offset:1px}
 .err{color:var(--a-alert);font-size:13px;margin:-4px 0 10px}
 .brand{font-weight:800;font-size:20px;letter-spacing:-.03em;margin-bottom:12px}
 .brand span{color:var(--a-accent)}
@@ -92,7 +104,7 @@ p{margin:0 0 10px}
 .row-i18n textarea,.eng input,.eng textarea,.ind input{
   width:100%;padding:10px 12px;border-radius:9px;border:1px solid var(--a-border);background:var(--a-surface);font:inherit;font-size:14px;color:var(--a-text);
   transition:border-color .15s,box-shadow .15s}
-.field textarea,.row-i18n textarea,.eng textarea{min-height:64px;resize:vertical;line-height:1.45}
+.field textarea,.row-i18n textarea,.eng textarea{min-height:64px;resize:none;line-height:1.45}
 .field textarea.code{font-family:var(--a-mono);font-size:12.5px;min-height:160px}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a-accent);box-shadow:0 0 0 3px rgba(70,52,240,.18)}
 .field .hint{font-size:12px;color:var(--a-muted);margin-top:5px}
@@ -160,6 +172,13 @@ td .kv b{color:var(--a-text);font-weight:600}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .toast.err{background:var(--a-alert)}
 .toast.ok{background:var(--a-ok)}
+
+/* ---------- confirmation dialog ---------- */
+.confirm-dialog{width:min(430px,calc(100vw - 32px));padding:0;border:1px solid var(--a-border);border-radius:16px;background:var(--a-surface);color:var(--a-text);box-shadow:0 28px 80px rgba(11,12,16,.32)}
+.confirm-dialog::backdrop{background:rgba(11,12,16,.64);backdrop-filter:blur(3px)}
+.confirm-dialog form{padding:24px}
+.confirm-dialog p{color:var(--a-muted);margin:0 0 22px}
+.confirm-actions{display:flex;justify-content:flex-end;gap:8px}
 
 /* ---------- responsive ---------- */
 @media (max-width:1100px){ .grid2{grid-template-columns:1fr} .preview-wrap{position:static} .preview{height:520px} }

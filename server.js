@@ -58,7 +58,7 @@ const DEFAULT_SITE = {
     siteName: 'OmniMark', siteUrl: 'https://www.omnimark.com', defaultLang: 'en',
     email: 'hello@omnimark.com', phone: '+1 (800) 555-1234', phoneHref: '+18005551234',
     address: '400 Commerce St, Austin, TX 78701', addressLine1: '400 Commerce St', addressLine2: 'Austin, TX 78701',
-    geoEmail: 'austin@omnimark.com', linkedin: 'https://www.linkedin.com', privacyUrl: '#', termsUrl: '#',
+    geoEmail: 'austin@omnimark.com', linkedin: 'https://www.linkedin.com', privacyUrl: '', termsUrl: '',
     schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4
   },
   features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false, customCursor: true,

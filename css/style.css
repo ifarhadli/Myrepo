@@ -543,6 +543,10 @@ footer.site-footer{background:var(--ink);color:var(--panel-muted);padding:80px 0
 .nl-row .btn-primary{padding:12px 20px}
 .footer-legal{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:26px 0}
 .footer-legal .links{display:flex;gap:18px;flex-wrap:wrap;font-size:12.5px}
+.footer-legal .links button{all:unset;color:var(--panel-muted);cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+.footer-legal .links button:hover{color:var(--paper)}
+.footer-legal .links button:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
+.footer-legal .legal-missing{color:var(--panel-muted);opacity:.62}
 .footer-word{font-family:var(--font-display);font-weight:800;font-size:clamp(60px,14vw,180px);letter-spacing:-.04em;line-height:.8;margin:20px 0 -8px;user-select:none;white-space:nowrap;overflow:hidden;
   background:var(--spectrum);-webkit-background-clip:text;background-clip:text;color:transparent;opacity:.16}
 
