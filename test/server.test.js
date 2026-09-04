@@ -117,6 +117,11 @@ async function main(){
   check('GET draft rejected without session', r.status === 401);
   r = await req('PUT', '/api/draft', {}, { admin: true });
   check('PUT draft rejected without session', r.status === 401);
+  const anonymousDraftDelete = await req('DELETE', '/api/draft', undefined, { admin: true });
+  const anonymousPublish = await req('POST', '/api/publish', undefined, { admin: true });
+  check('draft delete and publish reject requests without a session', anonymousDraftDelete.status === 401 && anonymousPublish.status === 401);
+  r = await req('PATCH', '/api/submissions/0000000000000000', { read: true }, { admin: true });
+  check('submission read patch rejected without session', r.status === 401);
   r = await req('GET', '/api/status');
   check('status needs session', r.status === 401);
   r = await req('POST', '/api/login', { password: 'wrong' }, { admin: true });
@@ -130,6 +135,9 @@ async function main(){
   check('me: authed', r.json && r.json.authed === true);
   r = await req('PUT', '/api/draft', {});
   check('PUT draft rejected without CSRF header', r.status === 403);
+  const draftDeleteNoHeader = await req('DELETE', '/api/draft');
+  const publishNoHeader = await req('POST', '/api/publish');
+  check('draft delete and publish require the CSRF header', draftDeleteNoHeader.status === 403 && publishNoHeader.status === 403);
   r = await req('GET', '/?edit=1');
   check('authenticated edit query injects editor assets', r.status === 200 && /css\/editor\.css/.test(r.text) && /js\/editor\.js/.test(r.text));
   r = await req('GET', '/api/status');
@@ -144,7 +152,8 @@ async function main(){
     settings: { siteUrl: 'https://example.test', email: 'hi@example.test', phone: '+994 12 000 00 00', address: 'Baku',
       schedulerUrl: 'javascript:alert(1)', privacyUrl: 'javascript:x', linkedin: 'https://linkedin.com/company/x', ogImage: 'https://example.test/og.png' },
     features: { customCursor: false, cookieBanner: false },
-    design: { tokens: { '--signal': '#ff0000', 'bad key': 'x', '--ink': 'red;}body{display:none' }, fontDisplay: 'Sora', customCss: '.hero{color:red}' },
+    design: { tokens: { '--signal': '#ff0000', 'bad key': 'x', '--ink': 'red;}body{display:none' }, fontDisplay: 'Sora',
+      fontPreset: 'sora-dmsans', motion: 'calm', customCss: '.hero{color:red}' },
     structured: { orgLegalName: 'OmniMark LLC', orgLogoUrl: 'javascript:bad', articleAuthor: 'Priya Anand',
       articleDatePublished: '2026-09-01', articleDateModified: 'not-a-date', jobTitle: 'Draft role' },
     hiddenSections: ['index.s3'],
@@ -163,6 +172,8 @@ async function main(){
   const saved = r.json && r.json.site;
   check('validation: bad token key dropped, CSS-breaking value kept as opaque string', saved && !('bad key' in saved.design.tokens) && saved.design.tokens['--signal'] === '#ff0000');
   check('validation: features merged with defaults', saved && saved.features.customCursor === false && saved.features.reveal === true);
+  check('validation: font and motion presets map to runtime fields', saved && saved.design.fontPreset === 'sora-dmsans' && saved.design.fontDisplay === 'Sora' &&
+    saved.design.fontBody === 'DM Sans' && saved.design.fontMono === 'Fira Code' && saved.design.motion === 'calm' && saved.features.marquee === false && saved.features.countUp === true);
   check('validation: settings merged', saved && saved.settings.email === 'hi@example.test' && saved.settings.siteName === 'OmniMark');
   check('validation: unsafe URL schemes dropped', saved && saved.settings.schedulerUrl === '' && saved.settings.privacyUrl === '' && saved.settings.linkedin === 'https://linkedin.com/company/x' && saved.settings.ogImage === 'https://example.test/og.png', JSON.stringify(saved && saved.settings));
   check('validation: structured URLs and dates cleaned', saved && saved.structured.orgLogoUrl === '' && saved.structured.articleDatePublished === '2026-09-01' && saved.structured.articleDateModified === '');

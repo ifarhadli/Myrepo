@@ -145,6 +145,7 @@ async function main(){
   check('article diagram and all share controls are real', state.svg && /linkedin\.com\/sharing/.test(state.linkedin) && /twitter\.com\/intent/.test(state.x) && state.copy, JSON.stringify(state));
 
   await viewport(1440, 900); await go('/admin-advanced.html');
+  await waitFor(() => evaluate(`!document.querySelector('#login').hidden`), 3000);
   await evaluate(`document.querySelector('#loginForm').requestSubmit()`);
   state = await evaluate(`({ invalid:document.querySelector('#loginPw').getAttribute('aria-invalid'), focus:document.activeElement.id, message:document.querySelector('#loginErr').textContent })`);
   check('admin sign-in owns its empty-password validation', state.invalid === 'true' && state.focus === 'loginPw' && /Enter your password/.test(state.message), JSON.stringify(state));
@@ -248,6 +249,46 @@ async function main(){
   const discarded = await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')&&document.querySelector('[data-editor-publish]').disabled`), 10000);
   state = await evaluate(`fetch('/api/draft',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x.draft===null)`);
   check('Discard clears both server and client draft state', !!discarded && state);
+
+  /* ---- inbox, settings and keyboard contracts ---- */
+  await go('/admin.html');
+  const loginRedirect = await waitFor(() => evaluate(`location.pathname.endsWith('/index.html')&&location.search==="?edit=1"&&!!document.querySelector('.omni-bar')`), 10000);
+  check('authenticated login entry redirects straight to the page editor', !!loginRedirect);
+  await evaluate(`fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({form:'contact',name:'Browser Lead',email:'lead@example.test',company:'Test Co',spend:'$10k',consent:true,message:'Please reply'})}).then(r=>r.json())`);
+  await evaluate(`document.querySelector('[data-editor-inbox]').click()`);
+  const inboxLoaded = await waitFor(() => evaluate(`document.querySelectorAll('.omni-lead').length===1`), 5000);
+  state = await evaluate(`({ loaded:document.querySelector('#omniPanelTitle')?.textContent, unread:document.querySelector('[data-unread]').textContent, bold:document.querySelector('.omni-lead').classList.contains('is-unread'), export:!![...document.querySelectorAll('.omni-panel button')].find(x=>x.textContent==='Export CSV') })`);
+  check('Inbox loads newest submissions with unread and export state', !!inboxLoaded && state.loaded === 'Inbox' && state.unread === '(1)' && state.bold && state.export, JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-lead__summary').click()`);
+  state = await evaluate(`({ expanded:document.querySelector('.omni-lead__summary').getAttribute('aria-expanded'), details:!document.querySelector('.omni-lead__detail').hidden, reply:document.querySelector('.omni-lead__detail a')?.href })`);
+  check('Inbox details expose a direct mail reply action', state.expanded === 'true' && state.details && /^mailto:lead@example\.test/.test(state.reply), JSON.stringify(state));
+  await evaluate(`[...document.querySelectorAll('.omni-inline-actions button')].find(x=>x.textContent==='Mark read').click()`);
+  const readUpdated = await waitFor(() => evaluate(`document.querySelector('[data-unread]').textContent===''`), 5000);
+  state = await evaluate(`fetch('/api/submissions',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x[0].read===true)`);
+  check('Inbox mark-read persists and updates the toolbar count', !!readUpdated && state);
+  await evaluate(`document.querySelector('[data-editor-settings]').click()`);await pause(100);
+  state = await evaluate(`({ title:document.querySelector('#omniPanelTitle').textContent, labels:document.querySelectorAll('.omni-field label').length, proof:!!document.querySelector('.omni-switch input'), notify:document.querySelector('.omni-notify').textContent })`);
+  check('Settings exposes labelled contact, site, tools, proof and notification controls', state.title === 'Settings' && state.labels >= 18 && state.proof && /RESEND_API_KEY/.test(state.notify), JSON.stringify(state));
+  await evaluate(`(() => { const input=document.querySelector('.omni-switch input');input.checked=true;input.dispatchEvent(new Event('change',{bubbles:true})); })()`);await pause(80);
+  state = await evaluate(`({ draft:window.OmniEditor.getState().draft.features.showVerifiedProof, shown:document.documentElement.classList.contains('show-verified-proof') })`);
+  check('Settings proof switch writes the draft and repaints gated sections', state.draft === true && state.shown, JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-panel__close').click()`);
+  const tabCount = await evaluate(`document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])').length`);
+  await evaluate(`document.querySelector('.omni-bar select,.omni-bar button:not([disabled])').focus()`);
+  const reached = [await evaluate(`[...document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])')].indexOf(document.activeElement)`)];
+  for(let i=1;i<tabCount;i++){
+    await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab'});
+    reached.push(await evaluate(`[...document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])')].indexOf(document.activeElement)`));
+  }
+  check('Tab reaches every enabled editor-bar control in order', reached.length === tabCount && reached.every((value,index)=>value===index), JSON.stringify(reached));
+  await evaluate(`(() => { const button=document.querySelector('[data-editor-discard]');button.focus();button.click(); })()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-dialog[open]')`),3000);await evaluate(`document.querySelector('[data-dialog-confirm]').focus()`);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab'});
+  state = await evaluate(`document.activeElement.hasAttribute('data-dialog-cancel')`);
+  check('editor modal traps focus from its last control to its first', state);
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'});await pause(80);
+  state = await evaluate(`({ closed:!document.querySelector('.omni-dialog'),focus:document.activeElement.hasAttribute('data-editor-discard') })`);
+  check('Escape closes an editor modal and restores its trigger', state.closed && state.focus, JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-editor-discard]').click()`);await waitFor(() => evaluate(`!!document.querySelector('[data-dialog-confirm]')`),3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')&&document.querySelector('[data-editor-publish]').disabled`),10000);
   ws.close();
   console.log('\n' + pass + ' browser checks passed, ' + fail + ' failed');
 }

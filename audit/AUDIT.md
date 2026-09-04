@@ -33,7 +33,7 @@ The findings below were verified against the source and screenshots, then addres
 | P1 `robots.txt` blocks `/data/` | **Fixed** | `robots.txt`, `server.js` |
 | P1 AZ on same URL, no hreflang | **Open — architecture** | — |
 | P1 Last-write-wins, no revisions | **Open** (single-editor product for now; JSON export is the backup) | — |
-| P1 Partial preview for copy/catalogue | **Open** (documented in the Design tab) | — |
+| P1 Admin usability / partial preview | **Fixed** — authenticated on-page editing previews EN/AZ copy, catalogue, layout, colours and fonts directly on every public page; drafts autosave before Publish | `EDITOR-PLAN.md`, `js/editor.js`, `css/editor.css`, `server.js` |
 | P1 Non-atomic `site.js` / sitemap / robots writes | **Fixed** — tmp + rename | `server.js` |
 | P2 Cookie without `Secure` | **Fixed** — set behind HTTPS (`x-forwarded-proto`) or `SECURE_COOKIES=1` | `server.js` |
 | P2 No HSTS / Permissions-Policy | **Fixed** — HSTS behind HTTPS; Permissions-Policy always | `server.js` |
@@ -41,7 +41,7 @@ The findings below were verified against the source and screenshots, then addres
 | P2 Rate limit behind proxy | **Fixed** — `TRUST_PROXY=1` keys on `X-Forwarded-For` | `server.js` |
 | P2 URL fields not scheme-validated | **Fixed** | `server.js` |
 | P2 Submissions plaintext, no retention | **Open** — small-scale JSON by design; revisit with a DB | — |
-| P2 No automated tests | **Fixed** — 66 integration checks plus 19 real-browser checks | `test/`, `package.json` |
+| P2 No automated tests | **Fixed** — 85 integration checks plus 50 real-browser checks | `test/`, `package.json` |
 | P2 Mobile Services drawer button UA styling | **Fixed** — button reset | `css/style.css` |
 | Post-audit: no email / CRM notification | **Fixed** — Resend email + generic webhook via env vars; admin overview warns when unset | `server.js`, `js/admin.js`, `README.md` |
 | Deep audit: mobile contact/service overflow | **Fixed** — all inline fixed-grid declarations swept; contact and service layouts collapse cleanly | `contact.html`, `css/style.css` |
@@ -53,9 +53,9 @@ The findings below were verified against the source and screenshots, then addres
 | Deep audit: proof publication risk | **Fixed** — *Show verified proof content* defaults off and requires owner approval | `js/site-config.js`, `js/admin.js`, `data/site.*` |
 | Deep audit: schema opportunity | **Fixed** — Organization globally, guarded Article, and JobPosting only from a complete real record | `server.js`, `js/admin.js` |
 | Deep audit: newsletter consent | **Fixed to current scope** — stores consent timestamp/source; welcome provides unsubscribe mailto; suppression belongs in the future sending platform | `server.js`, `README.md` |
-| Deep audit: native admin confirmations | **Fixed** — owned accessible dialog with cancel-first focus and focus return | `admin.html`, `js/admin.js`, `css/admin.css` |
+| Deep audit: native admin confirmations | **Fixed** — owned accessible dialogs with cancel-first focus and focus return | `admin-advanced.html`, `js/admin.js`, `js/editor.js`, `css/admin.css`, `css/editor.css` |
 
-Everything marked **Fixed** is covered by `npm test` where it is testable server-side; the current browser suite also checks 390 px, 1366×768, article actions, legal affordances, drawer/accordion state, and the admin dialog. The historical findings below preserve the original evidence; this resolution table is the current status.
+Everything marked **Fixed** is covered by `npm test` where it is testable server-side; the current browser suite also checks 390 px, 1366×768, article actions, legal affordances, drawer/accordion state, the on-page editor, its panels, draft lifecycle and both admin entry points. The historical findings below preserve the original evidence; this resolution table is the current status.
 
 ---
 

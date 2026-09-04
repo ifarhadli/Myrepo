@@ -1,13 +1,13 @@
-# OmniMark — marketing site + admin dashboard
+# OmniMark — marketing site + on-page editor
 
 Static, framework-free marketing site (15 pages, EN/AZ) with a zero-dependency
-Node server that adds an **admin dashboard** for editing design, copy,
-the services catalogue, page SEO, site settings and form submissions.
+Node server that adds an authenticated **on-page editor** for copy, layout,
+the services catalogue, design, settings and form submissions.
 
 ```
 node server.js
 #  OmniMark site   →  http://127.0.0.1:3000/
-#  Admin dashboard →  http://127.0.0.1:3000/admin.html
+#  Site editor     →  http://127.0.0.1:3000/admin
 #  First run: generated admin password  →  ************
 ```
 
@@ -19,19 +19,24 @@ Requires Node 18+. No `npm install` — there are no dependencies.
 
 ```
 *.html               15 pages (index, services, work, about, contact, …)
-admin.html           the dashboard (needs server.js)
+admin.html           editor sign-in (needs server.js)
+admin-advanced.html  developer dashboard for complete/raw configuration
 css/style.css        design tokens + every site component
 css/admin.css        dashboard styles (independent of the site's tokens)
+css/editor.css       authenticated editor bar, controls, sheets and preview
 js/data.js           service catalogue: 5 engines × groups × sub-services, industries
-js/i18n-data.js      EN + AZ dictionary — every string on the site (540 keys each)
+js/i18n-data.js      EN + AZ dictionary — every string on the site (592 keys each)
 js/site-config.js    applies the admin-saved config (tokens, fonts, copy, catalogue…)
 js/partials.js       renders header, mega-menu, drawer, footer AND both accordions from data.js
 js/i18n.js           swaps text on [data-i18n] elements, persists language choice
 js/main.js           interactions: nav, drawer, accordions, forms, cookie banner, motion
-js/admin.js          the dashboard
+js/editor.js         on-page editing, draft autosave, undo/redo, panels
+js/login.js          editor sign-in and authenticated redirect
+js/admin.js          advanced dashboard
 server.js            static server + /api for the dashboard (Node built-ins only)
 data/site.json       what the dashboard saved (source of truth)
 data/site.js         generated from site.json; loaded in <head> on every page
+data/draft.json      private unpublished editor draft (git-ignored)
 data/admin.json      password hash + session secret   (git-ignored)
 data/submissions.json  contact / teardown / newsletter entries (git-ignored)
 sitemap.xml, robots.txt  regenerated on every publish from Settings → Site URL
@@ -46,26 +51,37 @@ Script order on every page: `data/site.js` + `js/site-config.js` in `<head>`
 
 ---
 
-## The admin dashboard
+## Editing the site
 
-Sign in at `/admin.html`. Everything is a draft until **Save & publish**
-(also `Ctrl/⌘+S`). Publishing writes `data/site.json`, regenerates
-`data/site.js`, `sitemap.xml` and `robots.txt`.
+Sign in at `/admin`. After login you land on the real homepage with a thin
+editor bar. Click visible text to edit it, switch between EN and AZ in the
+bar, and use each section's hover toolbar to hide, recolour or reorder it.
+Reorder or remove supported cards in place; service and industry catalogue
+items can also be added. **Design** changes the curated colours, font pairing
+and motion level while the page is visible. **Phone** previews the current
+page in a contained 390 px layout.
 
-| Tab | What you control |
-|---|---|
-| **Design** | Every colour token (`--ink`, `--signal`, engine accents `--c1…--c5`, …), radius, max-width, section spacing, transition speed, the three font families (Google Fonts), motion toggles (cursor, magnetic buttons, kinetic headlines, marquee, counters, reveal) and free-form **custom CSS**. Live preview iframe updates as you type. |
-| **Copy & translations** | All ~350 non-catalogue strings in English and Azerbaijani, searchable, grouped by page. Emptying a field falls back to the code default. Strings tagged `html` contain markup. |
-| **Services catalogue** | The five engines: names, promises, codenames, links, and every group / sub-service in both languages — add, remove, reorder. Mega-menu, drawer, footer and both accordions follow automatically. |
-| **Industries** | The industry list (dropdown, drawer, strip), both languages. |
-| **Pages & SEO** | Per-page `<title>` and meta description (injected server-side, and by JS on static hosts), and a checkbox per section to hide/show it. |
-| **Settings** | Site name, public URL, default language, contact details, legal links, mega-menu density, proof gating, Organization / Article / JobPosting schema fields, Google Analytics ID and consent-gated tag snippets. |
-| **Submissions** | Every contact-form, funnel-teardown and newsletter submission; filter, delete, export CSV. |
-| **Account & backup** | Change password, export/import the whole config as JSON, reset to defaults. |
+Changes autosave to the private `data/draft.json` file and a local browser
+backup. Undo/redo covers the current session. **Publish** first shows a
+category summary, then writes `data/site.json` and regenerates `data/site.js`,
+`sitemap.xml` and `robots.txt`. **Discard** removes the unpublished draft.
+Closing the browser does not publish anything.
 
-Untouched fields keep inheriting from the code, so a developer can still
-change defaults in `data.js` / `i18n-data.js` / `style.css` without fighting
-the dashboard.
+The **Inbox** panel lists submissions newest first, tracks unread state,
+opens a reply in the owner's mail app and exports CSV. **Settings** covers
+contact details, public site settings, scheduler/analytics tools, proof
+gating and notification status.
+
+### Advanced dashboard
+
+`/admin-advanced.html` keeps the original structured dashboard for developer
+work: custom CSS and layout tokens, full catalogue records, per-page SEO,
+structured data, account/password, JSON backup/import and reset. It links
+back to the on-page editor. Both admin routes are excluded from the sitemap
+and disallowed in `robots.txt`.
+
+Untouched fields inherit from `data.js`, `i18n-data.js` and `style.css`, so
+code defaults remain the fallback instead of being copied into every draft.
 
 Organization structured data is rendered server-side from the site settings
 on every page. Article schema appears only when author and publication date
@@ -150,11 +166,11 @@ is reachable at `/api/submit` on the same origin.
 - Adding a string: put it in both `en` and `az` in `js/i18n-data.js` and
   reference it with `data-i18n="ns.key"`. It shows up in *Copy* at once.
 - `npm run check` syntax-checks every script.
-- `npm test` also runs [test/server.test.js](test/server.test.js): 66
+- `npm test` also runs [test/server.test.js](test/server.test.js): 85
   integration checks in a disposable copy covering serving, auth, publish
   validation, structured data, submissions, acknowledgements and passwords.
 - `npm run test:browser` drives an installed Chrome/Edge through its debugging
-  protocol: 19 responsive, focus, inert-state, validation, affordance and admin
+  protocol: 50 responsive, focus, inert-state, validation, editor and admin
   checks. Set `BROWSER_BIN` if Chromium is installed somewhere non-standard.
 - Static design rules live in [DESIGN.md](DESIGN.md) and shared UI behavior in
   [UX-CONTRACT.md](UX-CONTRACT.md). Audit screenshots are intentionally ignored;

@@ -11,7 +11,7 @@
   var STORAGE_KEY = 'omni-editor-draft';
   var PAGE_FILES = ['index','services','work','case-study','industry','about','insights','article','careers','role-detail','contact','geo','service-brand-launch','sub-service'];
   var PAGE_LABELS = {'index':'Home','services':'Services','work':'Work','case-study':'Case study','industry':'Industry','about':'About','insights':'Insights','article':'Article','careers':'Careers','role-detail':'Role detail','contact':'Contact','geo':'Markets','service-brand-launch':'Brand launch','sub-service':'Sub-service'};
-  var state = { live:null, draft:null, savedAt:null, lang:'en', undo:[], redo:[], activeEdit:null, saveTimer:null, saveSeq:0, saving:false, defaults:null, draggedSection:null, draggedItem:null, panelReturnFocus:null, allowNavigate:false };
+  var state = { live:null, draft:null, savedAt:null, lang:'en', undo:[], redo:[], activeEdit:null, saveTimer:null, saveSeq:0, saving:false, defaults:null, draggedSection:null, draggedItem:null, panelReturnFocus:null, allowNavigate:false, submissions:null };
   var COLOR_TOKENS = [
     ['--c1','Engine 01','#4634F0'],['--c2','Engine 02','#FF5B35'],['--c3','Engine 03','#C6F24E'],['--c4','Engine 04','#12D6C4'],['--c5','Engine 05','#FF3E88'],
     ['--ink','Ink','#0B0C10'],['--paper','Paper','#F4F1EA'],['--signal','Signal','#C6F24E']
@@ -131,7 +131,7 @@
   }
   function applyDraft(){
     if(window.OmniSite){window.OmniSite.applyDesign(state.draft);window.OmniSite.applyLayout(state.draft);}
-    mergeDraftDict();if(window.OmniI18n)window.OmniI18n.applyI18n();renderCatalogueLists();renderIndustryStrip();decorateSections();decorateItems();syncDesignPanel();updateBar();
+    mergeDraftDict();if(window.OmniI18n)window.OmniI18n.applyI18n();renderCatalogueLists();renderIndustryStrip();applyDraftSettings();decorateSections();decorateItems();syncDesignPanel();updateBar();
   }
   function commit(mutator,label){
     finishEdit(true);var before=clone(state.draft);mutator(state.draft);if(same(before,state.draft))return;
@@ -313,6 +313,51 @@
     $$('[data-list]>[data-item],.eng-cols li[data-catalogue-item]').forEach(function(item){if(!$('.omni-item-tools',item))makeItemTools(item);var tools=$('.omni-item-tools',item),remove=$('.omni-item-remove',tools);if(remove&&!item.hasAttribute('data-catalogue-item')&&item.parentElement.getAttribute('data-list')!=='industry.strip'){var hidden=item.getAttribute('data-omni-hidden-item')==='true';remove.textContent=hidden?'↺':'×';remove.setAttribute('aria-label',hidden?'Restore item':'Remove item');}});
   }
 
+  function applyDraftSettings(){
+    var settings=state.draft.settings||{},map={email:{text:settings.email,href:'mailto:'+settings.email},phone:{text:settings.phone,href:'tel:'+(settings.phoneHref||'')},address:{text:settings.address},addressLine1:{text:settings.addressLine1},addressLine2:{text:settings.addressLine2},geoEmail:{text:settings.geoEmail,href:'mailto:'+settings.geoEmail},siteName:{text:settings.siteName}};
+    $$('[data-site]').forEach(function(el){var value=map[el.getAttribute('data-site')];if(!value||value.text==null)return;el.textContent=value.text;if(value.href&&el.tagName==='A')el.setAttribute('href',value.href);});
+    $$('.mark').forEach(function(mark){if(settings.siteName==='OmniMark')mark.innerHTML='Omni<span>Mark</span>';else mark.textContent=settings.siteName||'OmniMark';});
+    var footer=$('.footer-word');if(footer)footer.textContent=settings.siteName||'OmniMark';
+  }
+
+  function unreadCount(){return(state.submissions||[]).filter(function(sub){return sub.read!==true;}).length;}
+  function updateUnread(){var el=$('[data-unread]'),count=unreadCount();if(el)el.textContent=count?'('+count+')':'';}
+  function loadUnread(){api('GET','/api/submissions').then(function(submissions){state.submissions=submissions;updateUnread();}).catch(function(){});}
+  function fmtDate(iso){var date=new Date(iso);return isNaN(date)?String(iso||'—'):date.toLocaleString();}
+  function csvCell(value){var text=String(value==null?'':value);return /[",\r\n]/.test(text)?'"'+text.replace(/"/g,'""')+'"':text;}
+  function exportSubmissions(){
+    var fields={};(state.submissions||[]).forEach(function(sub){Object.keys(sub.fields||{}).forEach(function(key){fields[key]=1;});});var keys=Object.keys(fields),head=['id','form','at','lang','page','read'].concat(keys),rows=[head.map(csvCell).join(',')];
+    (state.submissions||[]).forEach(function(sub){rows.push([sub.id,sub.form,sub.at,sub.lang,sub.page,sub.read===true].concat(keys.map(function(key){return(sub.fields||{})[key]||'';})).map(csvCell).join(','));});
+    var url=URL.createObjectURL(new Blob([rows.join('\r\n')],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='omnimark-submissions-'+new Date().toISOString().slice(0,10)+'.csv';document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  }
+  function renderInbox(root){
+    root.textContent='';var toolbar=document.createElement('div');toolbar.className='omni-panel-toolbar';var status=document.createElement('p');status.textContent=(state.submissions||[]).length+' submissions · '+unreadCount()+' unread';var exportButton=document.createElement('button');exportButton.type='button';exportButton.textContent='Export CSV';exportButton.disabled=!(state.submissions||[]).length;exportButton.addEventListener('click',exportSubmissions);toolbar.append(status,exportButton);root.appendChild(toolbar);
+    if(!state.submissions||!state.submissions.length){var empty=document.createElement('div');empty.className='omni-panel-state';empty.textContent='No submissions yet. New enquiries will appear here.';root.appendChild(empty);return;}
+    var list=document.createElement('div');list.className='omni-lead-list';state.submissions.forEach(function(sub){
+      var card=document.createElement('article');card.className='omni-lead'+(sub.read===true?'':' is-unread');card.setAttribute('data-submission-id',sub.id);var summary=document.createElement('button');summary.type='button';summary.className='omni-lead__summary';summary.setAttribute('aria-expanded','false');var who=(sub.fields&&sub.fields.name)||(sub.fields&&sub.fields.email)||'Anonymous';var label=document.createElement('span');label.textContent=who;var small=document.createElement('small');small.textContent=sub.form+' · '+((sub.fields&&sub.fields.company)||sub.lang||'');label.appendChild(small);var time=document.createElement('time');time.dateTime=sub.at;time.textContent=fmtDate(sub.at);summary.append(label,time);
+      var detail=document.createElement('div');detail.className='omni-lead__detail';detail.hidden=true;var dl=document.createElement('dl');Object.keys(sub.fields||{}).forEach(function(key){var dt=document.createElement('dt'),dd=document.createElement('dd');dt.textContent=key;dd.textContent=sub.fields[key];dl.append(dt,dd);});detail.appendChild(dl);var actions=document.createElement('div');actions.className='omni-inline-actions';var email=sub.fields&&sub.fields.email;if(email){var reply=document.createElement('a');reply.href='mailto:'+email+'?subject='+encodeURIComponent('Re: your '+sub.form+' enquiry');reply.textContent='Reply';actions.appendChild(reply);}var readButton=document.createElement('button');readButton.type='button';readButton.textContent=sub.read===true?'Mark unread':'Mark read';readButton.addEventListener('click',function(){api('PATCH','/api/submissions/'+sub.id,{read:sub.read!==true}).then(function(result){sub.read=result.submission.read;updateUnread();renderInbox(root);}).catch(function(error){toast(error.message||'Could not update the submission.','error');});});var deleteButton=document.createElement('button');deleteButton.type='button';deleteButton.setAttribute('data-danger','');deleteButton.textContent='Delete';deleteButton.addEventListener('click',function(){openDialog({title:'Delete this submission?',message:'This removes the stored lead permanently. Export it first if you need a record.',confirm:'Delete',danger:true,action:function(button,dialog){button.disabled=true;api('DELETE','/api/submissions/'+sub.id).then(function(){dialog.close('deleted');state.submissions=state.submissions.filter(function(item){return item.id!==sub.id;});updateUnread();renderInbox(root);toast('Submission deleted.');}).catch(function(error){button.disabled=false;toast(error.message||'Could not delete the submission.','error');});}});});actions.append(readButton,deleteButton);detail.appendChild(actions);summary.addEventListener('click',function(){var open=detail.hidden;detail.hidden=!open;summary.setAttribute('aria-expanded',String(open));});card.append(summary,detail);list.appendChild(card);
+    });root.appendChild(list);
+  }
+  function openInbox(){
+    var panel=openPanel('Inbox','right',function(root){var loading=document.createElement('div');loading.className='omni-panel-state';loading.textContent='Loading submissions…';root.appendChild(loading);});var root=$('.omni-panel__body',panel);api('GET','/api/submissions').then(function(submissions){state.submissions=submissions;updateUnread();renderInbox(root);}).catch(function(error){root.innerHTML='<div class="omni-panel-state">Could not load submissions.<br><button type="button">Try again</button></div>';$('button',root).addEventListener('click',openInbox);toast(error.message||'Could not load submissions.','error');});
+  }
+
+  function settingField(root,options){
+    var wrap=document.createElement('div');wrap.className='omni-field';var id='omni-setting-'+options.path.replace(/[^a-z0-9]/gi,'-'),label=document.createElement('label');label.htmlFor=id;label.textContent=options.label;var input=options.type==='textarea'?document.createElement('textarea'):options.type==='select'?document.createElement('select'):document.createElement('input');input.id=id;
+    if(options.type==='select'){options.options.forEach(function(option){var el=document.createElement('option');el.value=option[0];el.textContent=option[1];input.appendChild(el);});}else if(options.type!=='textarea')input.type=options.type||'text';
+    if(options.min)input.min=options.min;if(options.max)input.max=options.max;input.value=getPath(state.draft,options.path)==null?'':getPath(state.draft,options.path);input.addEventListener('change',function(){var value=input.type==='number'?Number(input.value):input.value;commit(function(draft){setPath(draft,options.path,value);},'Update '+options.label);});wrap.append(label,input);if(options.help){var small=document.createElement('small');small.textContent=options.help;wrap.appendChild(small);}root.appendChild(wrap);return input;
+  }
+  function renderSettings(root){
+    root.innerHTML='<div class="omni-settings"></div>';var form=$('.omni-settings',root);
+    var heading=function(textValue){var h=document.createElement('h3');h.textContent=textValue;form.appendChild(h);};
+    heading('Contact');[['settings.email','Email','email'],['settings.phone','Phone (display)','text'],['settings.phoneHref','Phone (dial)','text'],['settings.addressLine1','Address line 1','text'],['settings.addressLine2','Address line 2','text'],['settings.address','Address (one line)','text'],['settings.geoEmail','Local office email','email'],['settings.linkedin','LinkedIn URL','url']].forEach(function(field){settingField(form,{path:field[0],label:field[1],type:field[2]});});
+    heading('Site');settingField(form,{path:'settings.siteName',label:'Site name'});settingField(form,{path:'settings.siteUrl',label:'Public URL',type:'url'});settingField(form,{path:'settings.defaultLang',label:'Default language',type:'select',options:[['en','English'],['az','Azerbaijani']]});settingField(form,{path:'settings.privacyUrl',label:'Privacy URL',type:'url'});settingField(form,{path:'settings.termsUrl',label:'Terms URL',type:'url'});settingField(form,{path:'settings.ogImage',label:'Social image URL',type:'url',help:'Recommended: 1200 × 630 px over HTTPS.'});settingField(form,{path:'settings.megaMenuLinkLimit',label:'Mega-menu links per engine',type:'number',min:'1',max:'12'});
+    heading('Tools');settingField(form,{path:'settings.schedulerUrl',label:'Meeting scheduler URL',type:'url'});settingField(form,{path:'analytics.gaId',label:'Google Analytics ID'});settingField(form,{path:'analytics.consentScript',label:'Tag snippet — advanced',type:'textarea',help:'Runs only after analytics consent. Admin access is a code-execution privilege.'});
+    heading('Proof');var proof=document.createElement('label');proof.className='omni-switch';proof.innerHTML='<input type="checkbox"><span><strong>Show verified proof</strong><small>Keep off until every logo, statistic, testimonial and team profile has written owner approval.</small></span>';var proofInput=$('input',proof);proofInput.checked=!!getPath(state.draft,'features.showVerifiedProof');proofInput.addEventListener('change',function(){commit(function(draft){setPath(draft,'features.showVerifiedProof',proofInput.checked);},'Change proof visibility');});form.appendChild(proof);
+    heading('Notifications');var notify=document.createElement('div');notify.className='omni-notify';notify.textContent='Checking server configuration…';form.appendChild(notify);api('GET','/api/status').then(function(status){var ready=status.notifications&&(status.notifications.email||status.notifications.webhook);notify.setAttribute('data-ready',String(!!ready));notify.textContent=ready?'Configured — new submissions are forwarded.':'Not configured — set RESEND_API_KEY + NOTIFY_EMAIL_TO and/or NOTIFY_WEBHOOK_URL in the server environment.';}).catch(function(){notify.setAttribute('data-ready','false');notify.textContent='Could not read notification status.';});
+  }
+  function openSettings(){openPanel('Settings','right',renderSettings);}
+
   function closePanel(){var panel=$('.omni-panel');if(!panel)return;panel.remove();if(state.panelReturnFocus&&state.panelReturnFocus.isConnected)state.panelReturnFocus.focus();state.panelReturnFocus=null;}
   function openPanel(title,side,render){
     closePanel();state.panelReturnFocus=document.activeElement;var panel=document.createElement('aside');panel.className='omni-panel omni-panel--'+side;panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','false');panel.setAttribute('aria-labelledby','omniPanelTitle');panel.innerHTML='<header class="omni-panel__head"><h2 id="omniPanelTitle"></h2><button type="button" class="omni-panel__close" aria-label="Close panel">×</button></header><div class="omni-panel__body"></div>';$('#omniPanelTitle',panel).textContent=title;$('.omni-panel__close',panel).addEventListener('click',closePanel);document.body.appendChild(panel);render($('.omni-panel__body',panel));$('.omni-panel__close',panel).focus();return panel;
@@ -334,7 +379,7 @@
   function togglePhone(){var on=document.documentElement.classList.toggle('omni-phone');var button=$('[data-editor-phone]');button.setAttribute('aria-pressed',String(on));button.textContent=on?'Desktop':'Phone';}
 
   function trapDialog(dialog){
-    dialog.addEventListener('keydown',function(e){if(e.key!=='Tab')return;var f=$$('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[href]',dialog).filter(function(el){return !el.hidden;});if(!f.length)return;var first=f[0],last=f[f.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
+    dialog.addEventListener('keydown',function(e){if(e.key==='Escape'){e.preventDefault();dialog.close('cancel');return;}if(e.key!=='Tab')return;var f=$$('button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[href]',dialog).filter(function(el){return !el.hidden;});if(!f.length)return;var first=f[0],last=f[f.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}});
   }
   function closeDialog(value){var dialog=$('.omni-dialog');if(dialog&&dialog.open)dialog.close(value||'cancel');}
   function openDialog(options){
@@ -362,7 +407,7 @@
     $('#omniPageSelect').addEventListener('change',function(){var file=this.value==='index'?'index.html':this.value+'.html';finishEdit(true);saveDraft(true).catch(function(){}).then(function(){state.allowNavigate=true;location.href=file+'?edit=1';});});
     $$('[data-editor-lang]').forEach(function(button){button.addEventListener('click',function(){finishEdit(true);state.lang=button.getAttribute('data-editor-lang');window.OmniI18n.setLang(state.lang);applyDraft();});});
     $('[data-editor-undo]').addEventListener('click',undo);$('[data-editor-redo]').addEventListener('click',redo);$('[data-editor-publish]').addEventListener('click',publish);$('[data-editor-discard]').addEventListener('click',discard);
-    $('[data-editor-design]').addEventListener('click',function(){openPanel('Design','left',renderDesignPanel);});$('[data-editor-inbox]').addEventListener('click',function(){toast('Inbox controls arrive in the handover phase.');});$('[data-editor-settings]').addEventListener('click',function(){toast('Settings controls arrive in the handover phase.');});$('[data-editor-phone]').addEventListener('click',togglePhone);
+    $('[data-editor-design]').addEventListener('click',function(){openPanel('Design','left',renderDesignPanel);});$('[data-editor-inbox]').addEventListener('click',openInbox);$('[data-editor-settings]').addEventListener('click',openSettings);$('[data-editor-phone]').addEventListener('click',togglePhone);
   }
   function rewriteLinks(){
     $$('a[href]').forEach(function(link){if(link.closest('.omni-bar,.omni-panel,.omni-dialog'))return;var raw=link.getAttribute('href');if(!raw||/^(https?:|mailto:|tel:|#)/i.test(raw)||raw.indexOf('admin')===0)return;try{var url=new URL(raw,location.href);if(url.origin===location.origin){url.searchParams.set('edit','1');link.setAttribute('href',url.pathname.replace(/^\//,'')+url.search+url.hash);}}catch(e){}});
@@ -388,7 +433,7 @@
       state.live=clone(data.live);var local=readLocal(),serverAt=data.savedAt?Date.parse(data.savedAt):0,localAt=local&&local.savedAt?Date.parse(local.savedAt):0;
       state.draft=clone(local&&local.draft&&localAt>serverAt?local.draft:(data.draft||data.live));state.savedAt=localAt>serverAt?local.savedAt:data.savedAt;
       state.lang=(window.OmniI18n&&window.OmniI18n.getLang())||'en';state.defaults=(window.OmniSite&&window.OmniSite.getDefaults())||{engines:clone(window.OMNI_ENGINES||[]),industries:clone(window.OMNI_INDUSTRIES||[]),i18n:clone(window.OM_I18N||{en:{},az:{}})};
-      buildBar();buildPageFrame();mergeDraftDict();if(window.OmniI18n)window.OmniI18n.setLang(state.lang);applyDraft();rewriteLinks();bindEvents();setSaveStatus(state.savedAt?'Draft restored':'Draft ready');
+      buildBar();buildPageFrame();mergeDraftDict();if(window.OmniI18n)window.OmniI18n.setLang(state.lang);applyDraft();rewriteLinks();bindEvents();loadUnread();setSaveStatus(state.savedAt?'Draft restored':'Draft ready');
       document.dispatchEvent(new CustomEvent('omni:editor-ready'));
     }).catch(function(error){if(error.status===401)location.replace('admin.html');else if(error.message!=='Not signed in'){document.documentElement.classList.remove('omni-editing');console.error(error);}});
   }

@@ -275,12 +275,22 @@ window.OM_I18N = {
         "lede": "Most agencies hand you a deck and a media plan. We build the brand, make the creative, buy the media, ship the site and the CRM behind it, then rebuild your sales process so the pipeline it creates actually closes. One team, the whole span, one number at the end of it.",
         "ctaPrimary": "Book a 20-minute funnel teardown",
         "ctaSecondary": "See the work",
-        "micro": "No deck. No discovery marathon. Just a look at where your funnel leaks."
+        "micro": "No deck. No discovery marathon. Just a look at where your funnel leaks.",
+        "diagramAwareness": "AWARENESS",
+        "diagramRevenue": "REVENUE"
       },
       "proof": {
         "label": "Brands we build, buy and sell for",
         "fallback": "Working with brands across retail, FMCG, banking, telecom, automotive and real estate.",
-        "partners": "Certified partners: Google · Meta · HubSpot"
+        "partners": "Certified partners: Google · Meta · HubSpot",
+        "logo1": "NORDLINE",
+        "logo2": "Verdant",
+        "logo3": "HALO BANK",
+        "logo4": "Kestrel",
+        "logo5": "MERIDIAN",
+        "logo6": "Coastway",
+        "logo7": "Driftwell",
+        "logo8": "Anchorpoint"
       },
       "gap": {
         "eyebrow": "The gap",
@@ -348,6 +358,10 @@ window.OM_I18N = {
       },
       "numbers": {
         "eyebrow": "Proof, not adjectives",
+        "v1": "$450M+",
+        "v2": "120+",
+        "v3": "18",
+        "v4": "94%",
         "l1": "Media managed annually",
         "l2": "Brands",
         "l3": "Markets",
@@ -358,9 +372,11 @@ window.OM_I18N = {
         "eyebrow": "Proof",
         "h2": "Don't take our word for it.",
         "q1": "“We'd been running marketing and sales like two separate companies. OmniMark made it one motion inside a quarter — and for the first time our forecast matched what actually closed.”",
+        "a1": "RK",
         "n1": "Rania Kessler",
         "r1": "VP Revenue, Halo Bank",
         "q2": "“They killed a channel we loved in month two because the numbers said to. Nobody else has ever told us to stop spending.”",
+        "a2": "DO",
         "n2": "Daniel Okafor",
         "r2": "Founder, Coastway"
       },
@@ -368,7 +384,13 @@ window.OM_I18N = {
         "eyebrow": "Who you'll actually work with",
         "h2": "Senior operators. No account-manager telephone game.",
         "body": "Every OmniMark pod is led by someone who has carried a number themselves — not a coordinator relaying notes between you and a production team. You meet the people doing the work on the first call, and they stay on the account.",
-        "cta": "Meet the team"
+        "cta": "Meet the team",
+        "t1initial": "MS", "t1name": "Maya Sorensen", "t1role": "Ex-VaynerMedia",
+        "t2initial": "JT", "t2name": "Jonah Trent", "t2role": "Ex-R/GA",
+        "t3initial": "PA", "t3name": "Priya Anand", "t3role": "Ex-HubSpot",
+        "t4initial": "LC", "t4name": "Leo Castellan", "t4role": "Ex-Wieden+Kennedy",
+        "t5initial": "EW", "t5name": "Elena Wu", "t5role": "Ex-Salesforce",
+        "t6initial": "DK", "t6name": "David Kim"
       },
       "insights": {
         "eyebrow": "Insights",
@@ -439,6 +461,7 @@ window.OM_I18N = {
     "faq4q": "Can we start with just one sub-service?",
     "faq4a": "Yes. Positioning-only and identity-only engagements are common — most clients expand into launch once the foundation is set.",
     "crossLabel": "What usually comes next",
+    "cross1tag": "Engine 02 · Signal",
     "cross1p": "Once the positioning is set, the creative that carries it across every channel.",
     "cross2tag": "All five engines",
     "cross2h": "See the full span",
@@ -483,7 +506,9 @@ window.OM_I18N = {
     "c3": "CRM and lifecycle programs that connect in-store and online purchase history to one customer record.",
     "s2eyebrow": "Relevant engines",
     "s2h2": "Where clients in this sector usually start.",
+    "cross1tag": "Engine 02 · Signal",
     "cross1p": "Shopper and trade marketing, POSM, seasonal campaign platforms.",
+    "cross2tag": "Engine 04 · Build",
     "cross2p": "E-commerce builds, loyalty CRM, merchandising.",
     "s3h2": "Work in this sector.",
     "ctaH2": "Talk to someone who's run a retail calendar before."
@@ -528,7 +553,13 @@ window.OM_I18N = {
   "caseStudy": {
     "footnote": "B2B SaaS · Series B · 90 employees · Engagement: 8 months",
     "thPipeline": "Qualified pipeline",
+    "thMqlSql": "MQL→SQL",
+    "thCac": "CAC",
     "thCycle": "Sales cycle",
+    "metricPipeline": "3.4×",
+    "metricMqlSql": "+240%",
+    "metricCac": "−38%",
+    "metricCycle": "−19 days",
     "hContext": "Context",
     "pContext": "A Series-B B2B SaaS company selling into mid-market operations teams. Paid and outbound were both hitting their volume targets. Sales was closing almost none of what came through.",
     "hProblem": "The problem",
@@ -559,7 +590,13 @@ window.OM_I18N = {
     "careersH2": "We hire operators, not résumés.",
     "careersBody": "If you've run a number and want to run six, talk to us.",
     "careersCta": "See open roles",
-    "ctaH2": "Meet the pod that would run your account."
+    "ctaH2": "Meet the pod that would run your account.",
+    "t1role": "Ex-VaynerMedia · Brand & Launch",
+    "t2role": "Ex-R/GA · Creative & Production",
+    "t3role": "Ex-HubSpot · Platforms & Product",
+    "t4role": "Ex-Wieden+Kennedy · Media & Reach",
+    "t5role": "Ex-Salesforce · Sales & Revenue",
+    "t6role": "Ex-Wpromote · Media & Reach"
   },
   "insightsPage": {
     "lede": "The point of view that justifies the fee — written by the people doing the work, not a content team writing about it.",
@@ -567,6 +604,7 @@ window.OM_I18N = {
     "filterDemand": "Demand",
     "filterSales": "Sales",
     "filterBrand": "Brand",
+    "filterRevops": "RevOps",
     "a4": "Positioning isn't a workshop. It's a decision.",
     "a4m": "Brand · 7 min",
     "a5": "Stop reporting on impressions. Start reporting on pipeline.",
@@ -577,6 +615,7 @@ window.OM_I18N = {
   },
   "article": {
     "category": "Demand",
+    "authorInitial": "PA",
     "role": "Priya Anand · Platforms & Product",
     "readTime": "6 min read",
     "updated": "Updated September 2026",
@@ -587,6 +626,7 @@ window.OM_I18N = {
     "h2b": "What we measure instead: Pipeline-Qualified Engagement",
     "p3": "We replaced the single MQL gate with a composite score built from behavior sales already trusts: repeat visits to pricing, multiple stakeholders from the same account engaging within a two-week window, and direct outreach to a rep rather than a form fill. We call it Pipeline-Qualified Engagement, or PQE.",
     "figAlt": "The old MQL funnel counts individual form fills; the PQE model combines several account-level buying signals.",
+    "figPqe": "PQE",
     "figOld": "OLD: INDIVIDUAL MQL",
     "figDownload": "Content download",
     "figForm": "Form fill + firmographic fit",
@@ -611,6 +651,7 @@ window.OM_I18N = {
     "h2d": "The one number that matters at the board level",
     "p5": "None of this replaces revenue as the ultimate scoreboard. PQE is a leading indicator that lets marketing and sales agree on direction three months before the pipeline numbers confirm it either way.",
     "keepReading": "Keep reading",
+    "cross1tag": "RevOps",
     "cross1p": "9 min read",
     "cross2tag": "All insights",
     "cross2h": "See everything",
@@ -940,12 +981,22 @@ window.OM_I18N = {
         "lede": "Əksər agentliklər sizə təqdimat və media planı verir. Biz brendi qururuq, kreativi hazırlayırıq, medianı alırıq, saytı və onun arxasındakı CRM-i işə salırıq, sonra satış prosesinizi elə yenidən qururuq ki, yaratdığı satış kanalı həqiqətən bağlansın. Tək komanda, bütün mərhələlər, sonda bir rəqəm.",
         "ctaPrimary": "20 dəqiqəlik huni təhlili sifariş edin",
         "ctaSecondary": "İşlərimizə baxın",
-        "micro": "Təqdimat yox. Uzun kəşfiyyat prosesi yox. Sadəcə huninizin harada sızdığına baxış."
+        "micro": "Təqdimat yox. Uzun kəşfiyyat prosesi yox. Sadəcə huninizin harada sızdığına baxış.",
+        "diagramAwareness": "MƏLUMATLILIQ",
+        "diagramRevenue": "GƏLİR"
       },
       "proof": {
         "label": "Brend qurduğumuz, media aldığımız və satdığımız şirkətlər",
         "fallback": "Pərakəndə satış, FMCG, bank işi, telekommunikasiya, avtomobil sənayesi və daşınmaz əmlak sahələrində brendlərlə işləyirik.",
-        "partners": "Sertifikatlı tərəfdaşlar: Google · Meta · HubSpot"
+        "partners": "Sertifikatlı tərəfdaşlar: Google · Meta · HubSpot",
+        "logo1": "NORDLINE",
+        "logo2": "Verdant",
+        "logo3": "HALO BANK",
+        "logo4": "Kestrel",
+        "logo5": "MERIDIAN",
+        "logo6": "Coastway",
+        "logo7": "Driftwell",
+        "logo8": "Anchorpoint"
       },
       "gap": {
         "eyebrow": "Boşluq",
@@ -1013,6 +1064,10 @@ window.OM_I18N = {
       },
       "numbers": {
         "eyebrow": "Sübut, sifət deyil",
+        "v1": "$450M+",
+        "v2": "120+",
+        "v3": "18",
+        "v4": "94%",
         "l1": "İllik idarə olunan media büdcəsi",
         "l2": "Brend",
         "l3": "Bazar",
@@ -1023,9 +1078,11 @@ window.OM_I18N = {
         "eyebrow": "Sübut",
         "h2": "Sözümüzə inanmayın.",
         "q1": "“Marketinq və satışı iki ayrı şirkət kimi idarə edirdik. OmniMark bunu bir rüb ərzində tək bir hərəkətə çevirdi — və ilk dəfə proqnozumuz həqiqətən bağlanan sövdələşmələrlə üst-üstə düşdü.”",
+        "a1": "RK",
         "n1": "Rania Kessler",
         "r1": "Gəlir üzrə vitse-prezident, Halo Bank",
         "q2": "“Sevdiyimiz bir kanalı ikinci ayda dayandırdılar, çünki rəqəmlər belə deyirdi. Bizə xərcləməyi dayandırmağı deyyən başqa heç kim olmayıb.”",
+        "a2": "DO",
         "n2": "Daniel Okafor",
         "r2": "Təsisçi, Coastway"
       },
@@ -1033,7 +1090,13 @@ window.OM_I18N = {
         "eyebrow": "Kimlərlə işləyəcəksiniz",
         "h2": "Təcrübəli mütəxəssislər. Hesab meneceri telefon oyunu yoxdur.",
         "body": "Hər OmniMark komandasına özü rəqəm daşımış biri rəhbərlik edir — sizinlə istehsal komandası arasında qeydləri ötürən koordinator deyil. İşi görən insanlarla ilk zəngdə tanış olursunuz və onlar hesabda qalır.",
-        "cta": "Komanda ilə tanış olun"
+        "cta": "Komanda ilə tanış olun",
+        "t1initial": "MS", "t1name": "Maya Sorensen", "t1role": "Keçmiş VaynerMedia",
+        "t2initial": "JT", "t2name": "Jonah Trent", "t2role": "Keçmiş R/GA",
+        "t3initial": "PA", "t3name": "Priya Anand", "t3role": "Keçmiş HubSpot",
+        "t4initial": "LC", "t4name": "Leo Castellan", "t4role": "Keçmiş Wieden+Kennedy",
+        "t5initial": "EW", "t5name": "Elena Wu", "t5role": "Keçmiş Salesforce",
+        "t6initial": "DK", "t6name": "David Kim"
       },
       "insights": {
         "eyebrow": "Bloq",
@@ -1104,6 +1167,7 @@ window.OM_I18N = {
     "faq4q": "Yalnız bir alt-xidmətlə başlaya bilərikmi?",
     "faq4a": "Bəli. Yalnız mövqeləndirmə və ya yalnız kimlik xidmətləri adi haldır — əksər müştərilər təməl qurulduqdan sonra buraxılış mərhələsinə keçir.",
     "crossLabel": "Adətən sonra nə gəlir",
+    "cross1tag": "İstiqamət 02 · Siqnal",
     "cross1p": "Mövqeləndirmə müəyyən olunduqdan sonra, onu bütün kanallara daşıyan kreativ.",
     "cross2tag": "Bütün beş istiqamət",
     "cross2h": "Bütün prosesə baxın",
@@ -1148,7 +1212,9 @@ window.OM_I18N = {
     "c3": "Mağazadaxili və onlayn alış tarixçəsini bir müştəri qeydinə birləşdirən CRM və həyat dövrü proqramları.",
     "s2eyebrow": "Aidiyyəti istiqamətlər",
     "s2h2": "Bu sektordakı müştərilər adətən haradan başlayır.",
+    "cross1tag": "İstiqamət 02 · Siqnal",
     "cross1p": "Alıcı və ticarət marketinqi, POSM, mövsümi kampaniya platformaları.",
+    "cross2tag": "İstiqamət 04 · Quruculuq",
     "cross2p": "E-ticarət qurulması, loyallıq CRM, merçendayzinq.",
     "s3h2": "Bu sektordakı işlər.",
     "ctaH2": "Pərakəndə satış təqvimi idarə etmiş biri ilə danışın."
@@ -1193,7 +1259,13 @@ window.OM_I18N = {
   "caseStudy": {
     "footnote": "B2B SaaS · B seriyası · 90 işçi · Əməkdaşlıq: 8 ay",
     "thPipeline": "Keyfiyyətli satış kanalı",
+    "thMqlSql": "MQL→SQL",
+    "thCac": "CAC",
     "thCycle": "Satış dövrü",
+    "metricPipeline": "3.4×",
+    "metricMqlSql": "+240%",
+    "metricCac": "−38%",
+    "metricCycle": "−19 gün",
     "hContext": "Kontekst",
     "pContext": "Orta bazar əməliyyat komandalarına satış edən B seriyası B2B SaaS şirkəti. Ödənişli və outbound hər ikisi həcm hədəflərinə çatırdı. Satış isə demək olar ki, heç nəyi bağlamırdı.",
     "hProblem": "Problem",
@@ -1224,7 +1296,13 @@ window.OM_I18N = {
     "careersH2": "Biz mütəxəssis işə götürürük, CV yox.",
     "careersBody": "Əgər bir rəqəm idarə etmisinizsə və altı idarə etmək istəyirsinizsə, bizimlə danışın.",
     "careersCta": "Açıq vakansiyalara bax",
-    "ctaH2": "Hesabınızı idarə edəcək komanda ilə tanış olun."
+    "ctaH2": "Hesabınızı idarə edəcək komanda ilə tanış olun.",
+    "t1role": "Keçmiş VaynerMedia · Brend və Buraxılış",
+    "t2role": "Keçmiş R/GA · Kreativ və İstehsal",
+    "t3role": "Keçmiş HubSpot · Platformalar və Məhsul",
+    "t4role": "Keçmiş Wieden+Kennedy · Media və Əhatə",
+    "t5role": "Keçmiş Salesforce · Satış və Gəlir",
+    "t6role": "Keçmiş Wpromote · Media və Əhatə"
   },
   "insightsPage": {
     "lede": "Haqqı doğrultan baxış bucağı — işi görən insanlar tərəfindən yazılıb, bu barədə yazan məzmun komandası tərəfindən deyil.",
@@ -1232,6 +1310,7 @@ window.OM_I18N = {
     "filterDemand": "Tələbat",
     "filterSales": "Satış",
     "filterBrand": "Brend",
+    "filterRevops": "RevOps",
     "a4": "Mövqeləndirmə seminar deyil. Qərardır.",
     "a4m": "Brend · 7 dəq",
     "a5": "Təəssürat haqqında hesabat verməyi dayandırın. Satış kanalı haqqında hesabat verməyə başlayın.",
@@ -1242,6 +1321,7 @@ window.OM_I18N = {
   },
   "article": {
     "category": "Tələbat",
+    "authorInitial": "PA",
     "role": "Priya Anand · Platformalar və Məhsul",
     "readTime": "6 dəqiqəlik oxu",
     "updated": "Yenilənib: Sentyabr 2026",
@@ -1252,6 +1332,7 @@ window.OM_I18N = {
     "h2b": "Bunun əvəzinə nəyi ölçürük: Pipeline-Qualified Engagement",
     "p3": "Tək MQL qapısını satışın artıq etibar etdiyi davranışdan qurulmuş kompozit bir bal ilə əvəz etdik: qiymətləndirmə səhifəsinə təkrar baxışlar, eyni hesabdan iki həftəlik pəncərədə iştirak edən bir neçə maraqlı tərəf və forma doldurmaq əvəzinə birbaşa nümayəndəyə müraciət. Biz buna Pipeline-Qualified Engagement, yəni PQE deyirik.",
     "figAlt": "Köhnə MQL hunisi fərdi forma doldurmalarını sayır; PQE modeli hesab səviyyəsində bir neçə alış siqnalını birləşdirir.",
+    "figPqe": "PQE",
     "figOld": "KÖHNƏ: FƏRDİ MQL",
     "figDownload": "Kontentin yüklənməsi",
     "figForm": "Forma + firmanın uyğunluğu",
@@ -1276,6 +1357,7 @@ window.OM_I18N = {
     "h2d": "İdarə heyəti səviyyəsində əhəmiyyətli olan tək rəqəm",
     "p5": "Bunların heç biri gəliri son hesab lövhəsi kimi əvəz etmir. PQE, marketinq və satışın satış kanalı rəqəmləri təsdiqləməzdən üç ay əvvəl istiqamətə razılaşmasına imkan verən öncül göstəricidir.",
     "keepReading": "Oxumağa davam edin",
+    "cross1tag": "RevOps",
     "cross1p": "9 dəqiqəlik oxu",
     "cross2tag": "Bütün bloq yazıları",
     "cross2h": "Hamısına baxın",

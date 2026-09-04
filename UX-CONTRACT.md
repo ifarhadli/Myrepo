@@ -27,8 +27,10 @@ No external business policy is maintained in this repository yet. `README.md` do
 | Select/Listbox | Native select | This contract | native | browser keyboard smoke |
 | Form | Public form controller + server validator | `js/main.js`, `server.js` | lead / newsletter / admin | integration + browser validation |
 | Scrollbar | Global application stylesheets | `DESIGN.md`, `css/style.css`, `css/admin.css` | geometry exceptions | static audit + browser overflow smoke |
-| Toast | Admin toast utility | `js/admin.js` | success / error | live region + admin browser smoke |
-| CRUD | Admin API client + server routes | `js/admin.js`, `server.js` | publish / delete / reset | integration suite |
+| Toast | Editor/admin toast utilities | `js/editor.js`, `js/admin.js` | success / error | live region + browser smoke |
+| Dialog | Native `<dialog>` with owned focus/return contract | `js/editor.js`, `js/admin.js` | publish / discard / destructive | keyboard browser smoke |
+| Drawer/Sheet | Non-modal editor sheet | `js/editor.js`, `css/editor.css` | design-left / operations-right | browser responsive smoke |
+| CRUD | Editor/admin API clients + server routes | `js/editor.js`, `js/admin.js`, `server.js` | draft / publish / submission state / delete / reset | integration suite |
 
 Table selection and date-picker ownership are omitted because the editor has neither selection nor a date-picker; structured-data dates use typed ISO text fields.
 
@@ -39,6 +41,12 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - Secret inputs are masked by default and provide an explicit Show/Hide control.
 - Textareas use a stable minimum height and do not resize into adjacent editor controls.
 - The submissions table owns horizontal overflow at narrow widths.
+- On-page text editing uses Enter to commit and Escape to cancel. Shift+Enter
+  is reserved for authored multiline HTML strings; pasted content is plain
+  text and saved HTML is allow-listed.
+- Section and item drag handles have adjacent up/down or equivalent keyboard
+  actions. Section order changes only among direct `<main>` siblings; the hero
+  remains outside that ordering boundary.
 
 ## Dataset navigation
 
@@ -55,17 +63,32 @@ Table selection and date-picker ownership are omitted because the editor has nei
 | Delete all leads | Delete all + confirm | modal then pessimistic request | empty list | refreshed row count | list retained + error toast | confirmation trigger restored | `js/admin.js` |
 | Reset configuration | reset + confirm | local draft mutation | Overview | status toast | discard or reload remains available | Overview heading | `js/admin.js` |
 | Filter leads | native select | immediate local filter | current tab | count updates | full list remains in memory | filter remains focused | `js/admin.js` |
+| Autosave editor draft | any committed edit | “Saving…” in bar | current page | saved timestamp | local browser copy retained + offline status | edited context remains | `js/editor.js` |
+| Publish editor draft | Publish + summary confirm | button disabled + publishing label | current page | toast + zero counter | server draft retained + error toast | trigger restored | `js/editor.js` |
+| Discard editor draft | Discard + confirm | confirm disabled during delete | current live page reload | clean disabled Publish | draft retained on failure | trigger restored or page reload | `js/editor.js` |
+| Mark lead read/unread | Inbox action | pessimistic request | open Inbox | unread count updates | list retained + error toast | refreshed lead list | `js/editor.js` |
 
 ## Navigation and responsive behavior
 
-- Admin tabs update the URL hash and document heading without a full navigation.
+- `/admin` is login-only and redirects authenticated owners to
+  `index.html?edit=1`; `/admin-advanced.html` owns the legacy tab dashboard.
+- Advanced-admin tabs update the URL hash and document heading without a full navigation.
+- The editor page switcher saves the draft before full-page navigation and
+  preserves `?edit=1`. Anonymous requests with that query never receive the
+  editor assets.
 - Below 820px the sidebar becomes an in-flow wrapping navigation; tables scroll within their own container.
 - The public drawer is modal, makes background content inert, traps focus, closes on Escape, and restores focus.
 - Route errors use `404.html`; the server returns explicit JSON errors for API routes.
 
 ## Overlays and feedback
 
-- `#confirmDialog` is the single destructive confirmation primitive; native `confirm`, `alert`, and `prompt` are forbidden.
+- The advanced dashboard's `#confirmDialog` is its single destructive confirmation primitive; native `confirm`, `alert`, and `prompt` are forbidden everywhere.
+- The on-page editor creates the same owned `<dialog>` behavior for Publish,
+  Discard and lead deletion. Dialogs trap focus, Escape cancels, and focus
+  returns to the invoking control.
+- Editor Design is a non-modal left sheet so the owner can inspect the page
+  while changing it. Inbox and Settings are non-modal right sheets. Escape
+  closes a sheet and returns focus; dialogs opened from a sheet sit above it.
 - Cancel is initially focused, Escape cancels, and the browser restores focus to the invoking control.
 - Admin toast messages use a polite live region, appear at the bottom center, and clear after 3.2 seconds.
 - Unsaved changes use an in-app confirmation for editor actions and the platform unload guard for browser/tab exit.
@@ -73,10 +96,12 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 ## Async and resilience
 
-- Mutations are pessimistic. Publish disables its trigger; public forms suppress duplicate submit while pending.
+- Mutations are pessimistic. Publish disables its trigger; public forms suppress duplicate submit while pending. Editor drafts debounce for 1.5 seconds and retain an immediate local browser copy.
 - Failed publish keeps the draft. Failed lead notifications never discard the already persisted submission.
 - Session expiry returns to sign-in. Configuration writes use temporary files and atomic rename.
-- There is no offline write queue, autosave, conflict merge, or multi-user editing.
+- Offline editor changes remain in one local browser copy and reconcile by the
+  newest save timestamp when that browser returns. There is no multi-device
+  merge, conflict resolution, multi-user editing, or revision history.
 
 ## Validation
 

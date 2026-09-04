@@ -95,7 +95,7 @@ The public site should feel like an accountable campaign control room expressed 
 - **Target markets and evidence:** the current authored content names US locations and global/multi-market services. It does not establish one country as the exclusive market.
 - **Locales and language policy:** English and Azerbaijani share one page architecture. English is the fallback when an Azerbaijani string is missing; owner-supplied launch copy still requires native review.
 - **Usage scene:** public evaluation on phone and laptop; occasional desktop-oriented administration with a usable narrow-screen fallback.
-- **Register:** hybrid. Public routes carry the expressive brand system; `/admin.html` is a quiet, familiar editing tool.
+- **Register:** hybrid. Public routes carry the expressive brand system; the authenticated on-page editor uses a thin neutral control layer that does not inherit owner-selected brand colours. `/admin-advanced.html` remains a quiet developer tool.
 - **Memorable signature:** the five-engine spectrum is the single expressive device. It encodes the service journey and may appear in spines, signals, motion, and artwork.
 - **Restraint:** forms, navigation, admin controls, errors, proof status, and content availability prioritize clarity and trust over spectacle.
 - **Anti-references:** generic neon SaaS dashboards, decorative gradients with no information role, hover-only disclosure, and portfolio cards that imply content which does not exist.
@@ -135,9 +135,21 @@ Primary actions are signal-filled, secondary actions are bordered, and utility a
 
 The desktop mega-menu is viewport-bounded and internally scrollable. The mobile navigation is modal, traps focus, makes the background inert, and restores focus on close. Service accordions synchronize visual, ARIA, visibility, and inert state. Tables retain an explicit horizontal scroll container on narrow screens.
 
+The on-page editor bar is a 48px ink control rail above the public page. Its
+one expressive cue is the signal-green edit status; sheets, dialogs and item
+controls otherwise use neutral paper/ink surfaces and violet focus. Design is
+a non-modal left sheet; Inbox and Settings use the right operations edge.
+Phone preview centers one 390px page frame on a quiet gray work surface.
+
 ### Forms and overlays
 
 Forms own validation with `novalidate`, visible linked field errors, first-error focus, preserved values, and duplicate-submit prevention. The mobile drawer and any admin confirmation surface use owned semantics, Escape behavior, focus containment, and focus restoration.
+
+Editor sheets keep compact labels, stable field geometry and their own scroll
+owner. Publish/Discard dialogs use a bordered paper surface, cancel-first
+focus, sticky actions and the documented global layer scale. Hidden sections
+and items remain visible only in edit mode at reduced opacity with a textual
+badge; colour is never the sole status signal.
 
 ### Iconography
 
