@@ -56,13 +56,18 @@ Sign in at `/admin.html`. Everything is a draft until **Save & publish**
 | **Services catalogue** | The five engines: names, promises, codenames, links, and every group / sub-service in both languages — add, remove, reorder. Mega-menu, drawer, footer and both accordions follow automatically. |
 | **Industries** | The industry list (dropdown, drawer, strip), both languages. |
 | **Pages & SEO** | Per-page `<title>` and meta description (injected server-side, and by JS on static hosts), and a checkbox per section to hide/show it. |
-| **Settings** | Site name, public URL, default language, contact details, legal links, feature switches (language switcher, newsletter, cookie banner, Careers button), Google Analytics ID and consent-gated tag snippets. |
+| **Settings** | Site name, public URL, default language, contact details, legal links, mega-menu density, proof gating, Organization / Article / JobPosting schema fields, Google Analytics ID and consent-gated tag snippets. |
 | **Submissions** | Every contact-form, funnel-teardown and newsletter submission; filter, delete, export CSV. |
 | **Account & backup** | Change password, export/import the whole config as JSON, reset to defaults. |
 
 Untouched fields keep inheriting from the code, so a developer can still
 change defaults in `data.js` / `i18n-data.js` / `style.css` without fighting
 the dashboard.
+
+Organization structured data is rendered server-side from the site settings
+on every page. Article schema appears only when author and publication date
+are filled in; JobPosting appears only when every required job field is
+complete. Keep those fields empty until they exactly match the visible page.
 
 ### Password
 

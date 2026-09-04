@@ -65,6 +65,8 @@ const DEFAULT_SITE = {
     magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
   design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
   analytics: { gaId: '', consentScript: '' },
+  structured: { orgLegalName: '', orgLogoUrl: '', articleAuthor: '', articleDatePublished: '', articleDateModified: '',
+    jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
   hiddenSections: [], pages: {}, i18n: { en: {}, az: {} },
   engines: null, enginesAz: null, industries: null, industriesAz: null
 };
@@ -162,6 +164,17 @@ function validateSite(input){
   if (isPlain(input.analytics)){
     if (typeof input.analytics.gaId === 'string') site.analytics.gaId = input.analytics.gaId.trim().slice(0, 40);
     if (typeof input.analytics.consentScript === 'string') site.analytics.consentScript = input.analytics.consentScript.slice(0, 50000);
+  }
+  if (isPlain(input.structured)){
+    site.structured = Object.assign({}, site.structured, strMap(input.structured, 10000));
+    site.structured.jobRemote = !!input.structured.jobRemote;
+    for (const k of ['orgLogoUrl', 'jobApplyUrl']) site.structured[k] = /^https?:\/\//i.test(site.structured[k] || '') ? site.structured[k].trim() : '';
+    for (const k of ['articleDatePublished', 'articleDateModified', 'jobDatePosted', 'jobValidThrough']){
+      const v = String(site.structured[k] || '').trim();
+      site.structured[k] = /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + 'T00:00:00Z')) ? v : '';
+    }
+    const employment = String(site.structured.jobEmploymentType || '').toUpperCase();
+    site.structured.jobEmploymentType = ['FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER'].includes(employment) ? employment : '';
   }
   site.hiddenSections = cleanStrArray(input.hiddenSections, 500) || [];
   if (isPlain(input.pages)) for (const k of Object.keys(input.pages)){
@@ -402,6 +415,57 @@ function pageInfo(file){
   return { key: file.replace(/\.html$/i, ''), file, title, description, sections };
 }
 
+function structuredData(html, key, site, base, loc){
+  if (!base || !loc) return null;
+  const settings = site.settings || {};
+  const cfg = site.structured || {};
+  const orgId = base + '/#organization';
+  const org = {
+    '@type': 'Organization', '@id': orgId,
+    name: settings.siteName || 'OmniMark', url: base
+  };
+  if (cfg.orgLegalName) org.legalName = cfg.orgLegalName;
+  if (cfg.orgLogoUrl) org.logo = cfg.orgLogoUrl;
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(settings.email || '')) org.email = settings.email;
+  if (settings.phone) org.telephone = settings.phone;
+  if (settings.address) org.address = { '@type': 'PostalAddress', streetAddress: settings.address };
+  if (/^https?:\/\//i.test(settings.linkedin || '')) org.sameAs = [settings.linkedin];
+  const graph = [org];
+
+  if (key === 'article' && cfg.articleAuthor && cfg.articleDatePublished){
+    const h1 = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
+    const desc = ((site.pages && site.pages.article && site.pages.article.description) || ((html.match(/<meta\s+name="description"\s+content="([^"]*)"/i) || [])[1]) || '').trim();
+    const article = {
+      '@type': 'Article', '@id': loc + '#article', mainEntityOfPage: loc,
+      headline: stripTags(h1 ? h1[1] : ''), datePublished: cfg.articleDatePublished,
+      author: { '@type': 'Person', name: cfg.articleAuthor },
+      publisher: { '@id': orgId }
+    };
+    if (desc) article.description = stripTags(desc);
+    if (cfg.articleDateModified) article.dateModified = cfg.articleDateModified;
+    if (settings.ogImage) article.image = settings.ogImage;
+    graph.push(article);
+  }
+
+  const jobReady = key === 'role-detail' && ['jobTitle', 'jobDescription', 'jobDatePosted', 'jobValidThrough', 'jobEmploymentType', 'jobLocation', 'jobApplyUrl'].every(k => cfg[k]);
+  if (jobReady){
+    const job = {
+      '@type': 'JobPosting', '@id': loc + '#job', title: cfg.jobTitle,
+      description: cfg.jobDescription, datePosted: cfg.jobDatePosted,
+      validThrough: cfg.jobValidThrough, employmentType: cfg.jobEmploymentType,
+      hiringOrganization: { '@id': orgId }, url: cfg.jobApplyUrl,
+      jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: cfg.jobLocation } }
+    };
+    if (cfg.jobRemote) job.jobLocationType = 'TELECOMMUTE';
+    graph.push(job);
+  }
+  return { '@context': 'https://schema.org', '@graph': graph };
+}
+
+function jsonLd(value){
+  return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+}
+
 /* Inject admin-set title / description / og into a page as it is served. */
 function injectMeta(html, key, site){
   const pg = (site.pages && site.pages[key]) || {};
@@ -418,14 +482,16 @@ function injectMeta(html, key, site){
   /* canonical / social tags for every page, derived from Settings */
   const base = String((site.settings && site.settings.siteUrl) || '').replace(/\/+$/, '');
   const extra = [];
+  const loc = base ? base + '/' + (key === 'index' ? '' : key + '.html') : '';
   if (base && !/rel="canonical"/i.test(html)){
-    const loc = base + '/' + (key === 'index' ? '' : key + '.html');
     extra.push('<link rel="canonical" href="' + escapeHtml(loc) + '">');
     extra.push('<meta property="og:url" content="' + escapeHtml(loc) + '">');
   }
   const img = site.settings && site.settings.ogImage;
   if (img && !/property="og:image"/i.test(html)) extra.push('<meta property="og:image" content="' + escapeHtml(img) + '">');
   if (!/name="twitter:card"/i.test(html)) extra.push('<meta name="twitter:card" content="' + (img ? 'summary_large_image' : 'summary') + '">');
+  const schema = structuredData(html, key, site, base, loc);
+  if (schema) extra.push('<script type="application/ld+json">' + jsonLd(schema) + '</script>');
   if (extra.length) html = html.replace(/<\/head>/i, extra.join('\n') + '\n</head>');
   return html;
 }

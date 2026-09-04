@@ -76,6 +76,7 @@ async function main(){
   /* ---- static serving ---- */
   let r = await req('GET', '/');
   check('GET / serves index', r.status === 200 && /<title>OmniMark/.test(r.text));
+  check('Organization structured data is server-rendered', /"@type":"Organization"/.test(r.text) && /"name":"OmniMark"/.test(r.text));
   check('index has head scripts', /data\/site\.js/.test(r.text) && /js\/site-config\.js/.test(r.text));
   check('index accordion is a data-driven mount', /data-accordion="home"><\/div>/.test(r.text) && !/engines\.e1\.groups\.0\.items\.0/.test(r.text));
   check('home canonical is site root', /<link rel="canonical" href="https:\/\/www\.omnimark\.com\/">/.test(r.text));
@@ -132,6 +133,8 @@ async function main(){
       schedulerUrl: 'javascript:alert(1)', privacyUrl: 'javascript:x', linkedin: 'https://linkedin.com/company/x', ogImage: 'https://example.test/og.png' },
     features: { customCursor: false, cookieBanner: false },
     design: { tokens: { '--signal': '#ff0000', 'bad key': 'x', '--ink': 'red;}body{display:none' }, fontDisplay: 'Sora', customCss: '.hero{color:red}' },
+    structured: { orgLegalName: 'OmniMark LLC', orgLogoUrl: 'javascript:bad', articleAuthor: 'Priya Anand',
+      articleDatePublished: '2026-09-01', articleDateModified: 'not-a-date', jobTitle: 'Draft role' },
     hiddenSections: ['index.s3'],
     pages: { about: { title: 'About us <b>', description: 'Desc "quoted"' } },
     i18n: { en: { 'nav.work': 'Cases' }, az: { 'nav.work': 'Keyslər' } },
@@ -146,6 +149,7 @@ async function main(){
   check('validation: features merged with defaults', saved && saved.features.customCursor === false && saved.features.reveal === true);
   check('validation: settings merged', saved && saved.settings.email === 'hi@example.test' && saved.settings.siteName === 'OmniMark');
   check('validation: unsafe URL schemes dropped', saved && saved.settings.schedulerUrl === '' && saved.settings.privacyUrl === '' && saved.settings.linkedin === 'https://linkedin.com/company/x' && saved.settings.ogImage === 'https://example.test/og.png', JSON.stringify(saved && saved.settings));
+  check('validation: structured URLs and dates cleaned', saved && saved.structured.orgLogoUrl === '' && saved.structured.articleDatePublished === '2026-09-01' && saved.structured.articleDateModified === '');
   check('validation: engines cleaned', saved && saved.engines.length === 1 && saved.engines[0].groups[0].items.length === 2 && saved.enginesAz[0].name === 'E1az');
   const siteJs = readTmp('data/site.js');
   check('site.js regenerated + </script escaped', /hi@example\.test/.test(siteJs) && !/<\/script/.test(siteJs) && !/<\//.test(siteJs.replace(/<\\\//g, '')));
@@ -155,6 +159,19 @@ async function main(){
   check('meta injection: description', /name="description" content="Desc &quot;quoted&quot;"/.test(r.text));
   check('meta injection: og:title', /property="og:title" content="About us &lt;b&gt;"/.test(r.text));
   check('meta injection: og:image after save', /property="og:image" content="https:\/\/example\.test\/og\.png"/.test(r.text) && /twitter:card" content="summary_large_image"/.test(r.text));
+  r = await req('GET', '/article.html');
+  check('Article structured data emitted with publishing fields', /"@type":"Article"/.test(r.text) && /"name":"Priya Anand"/.test(r.text) && /"datePublished":"2026-09-01"/.test(r.text));
+  r = await req('GET', '/role-detail.html');
+  check('partial JobPosting data is not published', !/"@type":"JobPosting"/.test(r.text));
+  const cfgWithJob = JSON.parse(JSON.stringify(cfg));
+  Object.assign(cfgWithJob.structured, { jobTitle: 'Senior Media Buyer, Offline & Digital',
+    jobDescription: 'Plan and buy accountable media across offline and digital channels.', jobDatePosted: '2026-09-01',
+    jobValidThrough: '2026-12-31', jobEmploymentType: 'FULL_TIME', jobLocation: 'Austin, TX, US',
+    jobRemote: true, jobApplyUrl: 'https://example.test/apply' });
+  r = await req('PUT', '/api/site', cfgWithJob, { admin: true });
+  check('complete JobPosting settings save', r.status === 200 && r.json.site.structured.jobRemote === true, r.text);
+  r = await req('GET', '/role-detail.html');
+  check('complete JobPosting is server-rendered', /"@type":"JobPosting"/.test(r.text) && /"employmentType":"FULL_TIME"/.test(r.text) && /"jobLocationType":"TELECOMMUTE"/.test(r.text));
   r = await req('GET', '/api/site');
   check('GET site is public + reflects save', r.status === 200 && r.json.settings.email === 'hi@example.test');
 

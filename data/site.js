@@ -46,6 +46,21 @@ window.OMNI_SITE = {
     "gaId": "",
     "consentScript": ""
   },
+  "structured": {
+    "orgLegalName": "",
+    "orgLogoUrl": "",
+    "articleAuthor": "",
+    "articleDatePublished": "",
+    "articleDateModified": "",
+    "jobTitle": "",
+    "jobDescription": "",
+    "jobDatePosted": "",
+    "jobValidThrough": "",
+    "jobEmploymentType": "",
+    "jobLocation": "",
+    "jobRemote": false,
+    "jobApplyUrl": ""
+  },
   "hiddenSections": [],
   "pages": {},
   "i18n": { "en": {}, "az": {} },

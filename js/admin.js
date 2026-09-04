@@ -96,6 +96,8 @@
       magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
     design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
     analytics: { gaId: '', consentScript: '' },
+    structured: { orgLegalName: '', orgLogoUrl: '', articleAuthor: '', articleDatePublished: '', articleDateModified: '',
+      jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
     hiddenSections: [], pages: {}, i18n: { en: {}, az: {} },
     engines: null, enginesAz: null, industries: null, industriesAz: null
   };
@@ -175,6 +177,7 @@
     site.design = Object.assign(clone(DEFAULT_SITE.design), site.design || {});
     site.design.tokens = site.design.tokens || {};
     site.analytics = Object.assign(clone(DEFAULT_SITE.analytics), site.analytics || {});
+    site.structured = Object.assign(clone(DEFAULT_SITE.structured), site.structured || {});
     site.hiddenSections = site.hiddenSections || [];
     site.pages = site.pages || {};
     site.i18n = site.i18n || {}; site.i18n.en = site.i18n.en || {}; site.i18n.az = site.i18n.az || {};
@@ -279,6 +282,10 @@
     if (s.settings.privacyUrl === '#' || s.settings.termsUrl === '#') todo.push(['settings', 'Link a real Privacy Policy and Terms page.']);
     if (!s.analytics.gaId && !s.analytics.consentScript) todo.push(['settings', 'Add a Google Analytics ID (optional).']);
     if (!s.features.showVerifiedProof) todo.push(['settings', 'Verify logos, statistics, testimonials and team profiles, then enable “Show verified proof content”.']);
+    if (!s.structured.articleAuthor || !s.structured.articleDatePublished) todo.push(['settings', 'Add the published article author and date to enable Article structured data.']);
+    var jobKeys = ['jobTitle', 'jobDescription', 'jobDatePosted', 'jobValidThrough', 'jobEmploymentType', 'jobLocation', 'jobApplyUrl'];
+    var anyJob = jobKeys.some(function(k){ return !!s.structured[k]; });
+    if (anyJob && !jobKeys.every(function(k){ return !!s.structured[k]; })) todo.push(['settings', 'Finish every job schema field, or clear the draft fields; partial JobPosting data is not published.']);
     var overrides = Object.keys(s.i18n.en).length + Object.keys(s.i18n.az).length;
     panel.innerHTML =
       '<div class="grid3">' +
@@ -617,12 +624,28 @@
         '<div><div class="card"><h2>Contact &amp; links</h2>' +
           SETTINGS_FIELDS.map(function(f){ return '<div class="field"><label>' + esc(f[1]) + '</label><input type="' + f[2] + '" data-bind="settings.' + f[0] + '"' + (f[4] || '') + '>' + (f[3] ? '<div class="hint">' + esc(f[3]) + '</div>' : '') + '</div>'; }).join('') +
           '<div class="field"><label>Default language</label><select data-bind="settings.defaultLang"><option value="en">English</option><option value="az">Azərbaycan</option></select><div class="hint">What first-time visitors see. Their own choice is remembered after that.</div></div>' +
+        '</div>' +
+        '<div class="card"><h2>Organization &amp; article schema</h2><p class="muted small">Organization data is generated on every page from Site name, URL and contact settings. These fields add optional legal and publishing details.</p>' +
+          '<div class="field"><label>Legal organization name</label><input type="text" data-bind="structured.orgLegalName"></div>' +
+          '<div class="field"><label>Organization logo URL</label><input type="url" data-bind="structured.orgLogoUrl" placeholder="https://example.com/logo.png"><div class="hint">Use an absolute http(s) image URL.</div></div>' +
+          '<div class="field"><label>Article author</label><input type="text" data-bind="structured.articleAuthor"><div class="hint">Must match the visible byline on article.html.</div></div>' +
+          '<div class="field"><label>Article published date</label><input type="text" inputmode="numeric" data-bind="structured.articleDatePublished" placeholder="YYYY-MM-DD"></div>' +
+          '<div class="field"><label>Article modified date</label><input type="text" inputmode="numeric" data-bind="structured.articleDateModified" placeholder="YYYY-MM-DD"><div class="hint">Optional. Leave blank unless the article was materially updated.</div></div>' +
         '</div></div>' +
         '<div>' +
           '<div class="card"><h2>Site features</h2><div class="switch-list">' +
             FEATURES.filter(function(f){ return ['langSwitch', 'newsletter', 'cookieBanner', 'careersButton', 'showVerifiedProof'].indexOf(f[0]) >= 0; })
               .map(function(f){ return '<label class="check"><input type="checkbox" data-bind="features.' + f[0] + '"><span>' + esc(f[1]) + (f[2] ? '<div class="d">' + esc(f[2]) + '</div>' : '') + '</span></label>'; }).join('') +
           '</div></div>' +
+          '<div class="card"><h2>JobPosting schema</h2><p class="muted small">Published only when every required field is complete. Keep this empty until it exactly matches the visible role page.</p>' +
+            '<div class="field"><label>Job title</label><input type="text" data-bind="structured.jobTitle"></div>' +
+            '<div class="field"><label>Job description</label><textarea data-bind="structured.jobDescription"></textarea></div>' +
+            '<div class="grid2"><div class="field"><label>Date posted</label><input type="text" inputmode="numeric" data-bind="structured.jobDatePosted" placeholder="YYYY-MM-DD"></div><div class="field"><label>Valid through</label><input type="text" inputmode="numeric" data-bind="structured.jobValidThrough" placeholder="YYYY-MM-DD"></div></div>' +
+            '<div class="field"><label>Employment type</label><select data-bind="structured.jobEmploymentType"><option value="">Select…</option><option value="FULL_TIME">Full time</option><option value="PART_TIME">Part time</option><option value="CONTRACTOR">Contractor</option><option value="TEMPORARY">Temporary</option><option value="INTERN">Intern</option><option value="OTHER">Other</option></select></div>' +
+            '<div class="field"><label>Location</label><input type="text" data-bind="structured.jobLocation" placeholder="Austin, TX, US"></div>' +
+            '<label class="check"><input type="checkbox" data-bind="structured.jobRemote"><span>Remote or hybrid role<div class="d">Adds TELECOMMUTE while retaining the stated location.</div></span></label>' +
+            '<div class="field" style="margin-top:14px"><label>Application URL</label><input type="url" data-bind="structured.jobApplyUrl" placeholder="https://example.com/apply"></div>' +
+          '</div>' +
           '<div class="card"><h2>Analytics</h2><p class="muted small">Loaded only after a visitor accepts cookies (or always, if the banner is off).</p>' +
             '<div class="field"><label>Google Analytics measurement ID</label><input type="text" data-bind="analytics.gaId" placeholder="G-XXXXXXXXXX"></div>' +
             '<div class="field"><label>Other tag snippets (GTM, Meta pixel, …)</label><textarea class="code" data-bind="analytics.consentScript" spellcheck="false" placeholder="<script>…</script>"></textarea><div class="hint">Paste the full snippet including &lt;script&gt; tags.</div></div>' +
