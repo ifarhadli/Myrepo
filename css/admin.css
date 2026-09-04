@@ -50,6 +50,8 @@ p{margin:0 0 10px}
 /* ---------- login ---------- */
 .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:var(--a-ink)}
 .login-card{background:var(--a-surface);border-radius:18px;padding:32px;width:100%;max-width:420px;box-shadow:0 30px 60px -20px rgba(0,0,0,.5)}
+.admin-advanced-link{display:block;margin-top:16px;text-align:center;color:var(--a-muted);font-size:12px;text-decoration:underline;text-underline-offset:3px}
+.admin-advanced-link:hover{color:var(--a-accent)}
 .login-card label{display:block;font-family:var(--a-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin:16px 0 8px}
 .login-card input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--a-border);font:inherit;font-size:15px;margin-bottom:12px}
 .password-row{position:relative}

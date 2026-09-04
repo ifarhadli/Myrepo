@@ -189,8 +189,14 @@
   }
 
   var dataApplied = false;
+  var dataDefaults = null;
   function applyData(){
     if (dataApplied) return; dataApplied = true;
+    dataDefaults = {
+      engines: JSON.parse(JSON.stringify(window.OMNI_ENGINES || [])),
+      industries: JSON.parse(JSON.stringify(window.OMNI_INDUSTRIES || [])),
+      i18n: JSON.parse(JSON.stringify(window.OM_I18N || { en: {}, az: {} }))
+    };
     if (Array.isArray(site.engines) && site.engines.length) window.OMNI_ENGINES = site.engines;
     if (Array.isArray(site.industries) && site.industries.length) window.OMNI_INDUSTRIES = site.industries;
     var I = window.OM_I18N;
@@ -244,7 +250,8 @@
     applyPageMeta: applyPageMeta,
     fontCatalog: FONT_CATALOG,
     defaultFonts: DEFAULT_FONTS,
-    defaultFlags: DEFAULT_FLAGS
+    defaultFlags: DEFAULT_FLAGS,
+    getDefaults: function(){ return dataDefaults ? JSON.parse(JSON.stringify(dataDefaults)) : null; }
   };
 
   /* The admin dashboard loads this file for the font catalogue / defaults

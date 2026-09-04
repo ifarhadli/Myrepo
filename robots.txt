@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /admin-advanced.html
 Disallow: /api/
 
 Sitemap: https://www.omnimark.com/sitemap.xml

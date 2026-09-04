@@ -144,7 +144,7 @@ async function main(){
   state = await evaluate(`({ svg:!!document.querySelector('.article-diagram svg'), linkedin:document.querySelector('[data-share="linkedin"]').href, x:document.querySelector('[data-share="x"]').href, copy:!!document.querySelector('button[data-share="copy"]') })`);
   check('article diagram and all share controls are real', state.svg && /linkedin\.com\/sharing/.test(state.linkedin) && /twitter\.com\/intent/.test(state.x) && state.copy, JSON.stringify(state));
 
-  await viewport(1440, 900); await go('/admin.html');
+  await viewport(1440, 900); await go('/admin-advanced.html');
   await evaluate(`document.querySelector('#loginForm').requestSubmit()`);
   state = await evaluate(`({ invalid:document.querySelector('#loginPw').getAttribute('aria-invalid'), focus:document.activeElement.id, message:document.querySelector('#loginErr').textContent })`);
   check('admin sign-in owns its empty-password validation', state.invalid === 'true' && state.focus === 'loginPw' && /Enter your password/.test(state.message), JSON.stringify(state));
@@ -164,6 +164,46 @@ async function main(){
   state = await evaluate(`({ overflow:document.documentElement.scrollWidth-window.innerWidth, mega:!!document.querySelector('[data-bind="settings.megaMenuLinkLimit"]'), proof:!!document.querySelector('[data-bind="features.showVerifiedProof"]'), article:!!document.querySelector('[data-bind="structured.articleAuthor"]'), job:!!document.querySelector('[data-bind="structured.jobApplyUrl"]') })`);
   check('admin exposes launch settings without desktop overflow', state.overflow <= 0 && state.mega && state.proof && state.article && state.job, JSON.stringify(state));
   await screenshot('admin-settings-1440');
+
+  /* ---- authenticated on-page editor ---- */
+  await viewport(1366, 900); await go('/index.html?edit=1');
+  const editorReady = await waitFor(() => evaluate(`!!document.querySelector('.omni-bar') && document.documentElement.classList.contains('omni-editing')`), 10000);
+  state = await evaluate(`({ bar:!!document.querySelector('.omni-bar'), editing:document.documentElement.classList.contains('omni-editing'), kinetic:document.querySelectorAll('.kinetic .kw').length, controls:document.querySelectorAll('.omni-bar button,.omni-bar select').length })`);
+  check('authenticated edit mode renders the bar before motion starts', !!editorReady && state.bar && state.editing && state.kinetic === 0 && state.controls >= 11, JSON.stringify(state));
+  await evaluate(`(() => { const el=document.querySelector('[data-i18n="home.hero.h1"]'); el.click(); el.textContent='A sharper draft headline.'; el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); })()`);
+  const draftSaved = await waitFor(() => evaluate(`fetch('/api/draft',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x.draft?.i18n?.en?.['home.hero.h1']==='A sharper draft headline.')`), 6000);
+  check('click-to-edit commits and autosaves an English text key', !!draftSaved);
+  await go('/index.html?edit=1'); await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')`), 10000);
+  state = await evaluate(`document.querySelector('[data-i18n="home.hero.h1"]').textContent`);
+  check('server draft survives an editor reload', state === 'A sharper draft headline.', state);
+  await evaluate(`document.querySelector('[data-editor-lang="az"]').click()`); await pause(100);
+  await evaluate(`(() => { const el=document.querySelector('[data-i18n="home.hero.h1"]'); el.click(); el.textContent='Daha kəskin qaralama başlıq.'; el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); document.querySelector('[data-editor-lang="en"]').click(); })()`); await pause(100);
+  state = await evaluate(`({ text:document.querySelector('[data-i18n="home.hero.h1"]').textContent, lang:document.documentElement.lang, az:window.OmniEditor.getState().draft.i18n.az['home.hero.h1'] })`);
+  check('AZ editing stays separate from the English draft', state.text === 'A sharper draft headline.' && state.lang === 'en' && state.az === 'Daha kəskin qaralama başlıq.', JSON.stringify(state));
+  await evaluate(`(() => { const el=document.querySelector('[data-i18n="home.hero.eyebrow"]'); const before=el.textContent; el.click(); el.textContent='Temporary eyebrow'; el.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true})); return {before,after:el.textContent,editing:el.hasAttribute('contenteditable')}; })()`);
+  state = await evaluate(`({ text:document.querySelector('[data-i18n="home.hero.eyebrow"]').textContent, editing:document.querySelector('[data-i18n="home.hero.eyebrow"]').hasAttribute('contenteditable') })`);
+  check('Escape cancels the active text edit', state.text !== 'Temporary eyebrow' && !state.editing, JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-section="index.s2"] [data-section-hide]').click()`); await pause(80);
+  state = await evaluate(`(() => { const s=document.querySelector('[data-section="index.s2"]'),b=s.querySelector('.omni-section-badge'); return {hidden:s.getAttribute('data-editor-hidden'),badge:b&&!b.hidden&&b.textContent}; })()`);
+  check('hidden sections remain visible and labelled in edit mode', state.hidden === 'true' && state.badge === 'Hidden', JSON.stringify(state));
+  const beforeOrder = await evaluate(`[...document.querySelectorAll('main > [data-section]')].map(x=>x.dataset.section).slice(0,3).join(',')`);
+  await evaluate(`document.querySelector('[data-section="index.s1"] [data-section-down]').click()`); await pause(80);
+  const afterOrder = await evaluate(`[...document.querySelectorAll('main > [data-section]')].map(x=>x.dataset.section).slice(0,3).join(',')`);
+  check('section move controls update DOM order immediately', beforeOrder !== afterOrder && afterOrder.startsWith('index.s2,index.s1'), beforeOrder + ' → ' + afterOrder);
+  await evaluate(`document.querySelector('[data-section="index.s1"] [data-section-accent-button]').click()`); await pause(80);
+  state = await evaluate(`document.querySelector('[data-section="index.s1"]').style.getPropertyValue('--acc')`);
+  check('section accent cycles live through the shared layout model', state === 'var(--c1)', state);
+  await screenshot('editor-home-1366');
+  await evaluate(`document.querySelector('[data-editor-publish]').click()`);
+  const publishDialog = await waitFor(() => evaluate(`!!document.querySelector('.omni-dialog[open]')`), 3000);
+  state = await evaluate(`({ open:!!document.querySelector('.omni-dialog[open]'), summary:document.querySelectorAll('.omni-summary li').length, focus:document.activeElement.hasAttribute('data-dialog-cancel') })`);
+  check('Publish opens an owned summary dialog', !!publishDialog && state.open && state.summary === 6 && state.focus, JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);
+  const published = await waitFor(() => evaluate(`!document.querySelector('.omni-dialog') && document.querySelector('[data-editor-publish]').disabled`), 10000);
+  check('Publish promotes the draft and resets the counter', !!published);
+  await go('/index.html');
+  state = await evaluate(`(() => { const sections=[...document.querySelectorAll('main > [data-section]')]; const hidden=document.querySelector('[data-section="index.s2"]'); return {editor:!!document.querySelector('.omni-bar'),display:getComputedStyle(hidden).display,order:sections.slice(0,2).map(x=>x.dataset.section).join(','),accent:document.querySelector('[data-section="index.s1"]').style.getPropertyValue('--acc')}; })()`);
+  check('published section visibility, order and accent reach the public page', !state.editor && state.display === 'none' && state.order === 'index.s2,index.s1' && state.accent === 'var(--c1)', JSON.stringify(state));
   ws.close();
   console.log('\n' + pass + ' browser checks passed, ' + fail + ' failed');
 }

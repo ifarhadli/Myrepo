@@ -2,7 +2,7 @@
 /* OmniMark site server + admin API. Zero dependencies — Node 18+.
    - Serves the static site (clean URLs, 404 page, security headers) and
      injects admin-set <title> / description / og tags into pages on the fly.
-   - /admin.html is the dashboard; everything under /api is its backend.
+   - /admin is the editor sign-in; /admin-advanced.html is the developer dashboard.
    - Persists to data/site.json (+ regenerates data/site.js, sitemap.xml
      and robots.txt so a plain static host still gets the saved state),
      data/admin.json (password hash + session secret) and
@@ -84,7 +84,7 @@ function siteToJs(site){
     'window.OMNI_SITE = ' + JSON.stringify(site, null, 2).replace(/<\//g, '<\\/') + ';\n';
 }
 function listPages(){
-  return fs.readdirSync(ROOT).filter(f => /\.html$/i.test(f) && f !== 'admin.html' && f !== '404.html').sort();
+  return fs.readdirSync(ROOT).filter(f => /\.html$/i.test(f) && !['admin.html', 'admin-advanced.html', '404.html'].includes(f)).sort();
 }
 function writeSeoFiles(site){
   const base = String((site.settings && site.settings.siteUrl) || '').replace(/\/+$/, '');
@@ -97,7 +97,7 @@ function writeSeoFiles(site){
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.join('\n') + '\n</urlset>\n');
   writeTextAtomic(path.join(ROOT, 'robots.txt'),
     /* data/site.js must stay crawlable — it carries the published copy */
-    'User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: ' + base + '/sitemap.xml\n');
+    'User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /admin-advanced.html\nDisallow: /api/\n\nSitemap: ' + base + '/sitemap.xml\n');
 }
 function saveSite(site){
   site.updatedAt = new Date().toISOString();
@@ -773,7 +773,7 @@ function main(){
   server.listen(PORT, HOST, () => {
     const base = 'http://' + (HOST === '0.0.0.0' ? 'localhost' : HOST) + ':' + PORT;
     console.log('OmniMark site   →  ' + base + '/');
-    console.log('Admin dashboard →  ' + base + '/admin.html');
+    console.log('Admin dashboard →  ' + base + '/admin');
     const n = notifyConfig();
     console.log('Notifications   →  email ' + (n.email ? 'on' : 'off') + ', webhook ' + (n.webhook ? 'on' : 'off') + ', visitor acknowledgement ' + (n.autoReply ? 'on' : 'off') +
       (n.email || n.webhook ? '' : '   (set RESEND_API_KEY + NOTIFY_EMAIL_TO and/or NOTIFY_WEBHOOK_URL)'));

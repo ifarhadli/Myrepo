@@ -99,9 +99,9 @@ async function main(){
   r = await req('GET', '/data/site.js');
   check('site.js served', r.status === 200 && /window\.OMNI_SITE/.test(r.text));
   r = await req('GET', '/sitemap.xml');
-  check('sitemap served', r.status === 200 && /<urlset/.test(r.text) && /about\.html/.test(r.text) && !/admin\.html/.test(r.text));
+  check('sitemap served', r.status === 200 && /<urlset/.test(r.text) && /about\.html/.test(r.text) && !/admin(?:-advanced)?\.html/.test(r.text));
   r = await req('GET', '/robots.txt');
-  check('robots served', r.status === 200 && /Disallow: \/admin\.html/.test(r.text));
+  check('robots served', r.status === 200 && /Disallow: \/admin\.html/.test(r.text) && /Disallow: \/admin-advanced\.html/.test(r.text));
   check('robots keeps data/site.js crawlable', !/Disallow: \/data/.test(r.text));
   check('cookie banner comes from partials', !/id="cookieBanner"/.test(readTmp('index.html')) && /id="cookieBanner"/.test(readTmp('js/partials.js')));
   check('contact scheduler is config-driven', /data-scheduler/.test(readTmp('contact.html')) && !/scheduler-ph/.test(readTmp('contact.html')));

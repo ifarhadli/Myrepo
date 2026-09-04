@@ -8,6 +8,7 @@
   var flags = (window.OmniSite && window.OmniSite.flags()) || {};
   var siteCfg = (window.OmniSite && window.OmniSite.get()) || {};
   function on(flag){ return flags[flag] !== false; }
+  function editing(){ return document.documentElement.classList.contains('omni-editing'); }
   function t(key, fallback){ var v = window.OmniI18n && window.OmniI18n.t(key); return v == null ? fallback : v; }
   function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function postJSON(url, data){
@@ -426,6 +427,7 @@
 
   /* ---------- reveal-on-scroll ---------- */
   function initReveal(){
+    if(editing()) return;
     var els = document.querySelectorAll('.reveal');
     if(!els.length) return;
     if(reduceMotion || !on('reveal') || !('IntersectionObserver' in window)){
@@ -442,6 +444,7 @@
 
   /* ---------- process connecting line ---------- */
   function initProcessLine(){
+    if(editing()) return;
     var track = document.querySelector('.process-track');
     var line = document.querySelector('.process-line');
     if(!track || !line) return;
@@ -495,6 +498,7 @@
 
   /* ---------- custom magnetic cursor (fine pointer + hover only) ---------- */
   function initCursor(){
+    if(editing()) return;
     if(reduceMotion || !on('customCursor')) return;
     if(!window.matchMedia || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
     var dot = document.createElement('div'); dot.id = 'cursorDot';
@@ -523,6 +527,7 @@
 
   /* ---------- magnetic buttons — pull toward the cursor within bounds ---------- */
   function initMagnetic(){
+    if(editing()) return;
     if(reduceMotion || !on('magneticButtons')) return;
     if(!window.matchMedia || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
     document.querySelectorAll('.btn-primary, .btn-shine').forEach(function(el){
@@ -539,6 +544,7 @@
 
   /* ---------- kinetic headline — splits .kinetic text into staggered word spans ---------- */
   function initKinetic(){
+    if(editing()) return;
     if(!on('kineticHeadlines')) return;
     document.querySelectorAll('.kinetic').forEach(function(el){
       if(el.dataset.kineticDone) return;
@@ -552,6 +558,7 @@
 
   /* ---------- marquee — duplicates track content once for a seamless loop ---------- */
   function initMarquee(){
+    if(editing()) return;
     if(!on('marquee')) return;
     document.querySelectorAll('.marquee-track').forEach(function(track){
       if(track.dataset.marqueeDone) return;
@@ -564,6 +571,7 @@
      number is already in the markup, so a no-JS or reduced-motion visitor
      just sees the static final figure exactly as authored ---------- */
   function initCountUp(){
+    if(editing()) return;
     var figs = document.querySelectorAll('.stat-fig');
     if(!figs.length || reduceMotion || !on('countUp') || !('IntersectionObserver' in window)) return;
     function animate(el){
