@@ -28,7 +28,8 @@
   --c4-on-light:#006F66;
   --c5-on-light:#B51457;
   --c1-on-dark:#9A8CFF;
-  --alert-on-light:#B8382F;
+  --alert-on-light:#98291F;
+  --alert-on-dark:#FF8B82;
   --spectrum:linear-gradient(90deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5));
   --spectrum-v:linear-gradient(180deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5));
 
@@ -506,21 +507,21 @@ a.article-row:hover{padding-left:12px;color:var(--violet)}
 /* ---------- forms ---------- */
 .field{margin-bottom:18px}
 .field label{display:block;font-family:var(--font-mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px}
-.field .req{color:var(--alert)}
+.field .req,.checkfield .req{color:var(--alert-on-light)}
 .field input,.field select,.field textarea{
   width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface);
   font-family:var(--font-body);font-size:15px;color:var(--text);min-height:44px;transition:border-color var(--dur) var(--ease),background var(--dur) var(--ease);
 }
 .cta-band .field input,.cta-band .field select,.cta-band .field textarea{background:rgba(11,12,16,.06);border-color:rgba(11,12,16,.22)}
-.field textarea{min-height:104px;resize:vertical}
+.field textarea{min-height:128px;resize:none}
 .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:var(--violet);box-shadow:0 0 0 3px color-mix(in srgb,var(--violet) 22%,transparent)}
 .field input:disabled,.field select:disabled,.field textarea:disabled{opacity:.55;cursor:not-allowed}
 .field.error input,.field.error select,.field.error textarea{border-color:var(--alert)}
-.field .err-msg{display:none;color:var(--alert);font-size:12.5px;margin-top:6px}
-.field.error .err-msg{display:block}
+.field .err-msg,.checkfield .err-msg{display:none;color:var(--alert-on-light);font-size:12.5px;margin-top:6px}
+.field.error .err-msg,.checkfield.error .err-msg{display:block}
 .checkfield{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:var(--signal-ink)}
 .checkfield input{width:18px;height:18px;min-height:0;flex:none;margin-top:2px}
-.checkfield.error{color:var(--alert)}
+.checkfield.error{color:var(--alert-on-light)}
 .checkfield.error input{outline:2px solid var(--alert);outline-offset:2px}
 .form-success{display:none;text-align:center;padding:40px 20px}
 .form-success.show{display:block}
@@ -667,8 +668,9 @@ a.cross-card:hover:before{opacity:.16}
 html:not(.show-verified-proof) [data-proof]{display:none!important}
 
 /* ---------- form error (server unreachable / rejected) ---------- */
-.form-error{display:none;color:var(--alert);font-size:13.5px;margin-top:12px}
+.form-error{display:none;color:var(--alert-on-light);font-size:13.5px;margin-top:12px}
 .form-error.show{display:block}
+.newsletter-message{display:none;color:var(--alert-on-dark);font-size:13px;margin-top:10px}
 
 /* ---------- no-JS fallback nav (replaced by partials.js when JS runs) ---------- */
 .nojs-nav{display:flex;gap:18px;flex-wrap:wrap;padding:18px 24px;border-bottom:1px solid var(--border);font-weight:600}

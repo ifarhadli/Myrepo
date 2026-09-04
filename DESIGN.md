@@ -16,7 +16,8 @@ colors:
   engine-03-on-light: "#4D6500"
   engine-04-on-light: "#006F66"
   engine-05-on-light: "#B51457"
-  alert-on-light: "#B8382F"
+  alert-on-light: "#98291F"
+  alert-on-dark: "#FF8B82"
 typography:
   display:
     fontFamily: "Bricolage Grotesque, Trebuchet MS, system-ui, sans-serif"
@@ -64,7 +65,7 @@ The public site should feel like an accountable campaign control room expressed 
 
 ## Colors
 
-Ink and paper form the primary reading contrast. Signal lime is reserved for high-priority actions and expressive dark-surface moments. Violet owns links and focus. The five base engine colours remain the artwork/background palette; `*-on-light` variants are the semantic text colours on paper and white surfaces. Error copy on light surfaces uses `alert-on-light`. Colour never carries availability, validation, or selection by itself.
+Ink and paper form the primary reading contrast. Signal lime is reserved for high-priority actions and expressive dark-surface moments. Violet owns links and focus. The five base engine colours remain the artwork/background palette; `*-on-light` variants are the semantic text colours on paper and white surfaces. Error copy uses `alert-on-light` or `alert-on-dark` according to its surface. Colour never carries availability, validation, or selection by itself.
 
 ## Typography
 

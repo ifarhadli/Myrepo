@@ -14,7 +14,11 @@
     return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
       .then(function(r){
         return r.json().catch(function(){ return {}; }).then(function(j){
-          if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+          if(!r.ok){
+            var err = new Error(j.error || ('HTTP ' + r.status));
+            err.fields = j.fields || null;
+            throw err;
+          }
           return j;
         });
       });
@@ -260,8 +264,22 @@
           } else {
             form.reset();
           }
-        }).catch(function(){
+        }).catch(function(err){
           if(btn){ btn.classList.remove('btn-loading'); btn.disabled = false; }
+          if(err.fields){
+            var firstServerBad = null;
+            Object.keys(err.fields).forEach(function(name){
+              var input = form.elements.namedItem(name);
+              if(!input || !input.closest) return;
+              var field = input.closest('.field') || input.parentElement;
+              field.classList.add('error'); input.setAttribute('aria-invalid', 'true');
+              var msg = field.querySelector('.err-msg');
+              if(msg){ if(!msg.id) msg.id = (input.id || name) + '-err'; input.setAttribute('aria-describedby', msg.id); }
+              if(!firstServerBad) firstServerBad = input;
+            });
+            if(firstServerBad) firstServerBad.focus();
+            return;
+          }
           var email = (siteCfg.settings && siteCfg.settings.email) || 'hello@omnimark.com';
           errEl.textContent = t('forms.error', 'We could not send that. Please try again, or email us at') + ' ' + email + '.';
           errEl.classList.add('show');
@@ -272,6 +290,7 @@
           var field = input.closest('.field') || input.parentElement;
           field.classList.remove('error');
           input.setAttribute('aria-invalid', 'false');
+          input.removeAttribute('aria-describedby');
         });
       });
     });
@@ -575,13 +594,21 @@
   document.addEventListener('omni:partials-ready', function(){
     var nl = document.getElementById('newsletterForm');
     if(!nl) return;
+    var input = document.getElementById('nl-email');
+    var validation = document.getElementById('nlValidation');
+    input.addEventListener('input', function(){ input.setAttribute('aria-invalid', 'false'); if(validation) validation.style.display = 'none'; });
     nl.addEventListener('submit', function(e){
       e.preventDefault();
-      var input = document.getElementById('nl-email');
-      if(!input.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)) { input.focus(); return; }
+      if(!input.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)) {
+        input.setAttribute('aria-invalid', 'true');
+        if(validation) validation.style.display = 'block';
+        input.focus(); return;
+      }
       var ok = document.getElementById('nlSuccess');
       var err = document.getElementById('nlError');
       var btn = nl.querySelector('button[type="submit"]');
+      input.setAttribute('aria-invalid', 'false');
+      if(validation) validation.style.display = 'none';
       if(err) err.style.display = 'none';
       if(btn){ btn.classList.add('btn-loading'); btn.disabled = true; }
       postJSON('api/submit', { form: 'newsletter', email: input.value, lang: document.documentElement.lang || 'en', page: location.pathname })
@@ -589,9 +616,10 @@
           nl.style.display = 'none';
           if(ok) ok.style.display = 'block';
         })
-        .catch(function(){
+        .catch(function(failure){
           if(btn){ btn.classList.remove('btn-loading'); btn.disabled = false; }
-          if(err) err.style.display = 'block';
+          if(failure.fields && failure.fields.email){ input.setAttribute('aria-invalid', 'true'); if(validation) validation.style.display = 'block'; }
+          else if(err) err.style.display = 'block';
         });
     });
   });

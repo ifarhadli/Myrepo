@@ -8,7 +8,10 @@ window.OM_I18N = {
   en: {
     forms: {
       error: "We could not send that. Please try again, or email us at",
-      subscribeError: "Could not subscribe right now. Please try again."
+      subscribeError: "Could not subscribe right now. Please try again.",
+      required: "This field is required.",
+      emailInvalid: "Enter a valid email address.",
+      consentRequired: "Please agree before sending."
     },
     availability: {
       caseSoon: "Case study coming soon",
@@ -395,7 +398,7 @@ window.OM_I18N = {
         "button": "Request the teardown",
         "errEmail": "Enter a valid work email.",
         "successH": "Got it.",
-        "successB": "Check your inbox for a calendar link within the hour."
+        "successB": "We'll reply within one business day."
       }
     },
     services: {
@@ -670,7 +673,10 @@ window.OM_I18N = {
   az: {
     forms: {
       error: "Göndərmək mümkün olmadı. Yenidən cəhd edin və ya bizə yazın:",
-      subscribeError: "Hazırda abunə olmaq mümkün olmadı. Yenidən cəhd edin."
+      subscribeError: "Hazırda abunə olmaq mümkün olmadı. Yenidən cəhd edin.",
+      required: "Bu sahə mütləq doldurulmalıdır.",
+      emailInvalid: "Düzgün e-poçt ünvanı daxil edin.",
+      consentRequired: "Göndərməzdən əvvəl razılıq verin."
     },
     availability: {
       caseSoon: "Keys tezliklə",
@@ -1057,7 +1063,7 @@ window.OM_I18N = {
         "button": "Təhlili sifariş edin",
         "errEmail": "Düzgün iş e-poçtu daxil edin.",
         "successH": "Qəbul edildi.",
-        "successB": "Bir saat ərzində təqvim linki üçün poçt qutunuzu yoxlayın."
+        "successB": "Bir iş günü ərzində cavab verəcəyik."
       }
     },
     services: {

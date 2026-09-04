@@ -79,11 +79,18 @@ forwarded as well, set these in the server's environment — never in
 
 | Variable | Effect |
 |---|---|
-| `RESEND_API_KEY` + `NOTIFY_EMAIL_TO` | Email each submission via [Resend](https://resend.com) (free tier is plenty). `NOTIFY_EMAIL_TO` may be a comma-separated list. Optional `NOTIFY_EMAIL_FROM` (defaults to Resend's onboarding sender until you verify a domain). |
+| `RESEND_API_KEY` | Send a transactional acknowledgement to each valid form submitter via [Resend](https://resend.com). Contact/teardown confirmations promise a reply within one business day; newsletter welcomes include an unsubscribe `mailto:` link. |
+| `NOTIFY_EMAIL_TO` | With `RESEND_API_KEY`, email each new submission to this comma-separated recipient list. |
+| `NOTIFY_EMAIL_FROM` | Optional verified sender; otherwise Resend's onboarding sender is used. |
 | `NOTIFY_WEBHOOK_URL` | JSON `POST` of every submission to a Slack incoming webhook, Zapier/Make, or a CRM endpoint. |
 
 The server prints the notification status on boot; the admin *Overview*
 warns when neither is configured.
+
+Newsletter records include `consentAt` and `consentSource`. There is no bulk
+newsletter sender in this repository yet, so unsubscribe requests go to the
+site contact mailbox; when a sending platform is selected, implement its
+suppression list there rather than deleting consent records.
 
 ### Environment variables
 

@@ -40,22 +40,23 @@
         <p class="label" style="margin-bottom:14px" data-i18n="contactPage.formLabelSolo" data-scheduler-hidden>Send us the short version</p>
         <form class="validate-form" data-form="contact" data-success="contactSuccess" novalidate>
           <div class="grid-2" style="gap:16px">
-            <div class="field"><label for="c-name"><span data-i18n="home.cta.labelName">Name</span> <span class="req">*</span></label><input id="c-name" name="name" type="text" required></div>
-            <div class="field"><label for="c-email"><span data-i18n="home.cta.labelEmail">Work email</span> <span class="req">*</span></label><input id="c-email" name="email" type="email" required><span class="err-msg" data-i18n="home.cta.errEmail">Enter a valid work email.</span></div>
+            <div class="field"><label for="c-name"><span data-i18n="home.cta.labelName">Name</span> <span class="req">*</span></label><input id="c-name" name="name" type="text" autocomplete="name" required><span class="err-msg" data-i18n="forms.required">This field is required.</span></div>
+            <div class="field"><label for="c-email"><span data-i18n="home.cta.labelEmail">Work email</span> <span class="req">*</span></label><input id="c-email" name="email" type="email" autocomplete="email" required><span class="err-msg" data-i18n="home.cta.errEmail">Enter a valid work email.</span></div>
           </div>
           <div class="grid-2" style="gap:16px">
-            <div class="field"><label for="c-company"><span data-i18n="home.cta.labelCompany">Company</span> <span class="req">*</span></label><input id="c-company" name="company" type="text" required></div>
+            <div class="field"><label for="c-company"><span data-i18n="home.cta.labelCompany">Company</span> <span class="req">*</span></label><input id="c-company" name="company" type="text" autocomplete="organization" required><span class="err-msg" data-i18n="forms.required">This field is required.</span></div>
             <div class="field"><label for="c-spend"><span data-i18n="home.cta.labelSpend">Monthly marketing spend</span> <span class="req">*</span></label>
               <select id="c-spend" name="spend" required>
                 <option value="" data-i18n="home.cta.spendPlaceholder">Select a range</option>
                 <option data-i18n="home.cta.spend1">Under $10k</option><option data-i18n="home.cta.spend2">$10k–$50k</option><option data-i18n="home.cta.spend3">$50k–$200k</option><option data-i18n="home.cta.spend4">$200k+</option>
               </select>
+              <span class="err-msg" data-i18n="forms.required">This field is required.</span>
             </div>
           </div>
           <div class="field"><label for="c-broken" data-i18n="home.cta.labelBroken">What's broken right now?</label><textarea id="c-broken" name="broken"></textarea></div>
           <label class="checkfield" style="margin-bottom:18px">
             <input type="checkbox" name="consent" required>
-            <span><span data-i18n="contactPage.consent">I agree to be contacted about this enquiry.</span> <span class="req">*</span></span>
+            <span><span data-i18n="contactPage.consent">I agree to be contacted about this enquiry.</span> <span class="req">*</span><span class="err-msg" data-i18n="forms.consentRequired">Please agree before sending.</span></span>
           </label>
           <button type="submit" class="btn btn-primary btn-block" data-i18n="home.cta.button">Request the teardown</button>
           <p class="footnote" style="margin-top:14px" data-i18n="home.cta.reassurance">We reply within one business day. No drip sequences — we practise what we preach.</p>
@@ -63,7 +64,7 @@
         <div class="form-success" id="contactSuccess">
           <div class="check">&#10003;</div>
           <h3 data-i18n="home.cta.successH">Got it.</h3>
-          <p data-i18n="home.cta.successB">Check your inbox for a calendar link within the hour.</p>
+          <p data-i18n="home.cta.successB">We'll reply within one business day.</p>
         </div>
       </div>
 

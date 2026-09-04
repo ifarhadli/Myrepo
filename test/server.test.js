@@ -6,12 +6,28 @@
    Nothing in the real data/ directory is touched. */
 'use strict';
 const { spawn } = require('child_process');
-const fs = require('fs'), os = require('os'), path = require('path');
+const fs = require('fs'), http = require('http'), os = require('os'), path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const PORT = 3111 + Math.floor(Math.random() * 500);
 const BASE = 'http://127.0.0.1:' + PORT;
+const MAIL_PORT = PORT + 700;
 const PW = 'test-pass-1234';
+
+const sentMail = [];
+const mailServer = http.createServer((req, res) => {
+  let raw = '';
+  req.on('data', d => { raw += d; });
+  req.on('end', () => {
+    try { sentMail.push(JSON.parse(raw)); } catch (e) {}
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end('{"id":"test-email"}');
+  });
+});
+const mailReady = new Promise((resolve, reject) => {
+  mailServer.once('error', reject);
+  mailServer.listen(MAIL_PORT, '127.0.0.1', resolve);
+});
 
 const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'omnimark-test-'));
 for (const f of fs.readdirSync(ROOT)){
@@ -24,7 +40,8 @@ fs.rmSync(path.join(TMP, 'data', 'submissions.json'), { force: true });
 const child = spawn(process.execPath, ['server.js'], {
   cwd: TMP,
   env: Object.assign({}, process.env, { PORT: String(PORT), HOST: '127.0.0.1', ADMIN_PASSWORD: PW,
-    RESEND_API_KEY: '', NOTIFY_WEBHOOK_URL: '', NOTIFY_EMAIL_TO: '' })
+    RESEND_API_KEY: 're_test', RESEND_API_URL: 'http://127.0.0.1:' + MAIL_PORT + '/emails',
+    NOTIFY_EMAIL_FROM: 'OmniMark Test <test@example.test>', NOTIFY_WEBHOOK_URL: '', NOTIFY_EMAIL_TO: 'leads@example.test' })
 });
 let out = '';
 child.stdout.on('data', d => { out += d; });
@@ -51,6 +68,7 @@ async function req(method, p, body, opts){
 const readTmp = f => fs.readFileSync(path.join(TMP, f), 'utf8');
 
 async function main(){
+  await mailReady;
   const t0 = Date.now();
   while (!/Admin dashboard/.test(out) && Date.now() - t0 < 8000) await new Promise(r => setTimeout(r, 100));
   check('server booted', /Admin dashboard/.test(out), out);
@@ -102,7 +120,7 @@ async function main(){
   r = await req('GET', '/api/me');
   check('me: authed', r.json && r.json.authed === true);
   r = await req('GET', '/api/status');
-  check('status reports notification config', r.status === 200 && r.json.notifications && r.json.notifications.email === false && r.json.notifications.webhook === false, r.text);
+  check('status reports notification config', r.status === 200 && r.json.notifications && r.json.notifications.email === true && r.json.notifications.webhook === false && r.json.notifications.autoReply === true, r.text);
   r = await req('GET', '/api/pages');
   check('pages list (14, no 404/admin)', r.status === 200 && Array.isArray(r.json) && r.json.length === 14 && r.json.some(p => p.key === 'index' && p.sections.length === 13), r.text.slice(0, 200));
   const idx = r.json.find(p => p.key === 'index');
@@ -142,16 +160,28 @@ async function main(){
 
   /* ---- submissions ---- */
   cookie = '';
-  r = await req('POST', '/api/submit', { form: 'contact', name: 'A', email: 'a@b.co', company: 'C', spend: '$10k', message: 'hi' });
+  r = await req('POST', '/api/submit', { form: 'contact', email: 'a@b.co' });
+  check('submit contact enforces server-side required fields', r.status === 400 && r.json.fields.name && r.json.fields.company && r.json.fields.spend && r.json.fields.consent, r.text);
+  r = await req('POST', '/api/submit', { form: 'contact', name: 'A', email: 'a@b.co', company: 'C', spend: '$10k', consent: true, message: 'hi' });
   check('submit contact ok', r.status === 200 && r.json.ok, r.text);
+  r = await req('POST', '/api/submit', { form: 'newsletter', email: 'NEWS@EXAMPLE.TEST' });
+  check('submit newsletter ok', r.status === 200 && r.json.ok, r.text);
   r = await req('POST', '/api/submit', { form: 'newsletter', email: 'not-an-email' });
-  check('submit invalid email rejected', r.status === 400);
+  check('submit invalid email rejected', r.status === 400 && r.json.fields.email);
   r = await req('POST', '/api/submit', { form: 'newsletter' });
-  check('submit empty rejected', r.status === 400);
+  check('submit empty rejected', r.status === 400 && r.json.fields.email);
+  const mailUntil = Date.now() + 3000;
+  while (sentMail.length < 4 && Date.now() < mailUntil) await new Promise(resolve => setTimeout(resolve, 25));
+  check('Resend receives internal and visitor messages', sentMail.length === 4, JSON.stringify(sentMail));
+  check('contact acknowledgement matches public promise', sentMail.some(m => /^We received your enquiry/.test(m.subject || '') && /within one business day/.test(m.text || '') && Array.isArray(m.to) && m.to[0] === 'a@b.co'));
+  check('newsletter welcome includes unsubscribe mailto', sentMail.some(m => /^Welcome to/.test(m.subject || '') && /mailto:hi@example\.test\?subject=Unsubscribe%20from%20OmniMark/.test(m.text || '')));
   r = await req('POST', '/api/login', { password: PW }, { admin: true });
   r = await req('GET', '/api/submissions');
-  check('submissions listed', r.status === 200 && r.json.length === 1 && r.json[0].form === 'contact' && r.json[0].fields.email === 'a@b.co');
-  const id = r.json[0].id;
+  const contactSub = r.json.find(s => s.form === 'contact');
+  const newsletterSub = r.json.find(s => s.form === 'newsletter');
+  check('submissions listed', r.status === 200 && r.json.length === 2 && contactSub && contactSub.fields.email === 'a@b.co');
+  check('newsletter consent metadata stored', newsletterSub && newsletterSub.fields.email === 'news@example.test' && !!newsletterSub.consentAt && newsletterSub.consentSource === 'footer-newsletter-form', JSON.stringify(newsletterSub));
+  const id = contactSub.id;
   r = await req('DELETE', '/api/submissions/' + id, undefined, { admin: true });
   check('submission deleted', r.status === 200 && r.json.removed === 1);
 
@@ -174,6 +204,7 @@ async function main(){
 }
 main().catch(e => { console.error(e); fail++; }).then(() => {
   child.kill();
+  mailServer.close();
   try { fs.rmSync(TMP, { recursive: true, force: true }); } catch (e) {}
   process.exit(fail ? 1 : 0);
 });

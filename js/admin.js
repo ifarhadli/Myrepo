@@ -119,7 +119,8 @@
     { k: '--c4-on-light', l: 'Engine 04 text on light surfaces', d: '#006F66' },
     { k: '--c5-on-light', l: 'Engine 05 text on light surfaces', d: '#B51457' },
     { k: '--c1-on-dark', l: 'Engine 01 text on dark surfaces', d: '#9A8CFF' },
-    { k: '--alert-on-light', l: 'Error text on light surfaces', d: '#B8382F' },
+    { k: '--alert-on-light', l: 'Error text on light surfaces', d: '#98291F' },
+    { k: '--alert-on-dark', l: 'Error text on dark surfaces', d: '#FF8B82' },
     { k: '--surface', l: 'Cards / inputs', d: '#FFFFFF' },
     { k: '--surface-2', l: 'Secondary surface', d: '#EAE6DC' },
     { k: '--panel', l: 'Footer / dark panel background', d: '#0B0C10' },
@@ -303,9 +304,9 @@
       var n = st.notifications || {}, el = $('#ovNotify');
       if (!el) return;
       if (n.email || n.webhook){
-        el.innerHTML = 'Every submission is forwarded: <b>email ' + (n.email ? 'on' : 'off') + '</b>, <b>webhook ' + (n.webhook ? 'on' : 'off') + '</b>. Submissions are also kept in the dashboard.';
+        el.innerHTML = 'Every submission is forwarded: <b>email ' + (n.email ? 'on' : 'off') + '</b>, <b>webhook ' + (n.webhook ? 'on' : 'off') + '</b>. Visitor acknowledgements: <b>' + (n.autoReply ? 'on' : 'off') + '</b>. Submissions are also kept in the dashboard.';
       } else {
-        el.innerHTML = '<span style="color:var(--a-alert);font-weight:600">Not configured</span> — nobody is emailed when a form comes in; you must check the Submissions tab. Ask whoever runs the server to set <code>RESEND_API_KEY</code> + <code>NOTIFY_EMAIL_TO</code> (email) and/or <code>NOTIFY_WEBHOOK_URL</code> (Slack / Zapier / CRM) in the environment.';
+        el.innerHTML = '<span style="color:var(--a-alert);font-weight:600">Not configured</span> — nobody is notified when a form comes in; you must check the Submissions tab. Set <code>RESEND_API_KEY</code> + <code>NOTIFY_EMAIL_TO</code> (email) and/or <code>NOTIFY_WEBHOOK_URL</code> (Slack / Zapier / CRM). Visitor acknowledgements are <b>' + (n.autoReply ? 'on' : 'off') + '</b>.';
       }
     }).catch(function(){});
   }

@@ -307,7 +307,8 @@ function clientIp(req){
 function notifyConfig(){
   return {
     email: !!(process.env.RESEND_API_KEY && process.env.NOTIFY_EMAIL_TO),
-    webhook: /^https:\/\//i.test(process.env.NOTIFY_WEBHOOK_URL || '')
+    webhook: /^https:\/\//i.test(process.env.NOTIFY_WEBHOOK_URL || ''),
+    autoReply: !!process.env.RESEND_API_KEY
   };
 }
 async function postWithTimeout(url, headers, body){
@@ -320,24 +321,64 @@ async function postWithTimeout(url, headers, body){
 }
 function notify(sub, site){
   const cfg = notifyConfig();
-  const name = (site.settings && site.settings.siteName) || 'OmniMark';
+  const name = String((site.settings && site.settings.siteName) || 'OmniMark').replace(/[\r\n]+/g, ' ').trim().slice(0, 100) || 'OmniMark';
+  const sender = process.env.NOTIFY_EMAIL_FROM || (name + ' <onboarding@resend.dev>');
+  const resendUrl = process.env.RESEND_API_URL || 'https://api.resend.com/emails';
+  const resendHeaders = { 'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.RESEND_API_KEY };
   const lines = Object.keys(sub.fields).map(k => k + ': ' + sub.fields[k]).join('\n');
   const text = 'New ' + sub.form + ' submission on ' + name + '\n' + sub.at + '\n\n' + lines + '\n\nPage: ' + sub.page + '\nLanguage: ' + sub.lang;
   if (cfg.webhook){
     postWithTimeout(process.env.NOTIFY_WEBHOOK_URL, { 'Content-Type': 'application/json' },
-      { text, site: name, form: sub.form, at: sub.at, page: sub.page, lang: sub.lang, fields: sub.fields, id: sub.id })
+      { text, site: name, form: sub.form, at: sub.at, page: sub.page, lang: sub.lang, fields: sub.fields, id: sub.id,
+        consentAt: sub.consentAt, consentSource: sub.consentSource })
       .catch(e => console.error('[notify] webhook failed:', e.message));
   }
   if (cfg.email){
-    postWithTimeout('https://api.resend.com/emails',
-      { 'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.RESEND_API_KEY },
-      { from: process.env.NOTIFY_EMAIL_FROM || (name + ' <onboarding@resend.dev>'),
+    postWithTimeout(resendUrl, resendHeaders,
+      { from: sender,
         to: process.env.NOTIFY_EMAIL_TO.split(',').map(s => s.trim()).filter(Boolean),
         reply_to: sub.fields.email || undefined,
         subject: '[' + name + '] New ' + sub.form + ' submission' + (sub.fields.name ? ' from ' + sub.fields.name : ''),
         text })
       .catch(e => console.error('[notify] email failed:', e.message));
   }
+  if (cfg.autoReply && sub.fields.email){
+    const firstName = String(sub.fields.name || '').replace(/[\r\n]+/g, ' ').trim().split(/\s+/)[0].slice(0, 80);
+    const hello = firstName ? 'Hi ' + firstName + ',' : 'Hello,';
+    let subject, replyText;
+    if (sub.form === 'newsletter'){
+      const mailbox = (site.settings && site.settings.email) || String(process.env.NOTIFY_EMAIL_TO || '').split(',')[0].trim();
+      const unsubscribe = mailbox ? 'mailto:' + mailbox + '?subject=' + encodeURIComponent('Unsubscribe from ' + name) : '';
+      subject = 'Welcome to ' + name;
+      replyText = hello + '\n\nThanks for subscribing. We have recorded your signup and will send updates to this address.' +
+        (unsubscribe ? '\n\nTo unsubscribe at any time, use this link: ' + unsubscribe : '') +
+        '\n\n' + name;
+    } else {
+      subject = 'We received your enquiry — ' + name;
+      replyText = hello + '\n\nThanks for contacting ' + name + '. Your enquiry is safely in our queue, and we will reply within one business day.\n\nThis is an automated confirmation; you can reply directly if you need to add context.\n\n' + name;
+    }
+    postWithTimeout(resendUrl, resendHeaders,
+      { from: sender, to: [sub.fields.email], reply_to: (site.settings && site.settings.email) || undefined, subject, text: replyText })
+      .catch(e => console.error('[notify] visitor acknowledgement failed:', e.message));
+  }
+}
+
+function submissionErrors(form, fields){
+  const rules = {
+    contact: ['name', 'email', 'company', 'spend', 'consent'],
+    teardown: ['name', 'email', 'company', 'spend'],
+    newsletter: ['email']
+  };
+  if (!rules[form]) return null;
+  const errors = {};
+  for (const field of rules[form]){
+    if (field === 'consent'){
+      if (fields[field] !== 'true') errors[field] = 'consent required';
+    } else if (!String(fields[field] || '').trim()) errors[field] = 'required';
+  }
+  const email = String(fields.email || '').trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'invalid email';
+  return errors;
 }
 
 /* ---------- page metadata for the admin "Pages" tab ---------- */
@@ -402,17 +443,22 @@ async function api(req, res, url){
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     const form = String(body.form || 'form').replace(/[^a-z0-9-]/gi, '').slice(0, 30) || 'form';
+    if (!['contact', 'teardown', 'newsletter'].includes(form)) return json(res, 400, { error: 'unsupported form' });
     const fields = {};
     for (const k of Object.keys(body)){
-      if (k === 'form') continue;
+      if (k === 'form' || k === 'lang' || k === 'page') continue;
       const v = body[k];
       if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') fields[k.slice(0, 60)] = String(v).slice(0, 5000);
     }
-    if (!Object.keys(fields).length) return json(res, 400, { error: 'empty submission' });
-    const email = fields.email || '';
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, 400, { error: 'invalid email' });
+    const errors = submissionErrors(form, fields);
+    if (errors && Object.keys(errors).length) return json(res, 400, { error: 'validation failed', fields: errors });
+    fields.email = fields.email.trim().toLowerCase();
     const subs = readJson(SUBS_JSON, []);
     const sub = { id: crypto.randomBytes(8).toString('hex'), form, fields, at: new Date().toISOString(), lang: String(body.lang || 'en').slice(0, 5), page: String(body.page || '').slice(0, 200) };
+    if (form === 'newsletter'){
+      sub.consentAt = sub.at;
+      sub.consentSource = 'footer-newsletter-form';
+    }
     subs.push(sub);
     if (subs.length > 10000) subs.splice(0, subs.length - 10000);
     writeJsonAtomic(SUBS_JSON, subs);
@@ -539,7 +585,7 @@ function main(){
     console.log('OmniMark site   →  ' + base + '/');
     console.log('Admin dashboard →  ' + base + '/admin.html');
     const n = notifyConfig();
-    console.log('Notifications   →  email ' + (n.email ? 'on' : 'off') + ', webhook ' + (n.webhook ? 'on' : 'off') +
+    console.log('Notifications   →  email ' + (n.email ? 'on' : 'off') + ', webhook ' + (n.webhook ? 'on' : 'off') + ', visitor acknowledgement ' + (n.autoReply ? 'on' : 'off') +
       (n.email || n.webhook ? '' : '   (set RESEND_API_KEY + NOTIFY_EMAIL_TO and/or NOTIFY_WEBHOOK_URL)'));
     if (boot.generated){
       console.log('\nFirst run: generated admin password  →  ' + boot.generated);

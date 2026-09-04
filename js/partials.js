@@ -188,11 +188,12 @@
     '<p style="font-size:13px;margin-bottom:0" data-i18n="footer.signalDesc">One email every other Tuesday on what\'s actually working in B2B demand.</p>'+
     '<form class="nl-row" id="newsletterForm" novalidate>'+
       '<label class="visually-hidden" for="nl-email" style="position:absolute;left:-9999px">Email address</label>'+
-      '<input type="email" id="nl-email" name="email" placeholder="you@company.com" data-i18n="footer.emailPlaceholder" data-i18n-attr="placeholder" required>'+
+      '<input type="email" id="nl-email" name="email" autocomplete="email" placeholder="you@company.com" data-i18n="footer.emailPlaceholder" data-i18n-attr="placeholder" aria-describedby="nlValidation" aria-invalid="false" required>'+
       '<button type="submit" class="btn btn-primary" data-i18n="footer.subscribe">Subscribe</button>'+
     '</form>'+
+    '<p id="nlValidation" class="newsletter-message" role="alert" data-i18n="forms.emailInvalid">Enter a valid email address.</p>'+
     '<p id="nlSuccess" style="display:none;color:var(--signal);font-size:13px;margin-top:10px" data-i18n="footer.subscribed">Subscribed. Watch your inbox.</p>'+
-    '<p id="nlError" style="display:none;color:var(--alert);font-size:13px;margin-top:10px" data-i18n="forms.subscribeError">Could not subscribe right now. Please try again.</p>';
+    '<p id="nlError" class="newsletter-message" role="alert" data-i18n="forms.subscribeError">Could not subscribe right now. Please try again.</p>';
 
   var footer =
   '<div class="wrap">'+
