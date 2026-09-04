@@ -4,6 +4,21 @@
 (function(){
   'use strict';
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* feature flags + settings saved from the admin dashboard (js/site-config.js) */
+  var flags = (window.OmniSite && window.OmniSite.flags()) || {};
+  var siteCfg = (window.OmniSite && window.OmniSite.get()) || {};
+  function on(flag){ return flags[flag] !== false; }
+  function t(key, fallback){ var v = window.OmniI18n && window.OmniI18n.t(key); return v == null ? fallback : v; }
+  function escapeHtml(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function postJSON(url, data){
+    return fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) })
+      .then(function(r){
+        return r.json().catch(function(){ return {}; }).then(function(j){
+          if(!r.ok) throw new Error(j.error || ('HTTP ' + r.status));
+          return j;
+        });
+      });
+  }
 
   function init(){
     initNavToggles();
@@ -12,6 +27,8 @@
     initFaq();
     initTestimonials();
     initForms();
+    initScheduler();
+    initTeam();
     initFilters();
     initCookieBanner();
     initStagger();
@@ -30,7 +47,12 @@
     var items = document.querySelectorAll('.nav-item');
     if(!items.length) return;
     function closeAll(except){
-      items.forEach(function(it){ if(it!==except) it.classList.remove('open'); });
+      items.forEach(function(it){
+        if(it===except) return;
+        it.classList.remove('open');
+        var a = it.querySelector(':scope > a[aria-haspopup]');
+        if(a) a.setAttribute('aria-expanded','false');
+      });
     }
     items.forEach(function(item){
       var trigger = item.querySelector(':scope > a');
@@ -41,7 +63,8 @@
         e.preventDefault();
         var willOpen = !item.classList.contains('open');
         closeAll();
-        if(willOpen) item.classList.add('open');
+        item.classList.toggle('open', willOpen);
+        trigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
       });
     });
     document.addEventListener('click', function(e){
@@ -59,16 +82,33 @@
     var scrim = document.getElementById('drawerScrim');
     var closeBtn = document.getElementById('drawerClose');
     if(!btn || !drawer) return;
+    var lastFocus = null;
+    function focusables(){
+      return Array.prototype.filter.call(drawer.querySelectorAll('a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])'), function(el){ return el.offsetParent !== null; });
+    }
     function open(){
+      lastFocus = document.activeElement;
       drawer.classList.add('open'); scrim.classList.add('open');
       btn.setAttribute('aria-expanded','true'); drawer.setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
+      var f = focusables();
+      if(f.length) setTimeout(function(){ f[0].focus(); }, 30);
     }
     function close(){
+      if(!drawer.classList.contains('open')) return;
       drawer.classList.remove('open'); scrim.classList.remove('open');
       btn.setAttribute('aria-expanded','false'); drawer.setAttribute('aria-hidden','true');
       document.body.style.overflow = '';
+      if(lastFocus && lastFocus.focus) lastFocus.focus();
     }
+    /* keep Tab inside the open drawer (it is a modal dialog) */
+    drawer.addEventListener('keydown', function(e){
+      if(e.key !== 'Tab') return;
+      var f = focusables(); if(!f.length) return;
+      var first = f[0], last = f[f.length-1];
+      if(e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
+    });
     btn.addEventListener('click', function(){ drawer.classList.contains('open') ? close() : open(); });
     if(closeBtn) closeBtn.addEventListener('click', close);
     if(scrim) scrim.addEventListener('click', close);
@@ -85,21 +125,29 @@
 
   /* ---------- services accordion (engine rows) ---------- */
   function initAccordions(){
+    /* keeps the class and the button's aria-expanded in step */
+    function setOpen(row, open){
+      row.classList.toggle('open', open);
+      var head = row.querySelector('.eng-head');
+      if(head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function openOnly(target){
+      target.parentElement.querySelectorAll('.eng-row').forEach(function(r){ setOpen(r, r === target); });
+    }
     document.querySelectorAll('.eng-row').forEach(function(row){
       var head = row.querySelector('.eng-head');
       if(!head) return;
+      head.setAttribute('aria-expanded', row.classList.contains('open') ? 'true' : 'false');
       head.addEventListener('click', function(){
         var willOpen = !row.classList.contains('open');
-        row.parentElement.querySelectorAll('.eng-row').forEach(function(r){ r.classList.remove('open'); });
-        if(willOpen) row.classList.add('open');
+        if(willOpen) openOnly(row); else setOpen(row, false);
       });
     });
     var hash = location.hash.replace('#','');
     if(hash){
       var target = document.getElementById(hash);
       if(target && target.classList.contains('eng-row')){
-        target.parentElement.querySelectorAll('.eng-row').forEach(function(r){ r.classList.remove('open'); });
-        target.classList.add('open');
+        openOnly(target);
         setTimeout(function(){ target.scrollIntoView({block:'start'}); }, 50);
       }
     }
@@ -107,10 +155,21 @@
 
   /* ---------- FAQ accordion ---------- */
   function initFaq(){
-    document.querySelectorAll('.faq-item').forEach(function(item){
+    document.querySelectorAll('.faq-item').forEach(function(item, i){
       var q = item.querySelector('.faq-q');
       if(!q) return;
-      q.addEventListener('click', function(){ item.classList.toggle('open'); });
+      var a = item.querySelector('.faq-a');
+      if(a){
+        if(!a.id) a.id = 'faq-a-' + (i + 1);
+        q.setAttribute('aria-controls', a.id);
+        a.setAttribute('aria-hidden', item.classList.contains('open') ? 'false' : 'true');
+      }
+      q.setAttribute('aria-expanded', item.classList.contains('open') ? 'true' : 'false');
+      q.addEventListener('click', function(){
+        var open = item.classList.toggle('open');
+        q.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if(a) a.setAttribute('aria-hidden', open ? 'false' : 'true');
+      });
     });
   }
 
@@ -137,20 +196,39 @@
     document.querySelectorAll('form.validate-form').forEach(function(form){
       form.addEventListener('submit', function(e){
         e.preventDefault();
-        var valid = true;
+        var valid = true, firstBad = null;
         form.querySelectorAll('[required]').forEach(function(input){
           var field = input.closest('.field') || input.parentElement;
           var ok = input.type === 'checkbox' ? input.checked : input.value.trim().length > 0;
           if(input.type === 'email' && ok){ ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value); }
           field.classList.toggle('error', !ok);
-          if(!ok) valid = false;
+          input.setAttribute('aria-invalid', ok ? 'false' : 'true');
+          var msg = field.querySelector('.err-msg');
+          if(msg){
+            if(!msg.id) msg.id = (input.id || input.name || 'field') + '-err';
+            if(ok) input.removeAttribute('aria-describedby'); else input.setAttribute('aria-describedby', msg.id);
+          }
+          if(!ok){ valid = false; if(!firstBad) firstBad = input; }
         });
-        if(!valid) return;
+        if(!valid){ if(firstBad) firstBad.focus(); return; }
         var btn = form.querySelector('button[type="submit"]');
         var successId = form.getAttribute('data-success');
         var success = successId ? document.getElementById(successId) : null;
+        var errEl = form.querySelector('.form-error');
+        if(!errEl){ errEl = document.createElement('p'); errEl.className = 'form-error'; errEl.setAttribute('role','alert'); form.appendChild(errEl); }
+        errEl.classList.remove('show');
+        /* POST to server.js → data/submissions.json, visible in the admin */
+        var payload = {
+          form: form.getAttribute('data-form') || (successId || 'form').replace(/Success$/, ''),
+          lang: document.documentElement.lang || 'en',
+          page: location.pathname
+        };
+        Array.prototype.forEach.call(form.elements, function(el){
+          if(!el.name || el.disabled) return;
+          payload[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+        });
         if(btn){ btn.classList.add('btn-loading'); btn.disabled = true; }
-        setTimeout(function(){
+        postJSON('api/submit', payload).then(function(){
           if(btn){ btn.classList.remove('btn-loading'); btn.disabled = false; }
           if(success){
             form.style.display = 'none';
@@ -160,15 +238,45 @@
           } else {
             form.reset();
           }
-        }, 700);
+        }).catch(function(){
+          if(btn){ btn.classList.remove('btn-loading'); btn.disabled = false; }
+          var email = (siteCfg.settings && siteCfg.settings.email) || 'hello@omnimark.com';
+          errEl.textContent = t('forms.error', 'We could not send that. Please try again, or email us at') + ' ' + email + '.';
+          errEl.classList.add('show');
+        });
       });
       form.querySelectorAll('[required]').forEach(function(input){
         input.addEventListener('input', function(){
           var field = input.closest('.field') || input.parentElement;
           field.classList.remove('error');
+          input.setAttribute('aria-invalid', 'false');
         });
       });
     });
+  }
+
+  /* ---------- team cards: focusable so the name/role overlay is reachable by keyboard ---------- */
+  function initTeam(){
+    document.querySelectorAll('.team-card').forEach(function(c){ if(!c.hasAttribute('tabindex')) c.setAttribute('tabindex','0'); });
+  }
+
+  /* ---------- meeting scheduler (contact page) — iframe from Settings, or the
+     whole block is removed rather than showing a placeholder ---------- */
+  function initScheduler(){
+    var box = document.querySelector('[data-scheduler]');
+    if(!box) return;
+    var url = (siteCfg.settings && siteCfg.settings.schedulerUrl) || '';
+    if(/^https:\/\//i.test(url)){
+      box.innerHTML = '';
+      var f = document.createElement('iframe');
+      f.src = url; f.loading = 'lazy'; f.title = 'Meeting scheduler';
+      f.setAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+      box.appendChild(f);
+      document.querySelectorAll('[data-scheduler-hidden]').forEach(function(el){ el.parentNode.removeChild(el); });
+    } else {
+      document.querySelectorAll('[data-scheduler-only]').forEach(function(el){ el.parentNode.removeChild(el); });
+      box.parentNode.removeChild(box);
+    }
   }
 
   /* ---------- filter chips (work index, industries) ---------- */
@@ -178,9 +286,10 @@
     var buttons = Array.prototype.slice.call(bar.querySelectorAll('button'));
     var cards = document.querySelectorAll('[data-industry]');
     buttons.forEach(function(b){
+      b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
       b.addEventListener('click', function(){
-        buttons.forEach(function(x){ x.classList.remove('active'); });
-        b.classList.add('active');
+        buttons.forEach(function(x){ x.classList.remove('active'); x.setAttribute('aria-pressed','false'); });
+        b.classList.add('active'); b.setAttribute('aria-pressed','true');
         var f = b.getAttribute('data-filter');
         cards.forEach(function(c){
           var show = f === 'all' || c.getAttribute('data-industry') === f;
@@ -196,20 +305,56 @@
   }
 
   /* ---------- cookie consent banner ---------- */
+  /* analytics is only ever loaded here — after consent, or when the owner
+     has switched the banner off in the admin (their call, documented there) */
+  var analyticsLoaded = false;
+  function loadAnalytics(){
+    if(analyticsLoaded) return;
+    var a = siteCfg.analytics || {};
+    if(!a.gaId && !a.consentScript) return;
+    analyticsLoaded = true;
+    if(a.gaId && /^(G|UA|AW)-[A-Z0-9-]+$/i.test(a.gaId)){
+      var s = document.createElement('script');
+      s.async = true; s.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(a.gaId);
+      document.head.appendChild(s);
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
+      window.gtag('js', new Date());
+      window.gtag('config', a.gaId, { anonymize_ip: true });
+    }
+    if(a.consentScript){
+      /* owner-pasted snippet (GTM, Meta pixel, …) — scripts set via innerHTML
+         don't execute, so re-create each one */
+      var tmp = document.createElement('div'); tmp.innerHTML = a.consentScript;
+      Array.prototype.forEach.call(tmp.querySelectorAll('script'), function(old){
+        var sc = document.createElement('script');
+        Array.prototype.forEach.call(old.attributes, function(at){ sc.setAttribute(at.name, at.value); });
+        sc.text = old.textContent;
+        document.head.appendChild(sc);
+      });
+    }
+  }
   function initCookieBanner(){
     var banner = document.getElementById('cookieBanner');
-    if(!banner) return;
     var KEY = 'om-consent';
+    if(!on('cookieBanner')){
+      if(banner) banner.parentNode.removeChild(banner);
+      loadAnalytics();
+      return;
+    }
+    if(!banner) return;
     function reopen(){
       banner.classList.add('show');
     }
     try{
-      if(!localStorage.getItem(KEY)) setTimeout(function(){ banner.classList.add('show'); }, 900);
+      var existing = localStorage.getItem(KEY);
+      if(existing === 'granted') loadAnalytics();
+      if(!existing) setTimeout(function(){ banner.classList.add('show'); }, 900);
     }catch(e){ banner.classList.add('show'); }
     var accept = banner.querySelector('[data-consent-accept]');
     var reject = banner.querySelector('[data-consent-reject]');
     function set(v){ try{ localStorage.setItem(KEY, v); }catch(e){} banner.classList.remove('show'); }
-    if(accept) accept.addEventListener('click', function(){ set('granted'); });
+    if(accept) accept.addEventListener('click', function(){ set('granted'); loadAnalytics(); });
     if(reject) reject.addEventListener('click', function(){ set('denied'); });
     document.addEventListener('click', function(e){
       if(e.target && e.target.id === 'cookiePrefsLink'){ e.preventDefault(); reopen(); }
@@ -220,7 +365,7 @@
   function initReveal(){
     var els = document.querySelectorAll('.reveal');
     if(!els.length) return;
-    if(reduceMotion || !('IntersectionObserver' in window)){
+    if(reduceMotion || !on('reveal') || !('IntersectionObserver' in window)){
       els.forEach(function(el){ el.classList.add('in'); });
       return;
     }
@@ -287,7 +432,7 @@
 
   /* ---------- custom magnetic cursor (fine pointer + hover only) ---------- */
   function initCursor(){
-    if(reduceMotion) return;
+    if(reduceMotion || !on('customCursor')) return;
     if(!window.matchMedia || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
     var dot = document.createElement('div'); dot.id = 'cursorDot';
     var ring = document.createElement('div'); ring.id = 'cursorRing';
@@ -315,7 +460,7 @@
 
   /* ---------- magnetic buttons — pull toward the cursor within bounds ---------- */
   function initMagnetic(){
-    if(reduceMotion) return;
+    if(reduceMotion || !on('magneticButtons')) return;
     if(!window.matchMedia || !window.matchMedia('(hover:hover) and (pointer:fine)').matches) return;
     document.querySelectorAll('.btn-primary, .btn-shine').forEach(function(el){
       if(el.classList.contains('btn-block')) return; // full-width buttons shouldn't drift
@@ -331,18 +476,20 @@
 
   /* ---------- kinetic headline — splits .kinetic text into staggered word spans ---------- */
   function initKinetic(){
+    if(!on('kineticHeadlines')) return;
     document.querySelectorAll('.kinetic').forEach(function(el){
       if(el.dataset.kineticDone) return;
       el.dataset.kineticDone = '1';
       var words = el.textContent.split(' ');
       el.innerHTML = words.map(function(w, i){
-        return '<span class="kw" style="--i:'+i+'">'+w+(i < words.length-1 ? '&nbsp;' : '')+'</span>';
+        return '<span class="kw" style="--i:'+i+'">'+escapeHtml(w)+(i < words.length-1 ? '&nbsp;' : '')+'</span>';
       }).join('');
     });
   }
 
   /* ---------- marquee — duplicates track content once for a seamless loop ---------- */
   function initMarquee(){
+    if(!on('marquee')) return;
     document.querySelectorAll('.marquee-track').forEach(function(track){
       if(track.dataset.marqueeDone) return;
       track.dataset.marqueeDone = '1';
@@ -355,7 +502,7 @@
      just sees the static final figure exactly as authored ---------- */
   function initCountUp(){
     var figs = document.querySelectorAll('.stat-fig');
-    if(!figs.length || reduceMotion || !('IntersectionObserver' in window)) return;
+    if(!figs.length || reduceMotion || !on('countUp') || !('IntersectionObserver' in window)) return;
     function animate(el){
       var target = el.textContent.trim();
       var num = parseFloat(target.replace(/[^0-9.]/g, ''));
@@ -389,9 +536,27 @@
       var input = document.getElementById('nl-email');
       if(!input.value || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value)) { input.focus(); return; }
       var ok = document.getElementById('nlSuccess');
-      nl.style.display = 'none';
-      if(ok) ok.style.display = 'block';
+      var err = document.getElementById('nlError');
+      var btn = nl.querySelector('button[type="submit"]');
+      if(err) err.style.display = 'none';
+      if(btn){ btn.classList.add('btn-loading'); btn.disabled = true; }
+      postJSON('api/submit', { form: 'newsletter', email: input.value, lang: document.documentElement.lang || 'en', page: location.pathname })
+        .then(function(){
+          nl.style.display = 'none';
+          if(ok) ok.style.display = 'block';
+        })
+        .catch(function(){
+          if(btn){ btn.classList.remove('btn-loading'); btn.disabled = false; }
+          if(err) err.style.display = 'block';
+        });
     });
+  });
+
+  /* a language switch rewrites every headline (i18n sets textContent),
+     which wipes the kinetic word spans — split them again */
+  document.addEventListener('omni:lang-changed', function(){
+    document.querySelectorAll('.kinetic').forEach(function(el){ delete el.dataset.kineticDone; });
+    initKinetic();
   });
 
   /* partials.js (loaded before this file) injects header/footer on its own

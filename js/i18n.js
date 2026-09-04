@@ -13,7 +13,9 @@
       var v = localStorage.getItem(LS_KEY);
       if (v && SUPPORTED.indexOf(v) !== -1) return v;
     }catch(e){}
-    return 'en';
+    var s = window.OMNI_SITE && window.OMNI_SITE.settings;
+    var d = s && s.defaultLang;
+    return SUPPORTED.indexOf(d) !== -1 ? d : 'en';
   }
 
   function resolve(dict, path){
@@ -60,6 +62,9 @@
     for (var j = 0; j < switches.length; j++){
       switches[j].setAttribute('aria-pressed', switches[j].getAttribute('data-lang') === lang ? 'true' : 'false');
     }
+    // lets partials.js re-bind admin-configured contact details after a
+    // dictionary pass has overwritten them
+    document.dispatchEvent(new CustomEvent('omni:i18n-applied', { detail: { lang: lang } }));
   }
 
   function setLang(lang){

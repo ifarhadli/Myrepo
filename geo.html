@@ -5,16 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OmniMark in Austin, TX</title>
 <meta name="description" content="Full-scope advertising, digital, platforms and sales-process agency serving Austin and Central Texas. Local media landscape, local team, one accountable plan.">
+<meta property="og:title" content="OmniMark in Austin, TX">
+<meta property="og:description" content="Full-scope advertising, digital, platforms and sales-process agency serving Austin and Central Texas. Local media landscape, local team, one accountable plan.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0C10'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23C6F24E' stroke-width='7'/%3E%3C/svg%3E">
+<script src="data/site.js"></script>
+<script src="js/site-config.js"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-page="markets">
 
-<div id="site-header"></div>
+<div id="site-header"><noscript><nav class="nojs-nav" aria-label="Primary"><a href="index.html">Home</a><a href="services.html">Services</a><a href="work.html">Work</a><a href="industry.html">Industries</a><a href="about.html">About</a><a href="insights.html">Insights</a><a href="careers.html">Careers</a><a href="contact.html">Contact</a></nav></noscript></div>
 
-<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 64px">
+<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 64px" data-section="geo.hero">
   <div class="wrap" style="display:block;max-width:820px">
     <p class="breadcrumb" style="color:var(--panel-muted)"><a href="index.html" style="color:var(--panel-muted)" data-i18n="nav.home">Home</a> / <span data-i18n="footer.markets">Markets</span> / Austin, TX</p>
     <p class="eyebrow" data-i18n="geo.eyebrow">Market</p>
@@ -25,7 +31,7 @@
 </header>
 
 <main>
-<section class="section-border reveal">
+<section class="section-border reveal" data-section="geo.s1">
   <div class="wrap">
     <p class="eyebrow" data-i18n="geo.s1eyebrow">Local media landscape</p>
     <h2 data-i18n="geo.s1h2">What actually reaches an Austin audience.</h2>
@@ -40,7 +46,7 @@
   </div>
 </section>
 
-<section class="section-border reveal">
+<section class="section-border reveal" data-section="geo.s2">
   <div class="wrap">
     <div class="section-head">
       <p class="eyebrow" data-i18n="geo.s2eyebrow">Who we work with here</p>
@@ -56,17 +62,17 @@
   </div>
 </section>
 
-<section class="section-border reveal">
+<section class="section-border reveal" data-section="geo.s3">
   <div class="wrap">
     <p class="eyebrow" data-i18n="geo.s3eyebrow">Office</p>
     <div class="grid-2" style="margin-top:16px">
-      <div class="card reveal"><span class="tag" data-i18n="geo.addressTag">Address</span><p>400 Commerce St, Austin, TX 78701</p></div>
-      <div class="card reveal"><span class="tag" data-i18n="geo.contactTag">Contact</span><p><a href="mailto:austin@omnimark.com">austin@omnimark.com</a><br><a href="tel:+18005551234">+1 (800) 555-1234</a></p></div>
+      <div class="card reveal"><span class="tag" data-i18n="geo.addressTag">Address</span><p data-site="address">400 Commerce St, Austin, TX 78701</p></div>
+      <div class="card reveal"><span class="tag" data-i18n="geo.contactTag">Contact</span><p><a href="mailto:austin@omnimark.com" data-site="geoEmail">austin@omnimark.com</a><br><a href="tel:+18005551234" data-site="phone">+1 (800) 555-1234</a></p></div>
     </div>
   </div>
 </section>
 
-<section class="cta-band">
+<section class="cta-band" data-section="geo.s4">
   <div class="wrap" style="text-align:center">
     <h2 data-i18n="geo.ctaH2">Local team, full-scope offer.</h2>
     <a href="contact.html" class="btn btn-secondary on-light" style="background:var(--signal-ink);color:var(--signal);border-color:var(--signal-ink);margin-top:10px"><span data-i18n="services.ctaButton">Book the call</span> <span class="arrow">&rarr;</span></a>

@@ -6,7 +6,12 @@
    are per-page namespaces named after the page. */
 window.OM_I18N = {
   en: {
+    forms: {
+      error: "We could not send that. Please try again, or email us at",
+      subscribeError: "Could not subscribe right now. Please try again."
+    },
     nav: {
+      skip: "Skip to content",
       home: "Home", services: "Services", work: "Work", industries: "Industries",
       about: "About", insights: "Insights", careers: "Careers", contact: "Contact"
     },
@@ -592,12 +597,11 @@ window.OM_I18N = {
   },
   "contactPage": {
     "schedulerLabel": "Pick a time directly",
-    "schedulerIcon": "Scheduler",
-    "schedulerText": "Live meeting scheduler embeds here once the CRM/scheduler decision (HubSpot or Salesforce) is confirmed. Until then, use the form.",
+    "formLabelSolo": "Send us the short version",
     "formLabel": "Or send us the short version",
     "consent": "I agree to be contacted about this enquiry.",
     "panelH3": "Prefer to reach us directly?",
-    "panelBodyHtml": "Email <a href=\"mailto:hello@omnimark.com\" style=\"color:var(--signal);text-decoration:underline\">hello@omnimark.com</a> or call <a href=\"tel:+18005551234\" style=\"color:var(--signal);text-decoration:underline\">+1 (800) 555-1234</a>.",
+    "emailLead": "Email", "orCall": "or call",
     "officeLabel": "Office",
     "notReadyTag": "Not ready for a call?",
     "notReadyHtml": "Browse the <a href=\"services.html\" class=\"btn-text\">five engines</a> or read <a href=\"insights.html\" class=\"btn-text\">what we're arguing about</a> this month."
@@ -645,7 +649,12 @@ window.OM_I18N = {
   }
   },
   az: {
+    forms: {
+      error: "Göndərmək mümkün olmadı. Yenidən cəhd edin və ya bizə yazın:",
+      subscribeError: "Hazırda abunə olmaq mümkün olmadı. Yenidən cəhd edin."
+    },
     nav: {
+      skip: "Məzmuna keç",
       home: "Ana səhifə", services: "Xidmətlər", work: "İşlər", industries: "Sahələr",
       about: "Haqqımızda", insights: "Bloq", careers: "Karyera", contact: "Əlaqə"
     },
@@ -1231,12 +1240,11 @@ window.OM_I18N = {
   },
   "contactPage": {
     "schedulerLabel": "Birbaşa vaxt seçin",
-    "schedulerIcon": "Planlaşdırıcı",
-    "schedulerText": "CRM/planlaşdırıcı qərarı (HubSpot və ya Salesforce) təsdiqləndikdən sonra canlı görüş planlaşdırıcısı burada göstəriləcək. O vaxta qədər formadan istifadə edin.",
+    "formLabelSolo": "Bizə qısa versiyanı göndərin",
     "formLabel": "Və ya bizə qısa versiyanı göndərin",
     "consent": "Bu sorğu ilə bağlı mənimlə əlaqə saxlanmasına razıyam.",
     "panelH3": "Birbaşa bizimlə əlaqə saxlamağı üstün tutursunuz?",
-    "panelBodyHtml": "E-poçt: <a href=\"mailto:hello@omnimark.com\" style=\"color:var(--signal);text-decoration:underline\">hello@omnimark.com</a> və ya zəng edin: <a href=\"tel:+18005551234\" style=\"color:var(--signal);text-decoration:underline\">+1 (800) 555-1234</a>.",
+    "emailLead": "E-poçt:", "orCall": "və ya zəng edin:",
     "officeLabel": "Ofis",
     "notReadyTag": "Zəngə hazır deyilsiniz?",
     "notReadyHtml": "<a href=\"services.html\" class=\"btn-text\">Beş istiqamətə</a> baxın və ya bu ay <a href=\"insights.html\" class=\"btn-text\">nə barədə mübahisə etdiyimizi</a> oxuyun."

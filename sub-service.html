@@ -5,16 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Demand Generation — OmniMark</title>
 <meta name="description" content="You don't have a traffic problem. You have a demand problem. Demand generation programs that make people want the thing in the first place.">
+<meta property="og:title" content="Demand Generation — OmniMark">
+<meta property="og:description" content="You don't have a traffic problem. You have a demand problem. Demand generation programs that make people want the thing in the first place.">
+<meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0C10'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23C6F24E' stroke-width='7'/%3E%3C/svg%3E">
+<script src="data/site.js"></script>
+<script src="js/site-config.js"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body data-page="services">
 
-<div id="site-header"></div>
+<div id="site-header"><noscript><nav class="nojs-nav" aria-label="Primary"><a href="index.html">Home</a><a href="services.html">Services</a><a href="work.html">Work</a><a href="industry.html">Industries</a><a href="about.html">About</a><a href="insights.html">Insights</a><a href="careers.html">Careers</a><a href="contact.html">Contact</a></nav></noscript></div>
 
-<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 64px">
+<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 64px" data-section="sub-service.hero">
   <div class="wrap" style="display:block;max-width:820px">
     <p class="breadcrumb" style="color:var(--panel-muted)"><a href="index.html" style="color:var(--panel-muted)" data-i18n="nav.home">Home</a> / <a href="services.html" style="color:var(--panel-muted)" data-i18n="nav.services">Services</a> / <a href="services.html#engine-03" style="color:var(--panel-muted)" data-i18n="engines.e3.name">Media &amp; Reach</a> / <span data-i18n="subService.crumb">Demand Generation</span></p>
     <h1 class="display-l" style="color:#fff;margin-top:14px" data-i18n="subService.h1">You don't have a traffic problem. You have a demand problem.</h1>
@@ -24,7 +30,7 @@
 </header>
 
 <main>
-<section class="section-border">
+<section class="section-border" data-section="sub-service.s1">
   <div class="wrap">
     <div style="display:grid;grid-template-columns:220px 1fr;gap:48px">
       <nav class="side-nav" aria-label="On this page">
@@ -39,7 +45,7 @@
       </nav>
 
       <div>
-        <section id="included" style="padding-top:0">
+        <section id="included" style="padding-top:0" data-section="sub-service.s2">
           <p class="eyebrow" data-i18n="svcBrand.navIncluded">What's included</p>
           <ul style="max-width:60ch">
             <li data-i18n="subService.inc1">Category and demand-category definition</li>
@@ -50,12 +56,12 @@
           </ul>
         </section>
 
-        <section id="how">
+        <section id="how" data-section="sub-service.s3">
           <p class="eyebrow" data-i18n="subService.navHow">How we run it</p>
           <p class="body-l maxch" data-i18n="subService.howBody">We start with what the market already believes and where that belief is wrong or incomplete. The program is built to correct it in public — content, campaigns and community that make the category itself, not just your product in it.</p>
         </section>
 
-        <section id="case">
+        <section id="case" data-section="sub-service.s4">
           <p class="eyebrow" data-i18n="svcBrand.navCase">A case in point</p>
           <a class="case-card reveal" href="case-study.html" style="display:grid">
             <div>
@@ -68,7 +74,7 @@
           </a>
         </section>
 
-        <section id="pricing">
+        <section id="pricing" data-section="sub-service.s5">
           <p class="eyebrow" data-i18n="svcBrand.navPricing">What it costs</p>
           <div class="grid-2" style="margin-top:12px">
             <div class="card reveal"><span class="tag" data-i18n="subService.setupTag">Program setup</span><p data-i18n="subService.setupDesc">Category definition, initial content and campaign build. From $20k.</p></div>
@@ -76,7 +82,7 @@
           </div>
         </section>
 
-        <section id="faq">
+        <section id="faq" data-section="sub-service.s6">
           <p class="eyebrow" data-i18n="subService.navFaq">Questions we get asked</p>
           <div>
             <div class="faq-item open"><button class="faq-q"><span data-i18n="subService.faq1q">What's the minimum commitment?</span><svg class="faq-plus" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button><div class="faq-a"><div class="faq-a-in" data-i18n="subService.faq1a">Ninety days. Anything shorter and you're paying for setup without seeing the result.</div></div></div>

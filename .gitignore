@@ -1,0 +1,13 @@
+# admin password hash + session secret, and captured form submissions —
+# never commit these
+data/admin.json
+data/submissions.json
+data/*.tmp
+
+node_modules/
+.DS_Store
+Thumbs.db
+
+# Audit evidence stays local; the Markdown findings remain versioned.
+audit/**/screenshots/
+premium-audit.json

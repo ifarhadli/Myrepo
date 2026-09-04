@@ -1,0 +1,16 @@
+{
+  "name": "omnimark-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "OmniMark marketing site — static pages plus a zero-dependency Node server that hosts the admin dashboard.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check": "node --check server.js && node --check js/data.js && node --check js/i18n-data.js && node --check js/i18n.js && node --check js/site-config.js && node --check js/partials.js && node --check js/main.js && node --check js/admin.js && node --check test/server.test.js",
+    "test": "npm run check && node test/server.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

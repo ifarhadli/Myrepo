@@ -1,6 +1,11 @@
 /* Shared content data — five engines, eleven services, per brief §05.
-   Single source of truth for the mega-menu, mobile drawer and the
-   services-index accordion so the three stay in sync. */
+   Single source of truth for the mega-menu, mobile drawer, the footer
+   services column and BOTH accordions (home + services index) — all are
+   rendered by partials.js so they cannot drift. The admin dashboard can
+   replace these arrays at runtime through data/site.js (see
+   js/site-config.js).
+     href   — anchor on the services index (mega-menu "View all")
+     detail — the engine page the accordion "Explore" link opens */
 window.OMNI_ENGINES = [
   {
     id: "brand-launch",
@@ -10,6 +15,7 @@ window.OMNI_ENGINES = [
     promise: "Decide what you stand for, then make sure every channel says the same thing.",
     headline: "Before you buy a single impression, be worth remembering.",
     href: "service-brand-launch.html",
+    detail: "service-brand-launch.html",
     groups: [
       { title: "Strategy", items: ["Category & competitor research","Audience segmentation and personas","Brand positioning","Messaging architecture","Value proposition testing","Brand architecture (master / sub-brand)"] },
       { title: "Identity", items: ["Naming & verbal identity","Tone of voice","Logo and visual identity","Type, colour and motion systems","Packaging and retail identity","Brand guidelines and design systems"] },
@@ -24,6 +30,7 @@ window.OMNI_ENGINES = [
     promise: "One idea, built properly for every screen, street and shelf it lands on.",
     headline: "A 48-sheet and a nine-second vertical are not the same job. We stop treating them like they are.",
     href: "services.html#engine-02",
+    detail: "sub-service.html",
     groups: [
       { title: "Above the line", items: ["TV and CTV commercials","Radio and audio","Cinema","Press and print","OOH and DOOH","Campaign platform development"] },
       { title: "Below the line", items: ["Brand activations and experiential","Sampling and field marketing","Shopper and trade marketing","POSM and retail design","Events and sponsorship activation","Direct mail and guerrilla"] },
@@ -38,6 +45,7 @@ window.OMNI_ENGINES = [
     promise: "Every channel bought on the same logic and reported against the same number.",
     headline: "We don't have a favourite channel. We have your number.",
     href: "services.html#engine-03",
+    detail: "geo.html",
     groups: [
       { title: "Planning", items: ["Audience and consumption research","Reach and frequency modelling","Channel mix and budget allocation","Seasonality and flighting","Competitive spend analysis","Post-campaign analysis and reporting"] },
       { title: "Offline buying", items: ["TV and radio","OOH and DOOH","Press and magazines","Cinema","Sponsorship and branded content","Negotiation and inventory control"] },
@@ -52,6 +60,7 @@ window.OMNI_ENGINES = [
     promise: "The infrastructure the campaigns land on, and the system that remembers everyone who arrives.",
     headline: "Traffic is worth nothing if it lands somewhere broken.",
     href: "services.html#engine-04",
+    detail: "sub-service.html",
     groups: [
       { title: "Web & commerce", items: ["UX / UI design","Design systems","CMS and headless builds","Landing page and funnel systems","E-commerce builds and merchandising","CRO and A/B testing","Performance, accessibility and security","Maintenance and support retainers"] },
       { title: "Apps & product", items: ["Product discovery and definition","Prototyping","iOS, Android and cross-platform build","Web apps and customer portals","QA and release management","App store optimisation","Ongoing product support"] },
@@ -66,6 +75,7 @@ window.OMNI_ENGINES = [
     promise: "The part every other agency hands back to you.",
     headline: "We stay past the lead.",
     href: "services.html#engine-05",
+    detail: "sub-service.html",
     groups: [
       { title: "Process design", items: ["ICP and qualification framework","Pipeline stages and exit criteria","Lead handoff SLA between marketing and sales","Forecasting and pipeline review cadence","Territory and account segmentation","Compensation design input"] },
       { title: "Enablement", items: ["Discovery, demo and negotiation playbooks","Objection handling matrix","Battlecards and competitive positioning","Sales decks, one-pagers and proposal templates","Outbound sequences and cadences","Call review and coaching"] },
