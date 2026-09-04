@@ -23,6 +23,7 @@ const SITE_JSON = path.join(DATA, 'site.json');
 const SITE_JS = path.join(DATA, 'site.js');
 const ADMIN_JSON = path.join(DATA, 'admin.json');
 const SUBS_JSON = path.join(DATA, 'submissions.json');
+const DRAFT_JSON = path.join(DATA, 'draft.json');
 const PORT = parseInt(process.env.PORT, 10) || 3000;
 /* local dev binds to loopback; a platform that injects PORT (Railway, Render,
    Fly…) needs 0.0.0.0 or its proxy can't reach the process */
@@ -31,7 +32,7 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const COOKIE = 'om_admin';
 const SESSION_TTL = 1000 * 60 * 60 * 12; // 12h
 const MAX_BODY = 2 * 1024 * 1024;        // 2 MB — site.json with full copy overrides
-const PRIVATE_FILES = new Set(['admin.json', 'submissions.json']);
+const PRIVATE_FILES = new Set(['admin.json', 'submissions.json', 'draft.json']);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -63,11 +64,13 @@ const DEFAULT_SITE = {
   },
   features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false, customCursor: true,
     magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
-  design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
+  design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono',
+    fontPreset: 'bricolage-inter', motion: 'on', customCss: '' },
   analytics: { gaId: '', consentScript: '' },
   structured: { orgLegalName: '', orgLogoUrl: '', articleAuthor: '', articleDatePublished: '', articleDateModified: '',
     jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
-  hiddenSections: [], pages: {}, i18n: { en: {}, az: {} },
+  hiddenSections: [], sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [],
+  pages: {}, i18n: { en: {}, az: {} },
   engines: null, enginesAz: null, industries: null, industriesAz: null
 };
 function loadSite(){ return Object.assign({}, DEFAULT_SITE, readJson(SITE_JSON, {})); }
@@ -137,6 +140,17 @@ function cleanStrArray(arr, max){
   if (!Array.isArray(arr) || !arr.length) return null;
   return arr.filter(x => typeof x === 'string').map(x => x.slice(0, 200)).slice(0, max || 60);
 }
+function cleanIdArray(arr, max){
+  if (!Array.isArray(arr)) return [];
+  return Array.from(new Set(arr.filter(x => typeof x === 'string' && /^[a-z0-9-]{1,40}$/.test(x)))).slice(0, max || 60);
+}
+const FONT_PRESETS = {
+  'bricolage-inter': ['Bricolage Grotesque', 'Inter', 'JetBrains Mono'],
+  'sora-dmsans': ['Sora', 'DM Sans', 'Fira Code'],
+  'syne-manrope': ['Syne', 'Manrope', 'IBM Plex Mono'],
+  'playfair-worksans': ['Playfair Display', 'Work Sans', 'Space Mono']
+};
+const MOTION_FLAGS = ['customCursor', 'magneticButtons', 'kineticHeadlines', 'marquee', 'countUp', 'reveal'];
 function validateSite(input){
   if (!isPlain(input)) throw new Error('config must be an object');
   const site = JSON.parse(JSON.stringify(DEFAULT_SITE));
@@ -159,6 +173,18 @@ function validateSite(input){
     site.design.tokens = strMap(input.design.tokens, 200);
     for (const k of Object.keys(site.design.tokens)) if (!/^--[a-z0-9-]{1,40}$/i.test(k)) delete site.design.tokens[k];
     for (const k of ['fontDisplay', 'fontBody', 'fontMono']) if (typeof input.design[k] === 'string') site.design[k] = input.design[k].slice(0, 80);
+    if (typeof input.design.fontPreset === 'string' && FONT_PRESETS[input.design.fontPreset]){
+      site.design.fontPreset = input.design.fontPreset;
+      const fonts = FONT_PRESETS[input.design.fontPreset];
+      site.design.fontDisplay = fonts[0]; site.design.fontBody = fonts[1]; site.design.fontMono = fonts[2];
+    }
+    if (['on', 'calm', 'off'].includes(input.design.motion)){
+      site.design.motion = input.design.motion;
+      MOTION_FLAGS.forEach(k => { site.features[k] = input.design.motion === 'on'; });
+      if (input.design.motion === 'calm'){
+        site.features.countUp = true; site.features.reveal = true;
+      }
+    }
     if (typeof input.design.customCss === 'string') site.design.customCss = input.design.customCss.slice(0, 200000);
   }
   if (isPlain(input.analytics)){
@@ -177,6 +203,23 @@ function validateSite(input){
     site.structured.jobEmploymentType = ['FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER'].includes(employment) ? employment : '';
   }
   site.hiddenSections = cleanStrArray(input.hiddenSections, 500) || [];
+  if (isPlain(input.sectionOrder)) for (const page of Object.keys(input.sectionOrder)){
+    if (!/^[a-z0-9-]{1,60}$/i.test(page) || !Array.isArray(input.sectionOrder[page])) continue;
+    site.sectionOrder[page] = Array.from(new Set(input.sectionOrder[page]
+      .filter(key => typeof key === 'string' && key.length <= 60))).slice(0, 60);
+  }
+  if (isPlain(input.sectionAccent)) for (const key of Object.keys(input.sectionAccent)){
+    if (key.length <= 60 && Number.isInteger(input.sectionAccent[key]) && input.sectionAccent[key] >= 1 && input.sectionAccent[key] <= 5){
+      site.sectionAccent[key] = input.sectionAccent[key];
+    }
+  }
+  if (isPlain(input.itemOrder)) for (const key of Object.keys(input.itemOrder)){
+    if (/^[a-z0-9.-]{1,60}$/.test(key)) site.itemOrder[key] = cleanIdArray(input.itemOrder[key], 60);
+  }
+  if (Array.isArray(input.hiddenItems)){
+    site.hiddenItems = Array.from(new Set(input.hiddenItems.filter(value => typeof value === 'string' &&
+      /^[a-z0-9.-]{1,60}:[a-z0-9-]{1,40}$/.test(value)))).slice(0, 500);
+  }
   if (isPlain(input.pages)) for (const k of Object.keys(input.pages)){
     if (!/^[a-z0-9-]{1,60}$/i.test(k) || !isPlain(input.pages[k])) continue;
     const p = strMap(input.pages[k], 1000);
@@ -188,6 +231,45 @@ function validateSite(input){
   site.industries = cleanStrArray(input.industries);
   site.industriesAz = site.industries ? cleanStrArray(input.industriesAz) : null;
   return site;
+}
+
+function readDraft(){
+  const record = readJson(DRAFT_JSON, null);
+  if (!record || !isPlain(record.draft)) return null;
+  return { draft: record.draft, savedAt: record.savedAt || null };
+}
+function removeDraft(){
+  try { fs.rmSync(DRAFT_JSON, { force: true }); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+}
+function flatten(value, prefix, out){
+  out = out || {};
+  prefix = prefix || '';
+  if (Array.isArray(value) || !isPlain(value)){
+    out[prefix] = JSON.stringify(value);
+    return out;
+  }
+  const keys = Object.keys(value);
+  if (!keys.length) out[prefix] = '{}';
+  keys.forEach(key => flatten(value[key], prefix ? prefix + '.' + key : key, out));
+  return out;
+}
+function diffCount(before, after){
+  const a = flatten(before), b = flatten(after);
+  return Array.from(new Set(Object.keys(a).concat(Object.keys(b)))).filter(key => a[key] !== b[key]).length;
+}
+function publishSummary(before, after){
+  return {
+    texts: diffCount(before.i18n || {}, after.i18n || {}),
+    sections: diffCount({ order: before.sectionOrder || {}, hidden: before.hiddenSections || [], accent: before.sectionAccent || {} },
+      { order: after.sectionOrder || {}, hidden: after.hiddenSections || [], accent: after.sectionAccent || {} }),
+    items: diffCount({ order: before.itemOrder || {}, hidden: before.hiddenItems || [] },
+      { order: after.itemOrder || {}, hidden: after.hiddenItems || [] }),
+    catalogue: diffCount({ engines: before.engines, enginesAz: before.enginesAz, industries: before.industries, industriesAz: before.industriesAz },
+      { engines: after.engines, enginesAz: after.enginesAz, industries: after.industries, industriesAz: after.industriesAz }),
+    design: diffCount(before.design || {}, after.design || {}),
+    settings: diffCount({ settings: before.settings || {}, features: before.features || {}, analytics: before.analytics || {}, structured: before.structured || {} },
+      { settings: after.settings || {}, features: after.features || {}, analytics: after.analytics || {}, structured: after.structured || {} })
+  };
 }
 
 /* ---------- auth ---------- */
@@ -557,6 +639,33 @@ async function api(req, res, url){
     saveSite(site);
     return json(res, 200, { ok: true, site });
   }
+  if (p === '/draft' && method === 'GET'){
+    const record = readDraft();
+    return json(res, 200, { draft: record ? record.draft : null, savedAt: record ? record.savedAt : null, live: loadSite() });
+  }
+  if (p === '/draft' && method === 'PUT'){
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    let draft;
+    try { draft = validateSite(body); } catch (e) { return json(res, 400, { error: e.message }); }
+    const savedAt = new Date().toISOString();
+    writeJsonAtomic(DRAFT_JSON, { savedAt, draft });
+    return json(res, 200, { ok: true, savedAt });
+  }
+  if (p === '/draft' && method === 'DELETE'){
+    removeDraft();
+    return json(res, 200, { ok: true });
+  }
+  if (p === '/publish' && method === 'POST'){
+    const record = readDraft();
+    if (!record) return json(res, 409, { error: 'No draft to publish.' });
+    let site;
+    try { site = validateSite(record.draft); } catch (e) { return json(res, 400, { error: e.message }); }
+    const summary = publishSummary(loadSite(), site);
+    saveSite(site);
+    removeDraft();
+    return json(res, 200, { ok: true, site, summary });
+  }
   if (p === '/status' && method === 'GET'){
     return json(res, 200, { notifications: notifyConfig(), trustProxy: TRUST_PROXY, secure: isSecure(req), node: process.version });
   }
@@ -567,6 +676,17 @@ async function api(req, res, url){
     return json(res, 200, readJson(SUBS_JSON, []).slice().reverse());
   }
   const del = p.match(/^\/submissions\/([a-f0-9]{16})$/);
+  if (del && method === 'PATCH'){
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (typeof body.read !== 'boolean') return json(res, 400, { error: 'read must be true or false' });
+    const subs = readJson(SUBS_JSON, []);
+    const sub = subs.find(s => s.id === del[1]);
+    if (!sub) return json(res, 404, { error: 'Submission not found.' });
+    sub.read = body.read;
+    writeJsonAtomic(SUBS_JSON, subs);
+    return json(res, 200, { ok: true, submission: sub });
+  }
   if (del && method === 'DELETE'){
     const subs = readJson(SUBS_JSON, []);
     const next = subs.filter(s => s.id !== del[1]);
@@ -622,7 +742,11 @@ function serveStatic(req, res, url){
   const type = MIME[ext] || 'application/octet-stream';
   if (ext === '.html'){
     const key = path.basename(file, '.html');
-    const html = injectMeta(fs.readFileSync(file, 'utf8'), key, loadSite());
+    let html = injectMeta(fs.readFileSync(file, 'utf8'), key, loadSite());
+    if (url.searchParams.get('edit') === '1' && isAuthed(req) && !['admin', 'admin-advanced', '404'].includes(key)){
+      html = html.replace(/<\/body>/i,
+        '<link rel="stylesheet" href="css/editor.css">\n<script src="js/editor.js" defer></script>\n</body>');
+    }
     return send(res, 200, html, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
   }
   const cache = (rel[0] === 'data') ? 'no-cache' : 'public, max-age=300';

@@ -2,6 +2,7 @@
 # never commit these
 data/admin.json
 data/submissions.json
+data/draft.json
 data/*.tmp
 
 node_modules/

@@ -128,18 +128,18 @@
 <section class="section-border reveal" id="industries" data-section="index.s5">
   <div class="wrap">
     <h2 class="heading-m" style="font-size:clamp(24px,3vw,32px);margin-bottom:20px" data-i18n="home.industriesHead">Who we do it for.</h2>
-    <div class="chipwrap">
-      <a href="industry.html" class="chip" data-i18n="industries.0">Retail &amp; FMCG</a>
-      <span class="chip is-coming"><span data-i18n="industries.1">Banking &amp; fintech</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.2">Telecom</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.3">Automotive</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.4">Real estate</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.5">Healthcare &amp; pharma</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.6">Hospitality &amp; travel</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.7">Education</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.8">B2B &amp; industrial</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.9">E-commerce</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
-      <span class="chip is-coming"><span data-i18n="industries.10">Government &amp; public sector</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+    <div class="chipwrap" data-list="industry.strip">
+      <a href="industry.html" class="chip" data-item="i1" data-i18n="industries.0">Retail &amp; FMCG</a>
+      <span class="chip is-coming" data-item="i2"><span data-i18n="industries.1">Banking &amp; fintech</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i3"><span data-i18n="industries.2">Telecom</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i4"><span data-i18n="industries.3">Automotive</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i5"><span data-i18n="industries.4">Real estate</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i6"><span data-i18n="industries.5">Healthcare &amp; pharma</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i7"><span data-i18n="industries.6">Hospitality &amp; travel</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i8"><span data-i18n="industries.7">Education</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i9"><span data-i18n="industries.8">B2B &amp; industrial</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i10"><span data-i18n="industries.9">E-commerce</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
+      <span class="chip is-coming" data-item="i11"><span data-i18n="industries.10">Government &amp; public sector</span><small data-i18n="availability.pageSoon">Page coming soon</small></span>
     </div>
   </div>
 </section>
@@ -168,8 +168,8 @@
       <p class="eyebrow" data-i18n="home.work.eyebrow">Selected work</p>
       <h2 data-i18n="home.work.h2">The work, and what it moved.</h2>
     </div>
-    <div style="display:grid;gap:20px" class="stagger">
-      <a class="case-card reveal" href="case-study.html">
+    <div style="display:grid;gap:20px" class="stagger" data-list="index.cases">
+      <a class="case-card reveal" href="case-study.html" data-item="c1">
         <div>
           <span class="tagn src sector" data-i18n="home.work.c1sector">B2B SaaS</span>
           <p class="result" data-i18n="home.work.c1result">3.4&times; qualified pipeline in two quarters</p>
@@ -180,7 +180,7 @@
         </div>
         <div class="case-visual" aria-hidden="true"></div>
       </a>
-      <article class="case-card reveal is-coming">
+      <article class="case-card reveal is-coming" data-item="c2">
         <div>
           <span class="tagn src sector" data-i18n="home.work.c2sector">DTC / Home</span>
           <p class="result" data-i18n="home.work.c2result">From one channel to four, without raising blended CAC</p>
@@ -192,7 +192,7 @@
         </div>
         <div class="case-visual" aria-hidden="true"></div>
       </article>
-      <article class="case-card reveal is-coming">
+      <article class="case-card reveal is-coming" data-item="c3">
         <div>
           <span class="tagn src sector" data-i18n="home.work.c3sector">Fintech (anonymised)</span>
           <p class="result" data-i18n="home.work.c3result">A pipeline number leadership finally trusted</p>
@@ -228,12 +228,12 @@
   <div class="wrap">
     <p class="eyebrow" data-i18n="home.testi.eyebrow">Proof</p>
     <h2 style="margin-bottom:30px" data-i18n="home.testi.h2">Don't take our word for it.</h2>
-    <div class="testi" data-testi>
-      <div class="testi-slide">
+    <div class="testi" data-testi data-list="home.testimonials">
+      <div class="testi-slide" data-item="q1">
         <blockquote data-i18n="home.testi.q1">&ldquo;We'd been running marketing and sales like two separate companies. OmniMark made it one motion inside a quarter &mdash; and for the first time our forecast matched what actually closed.&rdquo;</blockquote>
         <div class="testi-attr"><span class="avatar">RK</span><div><div class="name" data-i18n="home.testi.n1">Rania Kessler</div><div class="role" data-i18n="home.testi.r1">VP Revenue, Halo Bank</div></div></div>
       </div>
-      <div class="testi-slide">
+      <div class="testi-slide" data-item="q2">
         <blockquote data-i18n="home.testi.q2">&ldquo;They killed a channel we loved in month two because the numbers said to. Nobody else has ever told us to stop spending.&rdquo;</blockquote>
         <div class="testi-attr"><span class="avatar">DO</span><div><div class="name" data-i18n="home.testi.n2">Daniel Okafor</div><div class="role" data-i18n="home.testi.r2">Founder, Coastway</div></div></div>
       </div>
@@ -259,12 +259,12 @@
         <a href="about.html#team" class="btn-text"><span data-i18n="home.team.cta">Meet the team</span> &rarr;</a>
       </div>
     </div>
-    <div class="team-row stagger" style="margin-top:40px">
-      <div class="team-card reveal"><div class="ph">MS</div><div class="info"><div class="n">Maya Sorensen</div><div class="p">Ex-VaynerMedia</div></div></div>
-      <div class="team-card reveal"><div class="ph">JT</div><div class="info"><div class="n">Jonah Trent</div><div class="p">Ex-R/GA</div></div></div>
-      <div class="team-card reveal"><div class="ph">PA</div><div class="info"><div class="n">Priya Anand</div><div class="p">Ex-HubSpot</div></div></div>
-      <div class="team-card reveal"><div class="ph">LC</div><div class="info"><div class="n">Leo Castellan</div><div class="p">Ex-Wieden+Kennedy</div></div></div>
-      <div class="team-card reveal"><div class="ph">EW</div><div class="info"><div class="n">Elena Wu</div><div class="p">Ex-Salesforce</div></div></div>
+    <div class="team-row stagger" style="margin-top:40px" data-list="index.team">
+      <div class="team-card reveal" data-item="t1"><div class="ph">MS</div><div class="info"><div class="n">Maya Sorensen</div><div class="p">Ex-VaynerMedia</div></div></div>
+      <div class="team-card reveal" data-item="t2"><div class="ph">JT</div><div class="info"><div class="n">Jonah Trent</div><div class="p">Ex-R/GA</div></div></div>
+      <div class="team-card reveal" data-item="t3"><div class="ph">PA</div><div class="info"><div class="n">Priya Anand</div><div class="p">Ex-HubSpot</div></div></div>
+      <div class="team-card reveal" data-item="t4"><div class="ph">LC</div><div class="info"><div class="n">Leo Castellan</div><div class="p">Ex-Wieden+Kennedy</div></div></div>
+      <div class="team-card reveal" data-item="t5"><div class="ph">EW</div><div class="info"><div class="n">Elena Wu</div><div class="p">Ex-Salesforce</div></div></div>
     </div>
   </div>
 </section>
@@ -276,10 +276,10 @@
       <p class="eyebrow" data-i18n="home.insights.eyebrow">Insights</p>
       <h2 data-i18n="home.insights.h2">What we're arguing about this month.</h2>
     </div>
-    <div class="article-rule-list stagger">
-      <a class="article-row reveal" href="article.html"><span class="title" data-i18n="home.insights.a1">The MQL is dead. Here's the metric that replaced it.</span><span class="meta" data-i18n="home.insights.a1m">Demand · 6 min</span></a>
-      <div class="article-row reveal is-coming"><span class="title" data-i18n="home.insights.a2">Your attribution model is lying to your CFO</span><span class="row-meta"><span class="meta" data-i18n="home.insights.a2m">RevOps · 9 min</span><span class="availability" data-i18n="availability.insightSoon">Insight coming soon</span></span></div>
-      <div class="article-row reveal is-coming"><span class="title" data-i18n="home.insights.a3">Cold outbound isn't dead. Your list is.</span><span class="row-meta"><span class="meta" data-i18n="home.insights.a3m">Sales · 5 min</span><span class="availability" data-i18n="availability.insightSoon">Insight coming soon</span></span></div>
+    <div class="article-rule-list stagger" data-list="index.insights">
+      <a class="article-row reveal" href="article.html" data-item="a1"><span class="title" data-i18n="home.insights.a1">The MQL is dead. Here's the metric that replaced it.</span><span class="meta" data-i18n="home.insights.a1m">Demand · 6 min</span></a>
+      <div class="article-row reveal is-coming" data-item="a2"><span class="title" data-i18n="home.insights.a2">Your attribution model is lying to your CFO</span><span class="row-meta"><span class="meta" data-i18n="home.insights.a2m">RevOps · 9 min</span><span class="availability" data-i18n="availability.insightSoon">Insight coming soon</span></span></div>
+      <div class="article-row reveal is-coming" data-item="a3"><span class="title" data-i18n="home.insights.a3">Cold outbound isn't dead. Your list is.</span><span class="row-meta"><span class="meta" data-i18n="home.insights.a3m">Sales · 5 min</span><span class="availability" data-i18n="availability.insightSoon">Insight coming soon</span></span></div>
     </div>
     <div style="margin-top:24px"><a href="insights.html" class="btn btn-ghost"><span data-i18n="home.insights.readMore">Read more insights</span> <span class="arrow">&rarr;</span></a></div>
   </div>

@@ -117,6 +117,55 @@
     styleTag('omni-custom-css').textContent = design.customCss || '';
   }
 
+  function applyLayout(cfg){
+    cfg = cfg || site;
+    if (!document.body) return;
+    var page = pageKey();
+    var sectionOrder = (cfg.sectionOrder && cfg.sectionOrder[page]) || [];
+    var main = document.querySelector('main');
+    if (main){
+      var sections = Array.prototype.slice.call(main.children).filter(function(el){ return el.hasAttribute('data-section'); });
+      var byKey = {};
+      sections.forEach(function(el){ byKey[el.getAttribute('data-section')] = el; });
+      var ordered = [];
+      sectionOrder.forEach(function(key){ if (byKey[key] && ordered.indexOf(byKey[key]) < 0) ordered.push(byKey[key]); });
+      sections.forEach(function(el){ if (ordered.indexOf(el) < 0) ordered.push(el); });
+      ordered.forEach(function(el){ main.appendChild(el); });
+    }
+
+    var accents = cfg.sectionAccent || {};
+    document.querySelectorAll('[data-section]').forEach(function(el){
+      var n = accents[el.getAttribute('data-section')];
+      if (n >= 1 && n <= 5){
+        el.style.setProperty('--acc', 'var(--c' + n + ')');
+        el.setAttribute('data-section-accent', String(n));
+      } else {
+        el.style.removeProperty('--acc');
+        el.removeAttribute('data-section-accent');
+      }
+    });
+
+    var itemOrder = cfg.itemOrder || {};
+    var hiddenItems = cfg.hiddenItems || [];
+    document.querySelectorAll('[data-list]').forEach(function(list){
+      var listKey = list.getAttribute('data-list');
+      var items = Array.prototype.slice.call(list.children).filter(function(el){ return el.hasAttribute('data-item'); });
+      var itemById = {};
+      items.forEach(function(el){ itemById[el.getAttribute('data-item')] = el; });
+      var order = itemOrder[listKey] || [];
+      var next = [];
+      order.forEach(function(id){ if (itemById[id] && next.indexOf(itemById[id]) < 0) next.push(itemById[id]); });
+      items.forEach(function(el){ if (next.indexOf(el) < 0) next.push(el); });
+      next.forEach(function(el){ list.appendChild(el); });
+      items.forEach(function(el){
+        var hidden = hiddenItems.indexOf(listKey + ':' + el.getAttribute('data-item')) >= 0;
+        el.hidden = hidden;
+        if (hidden) el.setAttribute('data-omni-hidden-item', 'true');
+        else el.removeAttribute('data-omni-hidden-item');
+      });
+    });
+  }
+
   /* Rebuilds OM_I18N.<lang>.engines.eN from a data.js-shaped engine array so
      every data-i18n key the partials emit has a matching entry. */
   function syncEngineDict(dict, engines){
@@ -190,6 +239,7 @@
     get: function(){ return site; },
     flags: function(){ return flags(site); },
     applyDesign: applyDesign,
+    applyLayout: applyLayout,
     applyData: applyData,
     applyPageMeta: applyPageMeta,
     fontCatalog: FONT_CATALOG,
@@ -202,8 +252,9 @@
   var isAdmin = document.documentElement.hasAttribute('data-omni-admin');
   if (!isAdmin){
     applyDesign(site);
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyPageMeta);
-    else applyPageMeta();
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ applyPageMeta(); applyLayout(site); });
+    else { applyPageMeta(); applyLayout(site); }
+    document.addEventListener('omni:partials-ready', function(){ applyLayout(site); });
   }
 
   /* live preview from the admin dashboard (same origin only) */

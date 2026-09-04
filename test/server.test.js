@@ -90,6 +90,8 @@ async function main(){
   check('admin.json blocked', r.status === 403);
   r = await req('GET', '/data/submissions.json');
   check('submissions.json blocked', r.status === 403);
+  r = await req('GET', '/data/draft.json');
+  check('draft.json blocked', r.status === 403);
   r = await req('GET', '/server.js');
   check('server.js not served', r.status === 404);
   r = await req('GET', '/../package.json');
@@ -107,8 +109,14 @@ async function main(){
   /* ---- auth ---- */
   r = await req('GET', '/api/me');
   check('me: not authed', r.json && r.json.authed === false);
+  r = await req('GET', '/?edit=1');
+  check('anonymous edit query does not inject editor assets', r.status === 200 && !/js\/editor\.js/.test(r.text));
   r = await req('PUT', '/api/site', {}, { admin: true });
   check('PUT site rejected without session', r.status === 401);
+  r = await req('GET', '/api/draft');
+  check('GET draft rejected without session', r.status === 401);
+  r = await req('PUT', '/api/draft', {}, { admin: true });
+  check('PUT draft rejected without session', r.status === 401);
   r = await req('GET', '/api/status');
   check('status needs session', r.status === 401);
   r = await req('POST', '/api/login', { password: 'wrong' }, { admin: true });
@@ -120,6 +128,10 @@ async function main(){
   check('cookie not Secure over plain http', !/Secure/.test(r.headers.get('set-cookie') || ''));
   r = await req('GET', '/api/me');
   check('me: authed', r.json && r.json.authed === true);
+  r = await req('PUT', '/api/draft', {});
+  check('PUT draft rejected without CSRF header', r.status === 403);
+  r = await req('GET', '/?edit=1');
+  check('authenticated edit query injects editor assets', r.status === 200 && /css\/editor\.css/.test(r.text) && /js\/editor\.js/.test(r.text));
   r = await req('GET', '/api/status');
   check('status reports notification config', r.status === 200 && r.json.notifications && r.json.notifications.email === true && r.json.notifications.webhook === false && r.json.notifications.autoReply === true, r.text);
   r = await req('GET', '/api/pages');
@@ -136,6 +148,10 @@ async function main(){
     structured: { orgLegalName: 'OmniMark LLC', orgLogoUrl: 'javascript:bad', articleAuthor: 'Priya Anand',
       articleDatePublished: '2026-09-01', articleDateModified: 'not-a-date', jobTitle: 'Draft role' },
     hiddenSections: ['index.s3'],
+    sectionOrder: { index: ['index.s2', 'index.s1'], about: Array.from({ length: 70 }, (_, i) => 'about.s' + i) },
+    sectionAccent: { 'index.s1': 3, low: 0, high: 6, text: 'x' },
+    itemOrder: { 'index.cases': ['c2', 'BAD', 'c1', 'c2'], 'bad/list': ['c1'] },
+    hiddenItems: ['index.cases:c3', 'bad item', 'index.cases:UPPER'],
     pages: { about: { title: 'About us <b>', description: 'Desc "quoted"' } },
     i18n: { en: { 'nav.work': 'Cases' }, az: { 'nav.work': 'Keyslər' } },
     engines: [{ id: 'x', num: '01', name: 'E1 <script>', promise: 'p', href: 'a.html', detail: 'b.html', groups: [{ title: 'G', items: ['one', 'two'] }] }],
@@ -151,6 +167,9 @@ async function main(){
   check('validation: unsafe URL schemes dropped', saved && saved.settings.schedulerUrl === '' && saved.settings.privacyUrl === '' && saved.settings.linkedin === 'https://linkedin.com/company/x' && saved.settings.ogImage === 'https://example.test/og.png', JSON.stringify(saved && saved.settings));
   check('validation: structured URLs and dates cleaned', saved && saved.structured.orgLogoUrl === '' && saved.structured.articleDatePublished === '2026-09-01' && saved.structured.articleDateModified === '');
   check('validation: engines cleaned', saved && saved.engines.length === 1 && saved.engines[0].groups[0].items.length === 2 && saved.enginesAz[0].name === 'E1az');
+  check('validation: editor layout fields cleaned', saved && saved.sectionOrder.index.length === 2 && saved.sectionOrder.about.length === 60 &&
+    saved.sectionAccent['index.s1'] === 3 && !('low' in saved.sectionAccent) && !('high' in saved.sectionAccent) && !('text' in saved.sectionAccent) &&
+    saved.itemOrder['index.cases'].join(',') === 'c2,c1' && !('bad/list' in saved.itemOrder) && saved.hiddenItems.join(',') === 'index.cases:c3', JSON.stringify(saved));
   const siteJs = readTmp('data/site.js');
   check('site.js regenerated + </script escaped', /hi@example\.test/.test(siteJs) && !/<\/script/.test(siteJs) && !/<\//.test(siteJs.replace(/<\\\//g, '')));
   check('sitemap uses new siteUrl', /https:\/\/example\.test\/about\.html/.test(readTmp('sitemap.xml')));
@@ -174,6 +193,25 @@ async function main(){
   check('complete JobPosting is server-rendered', /"@type":"JobPosting"/.test(r.text) && /"employmentType":"FULL_TIME"/.test(r.text) && /"jobLocationType":"TELECOMMUTE"/.test(r.text));
   r = await req('GET', '/api/site');
   check('GET site is public + reflects save', r.status === 200 && r.json.settings.email === 'hi@example.test');
+
+  /* ---- editor draft lifecycle ---- */
+  const draftCfg = JSON.parse(JSON.stringify(r.json));
+  draftCfg.i18n.en['home.hero.h1'] = 'Draft headline';
+  draftCfg.hiddenSections = ['index.s3', 'index.s4'];
+  r = await req('PUT', '/api/draft', draftCfg, { admin: true });
+  check('PUT draft validates and saves atomically', r.status === 200 && r.json.ok && !!r.json.savedAt && fs.existsSync(path.join(TMP, 'data', 'draft.json')), r.text);
+  r = await req('GET', '/api/draft');
+  check('GET draft returns draft and live', r.status === 200 && r.json.draft.i18n.en['home.hero.h1'] === 'Draft headline' && r.json.live.i18n.en['home.hero.h1'] !== 'Draft headline');
+  r = await req('POST', '/api/publish', undefined, { admin: true });
+  check('publish promotes draft and returns categorized summary', r.status === 200 && r.json.site.i18n.en['home.hero.h1'] === 'Draft headline' &&
+    r.json.summary.texts === 1 && r.json.summary.sections >= 1 && typeof r.json.summary.design === 'number', r.text);
+  r = await req('GET', '/api/draft');
+  check('publish removes the draft', r.status === 200 && r.json.draft === null && !fs.existsSync(path.join(TMP, 'data', 'draft.json')));
+  r = await req('POST', '/api/publish', undefined, { admin: true });
+  check('publish without a draft is rejected', r.status === 409);
+  r = await req('PUT', '/api/draft', draftCfg, { admin: true });
+  r = await req('DELETE', '/api/draft', undefined, { admin: true });
+  check('DELETE draft discards it', r.status === 200 && !fs.existsSync(path.join(TMP, 'data', 'draft.json')));
 
   /* ---- submissions ---- */
   cookie = '';
@@ -199,6 +237,10 @@ async function main(){
   check('submissions listed', r.status === 200 && r.json.length === 2 && contactSub && contactSub.fields.email === 'a@b.co');
   check('newsletter consent metadata stored', newsletterSub && newsletterSub.fields.email === 'news@example.test' && !!newsletterSub.consentAt && newsletterSub.consentSource === 'footer-newsletter-form', JSON.stringify(newsletterSub));
   const id = contactSub.id;
+  r = await req('PATCH', '/api/submissions/' + id, { read: true }, { admin: true });
+  check('submission read flag can be patched', r.status === 200 && r.json.submission.read === true, r.text);
+  r = await req('PATCH', '/api/submissions/' + id, { read: 'yes' }, { admin: true });
+  check('submission read patch validates boolean', r.status === 400);
   r = await req('DELETE', '/api/submissions/' + id, undefined, { admin: true });
   check('submission deleted', r.status === 200 && r.json.removed === 1);
 
