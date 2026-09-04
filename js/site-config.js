@@ -169,6 +169,41 @@
     });
   }
 
+  function applyImages(cfg){
+    cfg = cfg || site;
+    if (!document.body) return;
+    var images = cfg.images || {};
+    document.querySelectorAll('[data-image]').forEach(function(el){
+      var key = el.getAttribute('data-image'), value = images[key], shell = el.closest('[data-image-shell]') || el.parentElement;
+      if (!document.documentElement.classList.contains('omni-editing') && shell && shell.closest('[data-proof]') && !flags(cfg).showVerifiedProof) value = null;
+      if (!value || !/^[a-f0-9]{16}$/.test(value.id || '')){
+        el.hidden = true;
+        el.removeAttribute('src'); el.removeAttribute('srcset'); el.removeAttribute('fetchpriority');
+        el.style.removeProperty('object-position'); el.removeAttribute('data-image-loaded');
+        if (shell) shell.classList.remove('has-slot-image');
+        return;
+      }
+      var base = '/media/' + value.id;
+      el.src = base + '-960.webp';
+      el.srcset = base + '-480.webp 480w, ' + base + '-960.webp 960w, ' + base + '-1600.webp 1600w';
+      el.sizes = el.getAttribute('data-sizes') || '(max-width: 760px) 100vw, 50vw';
+      el.alt = typeof value.alt === 'string' ? value.alt : (el.getAttribute('data-default-alt') || '');
+      var focal = value.focal || { x: 0.5, y: 0.5 };
+      var x = Math.max(0, Math.min(1, Number(focal.x))), y = Math.max(0, Math.min(1, Number(focal.y)));
+      el.style.objectPosition = (isFinite(x) ? x * 100 : 50) + '% ' + (isFinite(y) ? y * 100 : 50) + '%';
+      var hero = key === 'index.hero';
+      el.loading = hero ? 'eager' : 'lazy';
+      if (hero) el.setAttribute('fetchpriority', 'high'); else el.removeAttribute('fetchpriority');
+      el.hidden = false; el.setAttribute('data-image-loaded', 'true');
+      if (shell) shell.classList.add('has-slot-image');
+      if (!el.hasAttribute('data-image-error-bound')){
+        el.setAttribute('data-image-error-bound', 'true');
+        el.addEventListener('error', function(){ el.hidden = true; if (shell) shell.classList.remove('has-slot-image'); });
+        el.addEventListener('load', function(){ el.hidden = false; if (shell) shell.classList.add('has-slot-image'); });
+      }
+    });
+  }
+
   /* Rebuilds OM_I18N.<lang>.engines.eN from a data.js-shaped engine array so
      every data-i18n key the partials emit has a matching entry. */
   function syncEngineDict(dict, engines){
@@ -249,6 +284,7 @@
     flags: function(){ return flags(site); },
     applyDesign: applyDesign,
     applyLayout: applyLayout,
+    applyImages: applyImages,
     applyData: applyData,
     applyPageMeta: applyPageMeta,
     fontCatalog: FONT_CATALOG,
@@ -262,9 +298,9 @@
   var isAdmin = document.documentElement.hasAttribute('data-omni-admin');
   if (!isAdmin){
     applyDesign(site);
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ applyDesign(site); applyPageMeta(); applyLayout(site); });
-    else { applyDesign(site); applyPageMeta(); applyLayout(site); }
-    document.addEventListener('omni:partials-ready', function(){ applyLayout(site); });
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ applyDesign(site); applyPageMeta(); applyLayout(site); applyImages(site); });
+    else { applyDesign(site); applyPageMeta(); applyLayout(site); applyImages(site); }
+    document.addEventListener('omni:partials-ready', function(){ applyLayout(site); applyImages(site); });
   }
 
   /* live preview from the admin dashboard (same origin only) */

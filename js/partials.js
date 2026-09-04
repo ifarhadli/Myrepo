@@ -67,7 +67,7 @@
     return '<div class="mega" role="group" aria-label="Services">'+
       '<div class="mega-grid">'+cols+'</div>'+
       '<div class="mega-rail">'+
-        '<div class="thumb" aria-hidden="true"></div>'+
+        '<div class="thumb" data-image-shell><img class="slot-image" data-image="mega.featured" data-sizes="120px" alt="" hidden></div>'+
         '<div class="txt"><span class="tag" data-i18n="mega.featuredCase">Featured case</span><h6 data-i18n="mega.featuredHeadline" data-i18n-html>3.4&times; qualified pipeline in two quarters</h6><p><span data-i18n="mega.featuredSub">B2B SaaS · Series B</span> &middot; <a href="case-study.html" style="color:inherit;text-decoration:underline" data-i18n="mega.readCase" data-i18n-html>Read the case &rarr;</a></p></div>'+
         '<a class="btn btn-ghost all-services" href="services.html" data-i18n="mega.allServices" data-i18n-html>All services &rarr;</a>'+
       '</div>'+

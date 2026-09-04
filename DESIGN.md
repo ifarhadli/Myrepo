@@ -143,6 +143,15 @@ edge. Search and share previews stay inside bordered white cards, use authored
 content fallbacks, and show an explicit loading/unavailable image state.
 Phone preview centers one 390px page frame on a quiet gray work surface.
 
+Media uses the same neutral left sheet as Design. The upload target is a
+bordered white drop surface with an explicit file-picker action; each file
+gets a stable progress row before entering a compact two-column thumbnail
+grid. Selection uses a violet border plus `aria-pressed`, never colour alone.
+The selected image gets one large crop preview, concise metadata fields and a
+crosshair focal control backed by keyboard-accessible axis sliders. On-page
+slot actions are restrained dark pills that appear on hover/focus; empty slots
+keep the action visible so absence never becomes an undiscoverable state.
+
 ### Forms and overlays
 
 Forms own validation with `novalidate`, visible linked field errors, first-error focus, preserved values, and duplicate-submit prevention. The mobile drawer and any admin confirmation surface use owned semantics, Escape behavior, focus containment, and focus restoration.

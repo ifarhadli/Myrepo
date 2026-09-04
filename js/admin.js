@@ -196,7 +196,7 @@
     ['termsUrl', 'Terms URL', 'text', 'Footer link.'],
     ['schedulerUrl', 'Meeting scheduler embed URL', 'url', 'Calendly / HubSpot Meetings / Chili Piper embed link (https). Leave empty and the scheduler block disappears from the contact page.'],
     ['megaMenuLinkLimit', 'Mega-menu links per engine', 'number', 'Show 1–12 sub-services in each desktop mega-menu column.', ' min="1" max="12" step="1"'],
-    ['ogImage', 'Social share image URL', 'url', 'Shown when a page is shared on LinkedIn, Slack, WhatsApp. 1200×630 px, https.']
+    ['ogImage', 'Social share image URL or media ID', 'text', 'Shown when a page is shared on LinkedIn, Slack or WhatsApp. Use an https URL, or pick an image in the on-page editor.']
   ];
 
   /* ---------- state ---------- */

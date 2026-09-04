@@ -2,7 +2,7 @@
 
 Static, framework-free marketing site (15 pages, EN/AZ) with a zero-dependency
 Node server that adds an authenticated **on-page editor** for copy, layout,
-the services catalogue, design, settings and form submissions.
+images, the services catalogue, design, settings and form submissions.
 
 ```
 node server.js
@@ -37,6 +37,8 @@ server.js            static server + /api for the dashboard (Node built-ins only
 data/site.json       what the dashboard saved (source of truth)
 data/site.js         generated from site.json; loaded in <head> on every page
 data/draft.json      private unpublished editor draft (git-ignored)
+data/media.json      private media index (git-ignored)
+data/media/          originals + responsive variants (git-ignored; served at /media/:id)
 data/admin.json      password/recovery + private notification settings (git-ignored)
 data/submissions.json  contact / teardown / newsletter entries (git-ignored)
 sitemap.xml, robots.txt  regenerated on every publish from Settings → Site URL
@@ -60,6 +62,17 @@ Reorder or remove supported cards in place; service and industry catalogue
 items can also be added. **Design** changes the curated colours, font pairing
 and motion level while the page is visible. **Phone** previews the current
 page in a contained 390 px layout.
+
+Image positions are fixed by the design. Hover a hero, case, team, logo,
+article, case-study or mega-menu image slot and choose **Add image** / **Change
+image**, or drop an image directly on the slot. The **Media** panel also opens
+from the bar and from social-image settings. It accepts PNG, JPEG and WebP
+(not SVG), creates 480/960/1600 px responsive versions in the browser, and
+stores a reusable private library. Alt text is required before a slotted image
+can be published. Click the preview or use its two keyboard-accessible sliders
+to set the focal point that every crop keeps visible. Removing a slot keeps the
+library item; permanent library deletion is blocked while any live, draft or
+retained-history version still uses it.
 
 Changes autosave to the private `data/draft.json` file and a local browser
 backup. Undo/redo covers the current session. **Publish** first shows a
@@ -156,8 +169,13 @@ limited to 3 / 15 min, reset attempts to 5 / 15 min, notification tests to
 3 / 10 min, and form submissions to 30 / 10 min. Every saved value is
 validated and length-capped server-side,
 and all catalogue / settings strings are HTML-escaped when rendered.
-`data/admin.json`, `data/submissions.json`, `data/draft.json` and
-`data/history/` are never served.
+`data/admin.json`, `data/submissions.json`, `data/draft.json`,
+`data/media.json`, `data/media/` and `data/history/` are never served as raw
+private paths. Approved image bytes are exposed only through opaque,
+allow-listed `/media/<id>-<width>.webp` or original URLs. Uploads are
+magic-byte checked; originals are capped at 8 MB, variants at 2 MB, and the
+library at 500 files / 500 MB. Upload writes are throttled to 60 / 10 min per
+IP.
 
 Copy that may contain markup (strings tagged `html`) is sanitised in the
 on-page editor (allow-list: `b strong em i a[href] br`), but the server only
@@ -176,10 +194,14 @@ and put it behind HTTPS (nginx / Caddy / a platform proxy) before doing so.
 18+ (a VPS, Render, Railway, Fly, …). `PORT` and `HOST` are read from the
 environment. Persist the `data/` directory.
 
+Persist the entire directory, including `data/media/`; media originals and
+variants are not stored in Git.
+
 **Static only:** copy the folder to any static host. The last published
-`data/site.js` ships with it, so design/copy/catalogue edits are live. The
-forms will show an error (there is nothing to POST to) unless the Node server
-is reachable at `/api/submit` on the same origin.
+`data/site.js` ships with it, so design/copy/catalogue edits are live. Media
+library URLs require the Node `/media/` route; there is no static-media export
+command yet. Forms likewise need the Node server reachable at `/api/submit`
+on the same origin.
 
 ---
 
@@ -194,12 +216,14 @@ is reachable at `/api/submit` on the same origin.
 - Adding a string: put it in both `en` and `az` in `js/i18n-data.js` and
   reference it with `data-i18n="ns.key"`. It shows up in *Copy* at once.
 - `npm run check` syntax-checks every script.
-- `npm test` also runs [test/server.test.js](test/server.test.js): 122
-  integration checks in a disposable copy covering serving, auth, publish
-  validation, structured data, submissions, acknowledgements and passwords.
+- `npm test` also runs [test/server.test.js](test/server.test.js): 148
+  integration checks in a disposable copy covering serving, auth, publish,
+  media validation/storage, structured data, submissions, acknowledgements
+  and passwords.
 - `npm run test:browser` drives an installed Chrome/Edge through its debugging
-  protocol: 55 responsive, focus, inert-state, validation, editor and admin
-  checks. Set `BROWSER_BIN` if Chromium is installed somewhere non-standard.
+  protocol: 65 responsive, media, focus, inert-state, validation, editor and
+  admin checks. Set `BROWSER_BIN` if Chromium is installed somewhere
+  non-standard.
 - Static design rules live in [DESIGN.md](DESIGN.md) and shared UI behavior in
   [UX-CONTRACT.md](UX-CONTRACT.md). Audit screenshots are intentionally ignored;
   the Markdown findings remain versioned under `audit/`.

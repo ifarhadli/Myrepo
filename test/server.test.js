@@ -36,6 +36,8 @@ for (const f of fs.readdirSync(ROOT)){
 }
 fs.rmSync(path.join(TMP, 'data', 'admin.json'), { force: true });
 fs.rmSync(path.join(TMP, 'data', 'submissions.json'), { force: true });
+fs.rmSync(path.join(TMP, 'data', 'media.json'), { force: true });
+fs.rmSync(path.join(TMP, 'data', 'media'), { recursive: true, force: true });
 
 const child = spawn(process.execPath, ['server.js'], {
   cwd: TMP,
@@ -56,15 +58,24 @@ function check(name, ok, extra){
 let cookie = '';
 async function req(method, p, body, opts){
   opts = opts || {};
-  const headers = Object.assign({ 'Content-Type': 'application/json' }, opts.headers || {});
+  const headers = Object.assign({ 'Content-Type': opts.raw ? (opts.type || 'application/octet-stream') : 'application/json' }, opts.headers || {});
   if (cookie) headers.Cookie = cookie;
   if (opts.admin) headers['X-Requested-With'] = 'OmniAdmin';
-  const r = await fetch(BASE + p, { method, headers, body: body === undefined ? undefined : JSON.stringify(body), redirect: 'manual' });
+  const payload = body === undefined ? undefined : (opts.raw ? body : JSON.stringify(body));
+  const r = await fetch(BASE + p, { method, headers, body: payload, redirect: 'manual' });
   const sc = r.headers.get('set-cookie');
   if (sc) cookie = sc.split(';')[0];
   const text = await r.text();
   let json = null; try { json = JSON.parse(text); } catch (e) {}
   return { status: r.status, text, json, headers: r.headers };
+}
+function rawHttpPath(rawPath){
+  return new Promise((resolve, reject) => {
+    const request = http.request({ host: '127.0.0.1', port: PORT, method: 'GET', path: rawPath }, response => {
+      response.resume(); response.on('end', () => resolve(response.statusCode));
+    });
+    request.on('error', reject); request.end();
+  });
 }
 const readTmp = f => fs.readFileSync(path.join(TMP, f), 'utf8');
 
@@ -93,6 +104,10 @@ async function main(){
   check('submissions.json blocked', r.status === 403);
   r = await req('GET', '/data/draft.json');
   check('draft.json blocked', r.status === 403);
+  r = await req('GET', '/data/media.json');
+  check('media.json blocked', r.status === 403);
+  r = await req('GET', '/data/media/0000000000000000.png');
+  check('private media directory blocked', r.status === 403);
   r = await req('GET', '/server.js');
   check('server.js not served', r.status === 404);
   r = await req('GET', '/../package.json');
@@ -128,6 +143,10 @@ async function main(){
   check('draft delete and publish reject requests without a session', anonymousDraftDelete.status === 401 && anonymousPublish.status === 401);
   r = await req('PATCH', '/api/submissions/0000000000000000', { read: true }, { admin: true });
   check('submission read patch rejected without session', r.status === 401);
+  r = await req('GET', '/api/media');
+  check('media library rejected without session', r.status === 401);
+  r = await req('POST', '/api/media?name=test.png', Buffer.from('not an image'), { raw: true, admin: true });
+  check('media upload rejected without session', r.status === 401);
   r = await req('GET', '/api/status');
   check('status needs session', r.status === 401);
   r = await req('POST', '/api/login', { password: 'wrong' }, { admin: true });
@@ -170,6 +189,54 @@ async function main(){
   const idx = r.json.find(p => p.key === 'index');
   check('section labels extracted', idx && idx.sections[0].key === 'index.hero' && /Hero/.test(idx.sections[0].label) && idx.sections.every(s => s.label));
 
+  /* ---- media library ---- */
+  r = await req('GET', '/api/media');
+  check('media library starts empty', r.status === 200 && Array.isArray(r.json) && r.json.length === 0, r.text);
+  r = await req('POST', '/api/media?name=no-header.png', Buffer.from('not an image'), { raw: true });
+  check('media writes require the CSRF header', r.status === 403);
+  r = await req('POST', '/api/media?name=renamed-text.png', Buffer.from('<svg>not an image</svg>'), { raw: true, admin: true });
+  check('media upload rejects renamed text and SVG by magic bytes', r.status === 400 && /PNG, JPEG or WebP/.test(r.json.error), r.text);
+  const tinyPng = Buffer.alloc(24);
+  Buffer.from('89504e470d0a1a0a', 'hex').copy(tinyPng, 0); tinyPng.writeUInt32BE(1, 16); tinyPng.writeUInt32BE(1, 20);
+  r = await req('POST', '/api/media?name=Hero%20portrait.png', tinyPng, { raw: true, admin: true, type: 'image/png' });
+  const mediaId = r.json && r.json.item && r.json.item.id;
+  check('valid image upload creates opaque metadata and private index', r.status === 201 && /^[a-f0-9]{16}$/.test(mediaId || '') && r.json.item.width === 1 && r.json.item.height === 1 && fs.existsSync(path.join(TMP, 'data', 'media.json')), r.text);
+  r = await req('GET', '/api/media');
+  check('media library lists newest images', r.status === 200 && r.json.length === 1 && r.json[0].id === mediaId && r.json[0].name === 'Hero portrait.png', r.text);
+  r = await req('PATCH', '/api/media/' + mediaId, { focal: { x: 2, y: 0.5 } }, { admin: true });
+  check('media focal point rejects out-of-range coordinates', r.status === 400);
+  r = await req('PATCH', '/api/media/' + mediaId, { alt: 'Founder speaking on stage', name: 'Founder portrait', focal: { x: 0.28, y: 0.61 } }, { admin: true });
+  check('media metadata updates alt, name and focal point', r.status === 200 && r.json.item.alt === 'Founder speaking on stage' && r.json.item.name === 'Founder portrait' && r.json.item.focal.x === 0.28, r.text);
+  const tinyJpeg = Buffer.from('ffd8ffc00011080001000103011100021100031100ffd9', 'hex');
+  r = await req('POST', '/api/media/0000000000000000/variant?w=480', tinyJpeg, { raw: true, admin: true, type: 'image/jpeg' });
+  check('variant upload requires an existing media id', r.status === 404);
+  r = await req('POST', '/api/media/' + mediaId + '/variant?w=700', tinyJpeg, { raw: true, admin: true, type: 'image/jpeg' });
+  check('variant upload accepts only the three owned widths', r.status === 400);
+  r = await req('POST', '/api/media/' + mediaId + '/variant?w=960', tinyJpeg, { raw: true, admin: true, type: 'image/jpeg' });
+  check('valid JPEG fallback variant is stored under its public width URL', r.status === 200 && r.json.item.variants.join(',') === '960', r.text);
+  r = await req('POST', '/api/media/' + mediaId + '/variant?w=480', Buffer.alloc(2 * 1024 * 1024 + 1), { raw: true, admin: true, type: 'image/jpeg', headers: { 'X-Forwarded-For': '198.51.100.53' } });
+  check('generated variants enforce the 2 MB cap', r.status === 413, r.status);
+  r = await req('GET', '/media/' + mediaId + '-960.webp');
+  check('public media variant uses stored type and immutable caching', r.status === 200 && r.headers.get('content-type') === 'image/jpeg' && /immutable/.test(r.headers.get('cache-control') || '') && r.text.length > 0, r.text);
+  r = await req('GET', '/media/' + mediaId + '.png');
+  check('public original is served only through its exact opaque id and extension', r.status === 200 && r.headers.get('content-type') === 'image/png');
+  const traversalStatus = await rawHttpPath('/media/%2e%2e/server.js');
+  check('public media route rejects path traversal', traversalStatus === 404, traversalStatus);
+  r = await req('POST', '/api/media?name=Unused.png', tinyPng, { raw: true, admin: true, type: 'image/png' });
+  const unusedMediaId = r.json && r.json.item && r.json.item.id;
+  r = await req('DELETE', '/api/media/' + unusedMediaId, undefined, { admin: true });
+  check('an unused image can be deleted from the library', r.status === 200 && r.json.ok && !fs.existsSync(path.join(TMP, 'data', 'media', unusedMediaId + '.png')), r.text);
+  r = await req('POST', '/api/media?name=too-large.png', Buffer.alloc(8 * 1024 * 1024 + 1), { raw: true, admin: true, type: 'image/png', headers: { 'X-Forwarded-For': '198.51.100.50' } });
+  check('original image upload enforces the 8 MB cap', r.status === 413, r.status);
+  const quotaFile = path.join(TMP, 'data', 'media', 'deadbeefdeadbeef-1600.webp');
+  const quotaFd = fs.openSync(quotaFile, 'w'); fs.ftruncateSync(quotaFd, 500 * 1024 * 1024); fs.closeSync(quotaFd);
+  r = await req('POST', '/api/media?name=quota.png', tinyPng, { raw: true, admin: true, type: 'image/png', headers: { 'X-Forwarded-For': '198.51.100.51' } });
+  check('media library enforces the 500 MB total quota', r.status === 409 && /500 MB/.test(r.json.error), r.text);
+  fs.rmSync(quotaFile, { force: true });
+  let uploadThrottle;
+  for (let i = 0; i < 61; i++) uploadThrottle = await req('POST', '/api/media?name=bad.png', Buffer.from('bad'), { raw: true, admin: true, headers: { 'X-Forwarded-For': '198.51.100.52' } });
+  check('media uploads are throttled at sixty per ten minutes', uploadThrottle.status === 429, uploadThrottle.status);
+
   /* ---- publish + validation ---- */
   const cfg = {
     settings: { siteUrl: 'https://example.test', email: 'hi@example.test', phone: '+994 12 000 00 00', address: 'Baku',
@@ -184,8 +251,10 @@ async function main(){
     sectionAccent: { 'index.s1': 3, low: 0, high: 6, text: 'x' },
     itemOrder: { 'index.cases': ['c2', 'BAD', 'c1', 'c2'], 'bad/list': ['c1'] },
     hiddenItems: ['index.cases:c3', 'bad item', 'index.cases:UPPER'],
+    images: { 'index.hero': { id: mediaId, alt: 'Founder speaking on stage', focal: { x: 0.28, y: 0.61 } },
+      'bad/key': { id: mediaId }, 'index.bad': { id: 'not-an-id' } },
     pages: { about: { title: 'About us <b>', description: 'Desc "quoted"', ogImage: 'https://example.test/about-og.png' },
-      contact: { noindex: true }, article: { noindex: false, ogImage: 'javascript:bad' } },
+      contact: { noindex: true }, article: { noindex: false, ogImage: 'javascript:bad' }, work: { ogImage: mediaId } },
     i18n: { en: { 'nav.work': 'Cases' }, az: { 'nav.work': 'Keyslər' } },
     engines: [{ id: 'x', num: '01', name: 'E1 <script>', promise: 'p', href: 'a.html', detail: 'b.html', groups: [{ title: 'G', items: ['one', 'two'] }] }],
     enginesAz: [{ name: 'E1az', promise: 'paz', groups: [{ title: 'Gaz', items: ['bir', 'iki'] }] }],
@@ -205,8 +274,10 @@ async function main(){
   check('validation: editor layout fields cleaned', saved && saved.sectionOrder.index.length === 2 && saved.sectionOrder.about.length === 60 &&
     saved.sectionAccent['index.s1'] === 3 && !('low' in saved.sectionAccent) && !('high' in saved.sectionAccent) && !('text' in saved.sectionAccent) &&
     saved.itemOrder['index.cases'].join(',') === 'c2,c1' && !('bad/list' in saved.itemOrder) && saved.hiddenItems.join(',') === 'index.cases:c3', JSON.stringify(saved));
+  check('validation: image slots keep only safe keys, ids and focal points', saved && saved.images['index.hero'].id === mediaId && saved.images['index.hero'].alt === 'Founder speaking on stage' &&
+    saved.images['index.hero'].focal.x === 0.28 && !saved.images['bad/key'] && !saved.images['index.bad'], JSON.stringify(saved && saved.images));
   check('validation: page SEO fields are typed and URL-safe', saved && saved.pages.contact.noindex === true && saved.pages.article.noindex === false &&
-    saved.pages.article.ogImage === '' && saved.pages.about.ogImage === 'https://example.test/about-og.png', JSON.stringify(saved.pages));
+    saved.pages.article.ogImage === '' && saved.pages.about.ogImage === 'https://example.test/about-og.png' && saved.pages.work.ogImage === mediaId, JSON.stringify(saved.pages));
   const siteJs = readTmp('data/site.js');
   check('site.js regenerated + </script escaped', /hi@example\.test/.test(siteJs) && !/<\/script/.test(siteJs) && !/<\//.test(siteJs.replace(/<\\\//g, '')));
   check('sitemap uses new siteUrl and excludes noindex pages', /https:\/\/example\.test\/about\.html/.test(readTmp('sitemap.xml')) && !/contact\.html/.test(readTmp('sitemap.xml')));
@@ -217,6 +288,16 @@ async function main(){
   check('meta injection: per-page og:image overrides the site default', /property="og:image" content="https:\/\/example\.test\/about-og\.png"/.test(r.text) && /twitter:card" content="summary_large_image"/.test(r.text));
   r = await req('GET', '/contact.html');
   check('noindex page emits robots metadata', /<meta name="robots" content="noindex,nofollow">/.test(r.text));
+  r = await req('GET', '/work.html');
+  check('media ids resolve to absolute 1600px social-image URLs', new RegExp('property="og:image" content="https://example\\.test/media/' + mediaId + '-1600\\.webp"').test(r.text), r.text.match(/<meta property="og:image"[^>]*>/));
+  r = await req('DELETE', '/api/media/' + mediaId, undefined, { admin: true });
+  check('media deletion is blocked while a live slot references the image', r.status === 409 && Array.isArray(r.json.references) && r.json.references.includes('live:index.hero'), r.text);
+  const mediaIndexPath = path.join(TMP, 'data', 'media.json'), realMediaIndex = fs.readFileSync(mediaIndexPath, 'utf8');
+  fs.writeFileSync(mediaIndexPath, JSON.stringify(Array.from({ length: 500 }, (_, index) => ({ id: index.toString(16).padStart(16, '0'), name: 'Item ' + index,
+    alt: '', width: 1, height: 1, bytes: 24, type: 'image/png', ext: 'png', variants: [], variantTypes: {}, variantBytes: {}, focal: { x: 0.5, y: 0.5 }, uploadedAt: new Date().toISOString() }))));
+  r = await req('POST', '/api/media?name=over-count.png', tinyPng, { raw: true, admin: true, type: 'image/png', headers: { 'X-Forwarded-For': '198.51.100.54' } });
+  check('media library enforces the 500-item cap', r.status === 409 && /500 images/.test(r.json.error), r.text);
+  fs.writeFileSync(mediaIndexPath, realMediaIndex);
   r = await req('GET', '/article.html');
   check('Article structured data emitted with publishing fields', /"@type":"Article"/.test(r.text) && /"name":"Priya Anand"/.test(r.text) && /"datePublished":"2026-09-01"/.test(r.text));
   r = await req('GET', '/role-detail.html');

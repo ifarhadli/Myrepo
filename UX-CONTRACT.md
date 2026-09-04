@@ -16,7 +16,8 @@ No external business policy is maintained in this repository yet. `README.md` do
 ## Visual contract
 
 - `DESIGN.md` records the visual system and accepted brand direction.
-- `css/style.css` owns public runtime tokens; `css/admin.css` owns the deliberately independent editor system.
+- `css/style.css` owns public runtime tokens; `css/editor.css` and
+  `css/admin.css` own deliberately independent authenticated control systems.
 - `js/site-config.js` applies published owner overrides to the public tokens.
 - Supported theme: light/dark surfaces within one brand theme.
 
@@ -31,6 +32,7 @@ No external business policy is maintained in this repository yet. `README.md` do
 | Dialog | Native `<dialog>` with owned focus/return contract | `js/editor.js`, `js/admin.js` | publish / discard / destructive | keyboard browser smoke |
 | Drawer/Sheet | Non-modal editor sheet | `js/editor.js`, `css/editor.css` | design-left / operations-right | browser responsive smoke |
 | CRUD | Editor/admin API clients + server routes | `js/editor.js`, `js/admin.js`, `server.js` | draft / publish / submission state / account / notification recipients / delete / reset | integration suite |
+| File upload | Media panel + opaque media API | `js/editor.js`, `server.js` | picker / drag-drop / retry / responsive variants | integration + browser upload smoke |
 
 Table selection and date-picker ownership are omitted because the editor has neither selection nor a date-picker; structured-data dates use typed ISO text fields.
 
@@ -53,10 +55,20 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - Section and item drag handles have adjacent up/down or equivalent keyboard
   actions. Section order changes only among direct `<main>` siblings; the hero
   remains outside that ordering boundary.
+- Images can be added only to authored `data-image` slots. The slot owns crop
+  geometry; the owner controls a per-use alt string and focal point. Focal
+  placement has both a direct image target and keyboard-operable horizontal /
+  vertical range controls. Empty slots preserve the authored placeholder.
+- The media picker accepts PNG, JPEG and WebP, states the 8 MB limit before
+  selection, exposes per-file preparation/upload/progress/failure/Retry state,
+  and never accepts SVG. The browser makes the 480/960/1600 responsive copies
+  without upscaling; the server verifies the bytes again.
 
 ## Dataset navigation
 
 - The submissions filter is transient because it is a single, non-shareable administrative view over a small local dataset.
+- Media search is immediate and local because the library is capped at 500
+  items. It has an app-owned clear action; selection is explicit and singular.
 - Empty and failure states render inside the table region.
 - Bulk selection is not supported. Delete-all always requires the owned confirmation dialog.
 
@@ -79,6 +91,9 @@ Table selection and date-picker ownership are omitted because the editor has nei
 | Save lead recipients | Settings → Lead notifications | button disabled | open Settings | inline success + source refresh | chip list retained + linked error | action remains available | `js/editor.js` |
 | Send notification test | Send a test email | pessimistic, duplicate blocked | open Settings | exact delivered recipients | no automatic retry; inline failure | trigger remains available | `js/editor.js` |
 | Edit page SEO | This page fields | local commit + normal draft autosave | open This page sheet | live search/share previews | invalid URL retained with linked correction | invalid field | `js/editor.js` |
+| Upload media | picker or slot drop | per-file preparation, progress and stage label | open Media sheet | Ready row + thumbnail + toast | failed row retains file + Retry | upload row / picker | `js/editor.js`, `server.js` |
+| Assign image slot | Use here / direct drop | metadata save when needed | current page | image and focal crop repaint live | draft unchanged if metadata save fails | Media sheet | `js/editor.js` |
+| Delete media | Delete from library + confirm | pessimistic request, confirm disabled | open Media sheet | item removed + toast | item retained + error; blocked uses named | invoking item / sheet | `js/editor.js`, `server.js` |
 
 ## Navigation and responsive behavior
 
@@ -98,7 +113,7 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - The on-page editor creates the same owned `<dialog>` behavior for Publish,
   Discard and lead deletion. Dialogs trap focus, Escape cancels, and focus
   returns to the invoking control.
-- Editor Design is a non-modal left sheet so the owner can inspect the page
+- Editor Design and Media are non-modal left sheets so the owner can inspect the page
   while changing it. Inbox, Settings and This page are non-modal right sheets. Escape
   closes a sheet and returns focus; dialogs opened from a sheet sit above it.
 - Cancel is initially focused, Escape cancels, and the browser restores focus to the invoking control.
@@ -112,6 +127,10 @@ Table selection and date-picker ownership are omitted because the editor has nei
   test-email delivery disable their triggers; test email is non-idempotent and
   is never retried automatically. Public forms suppress duplicate submit while
   pending. Editor drafts debounce for 1.5 seconds and retain an immediate local browser copy.
+- Each media file has independent visible progress. A failed upload is never
+  retried automatically; Retry reuses an already-created original when one
+  exists and regenerates its responsive variants. Slot changes remain in the
+  normal draft/undo path while library metadata writes are pessimistic.
 - Failed publish keeps the draft. Failed lead notifications never discard the already persisted submission.
 - Session expiry returns to sign-in. Configuration writes use temporary files and atomic rename.
 - Offline editor changes remain in one local browser copy and reconcile by the
@@ -140,9 +159,11 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - Public forms use `novalidate`, inline linked messages, `aria-invalid`, first-invalid focus, and server field-error mapping.
 - Admin configuration is normalized and scheme/date constrained on the server.
   Password changes and resets enforce the server policy; recovery failures use
-  one generic response. Per-page `ogImage` accepts only HTTP(S), and `noindex`
-  pages are omitted from the generated sitemap.
-- Secrets remain environment-only and are never copied into the public configuration or toast text. Recovery and lead-recipient addresses live only in private `data/admin.json`.
+  one generic response. Per-page and site-wide `ogImage` accept only HTTP(S)
+  or an owned 16-character media ID, and `noindex` pages are omitted from the
+  generated sitemap. Image slot keys and IDs are pattern constrained; focal
+  coordinates are finite values from 0 to 1 and alt text is length-capped.
+- Secrets remain environment-only and are never copied into the public configuration or toast text. Recovery and lead-recipient addresses live only in private `data/admin.json`. Media metadata and files live under private `data/` paths; public bytes are served only through opaque ID/width routes with immutable caching.
 
 ## Permission and clipboard
 

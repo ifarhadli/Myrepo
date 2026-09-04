@@ -24,6 +24,8 @@ const SITE_JS = path.join(DATA, 'site.js');
 const ADMIN_JSON = path.join(DATA, 'admin.json');
 const SUBS_JSON = path.join(DATA, 'submissions.json');
 const DRAFT_JSON = path.join(DATA, 'draft.json');
+const MEDIA_JSON = path.join(DATA, 'media.json');
+const MEDIA_DIR = path.join(DATA, 'media');
 /* the last few published versions — restorable from the editor's History panel */
 const HISTORY_DIR = path.join(DATA, 'history');
 const HISTORY_KEEP = 10;
@@ -36,7 +38,12 @@ const COOKIE = 'om_admin';
 const SESSION_TTL = 1000 * 60 * 60 * 12; // 12h
 const RECOVERY_TTL = process.env.NODE_ENV === 'test' && Number(process.env.RECOVERY_TTL_MS) > 0 ? Number(process.env.RECOVERY_TTL_MS) : 30 * 60 * 1000;
 const MAX_BODY = 2 * 1024 * 1024;        // 2 MB — site.json with full copy overrides
-const PRIVATE_FILES = new Set(['admin.json', 'submissions.json', 'draft.json']);
+const MAX_MEDIA_ORIGINAL = 8 * 1024 * 1024;
+const MAX_MEDIA_VARIANT = 2 * 1024 * 1024;
+const MAX_MEDIA_ITEMS = 500;
+const MAX_MEDIA_BYTES = 500 * 1024 * 1024;
+const MEDIA_WIDTHS = [480, 960, 1600];
+const PRIVATE_FILES = new Set(['admin.json', 'submissions.json', 'draft.json', 'media.json']);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -56,6 +63,11 @@ function writeTextAtomic(file, text){
   fs.writeFileSync(tmp, text);
   fs.renameSync(tmp, file);
 }
+function writeBufferAtomic(file, buffer){
+  const tmp = file + '.' + process.pid + '.tmp';
+  fs.writeFileSync(tmp, buffer);
+  fs.renameSync(tmp, file);
+}
 function writeJsonAtomic(file, obj){ writeTextAtomic(file, JSON.stringify(obj, null, 2) + '\n'); }
 const DEFAULT_SITE = {
   version: 1, updatedAt: null,
@@ -72,11 +84,104 @@ const DEFAULT_SITE = {
   analytics: { gaId: '', consentScript: '' },
   structured: { orgLegalName: '', orgLogoUrl: '', articleAuthor: '', articleDatePublished: '', articleDateModified: '',
     jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
-  hiddenSections: [], sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [],
+  hiddenSections: [], sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
   pages: {}, i18n: { en: {}, az: {} },
   engines: null, enginesAz: null, industries: null, industriesAz: null
 };
 function loadSite(){ return Object.assign({}, DEFAULT_SITE, readJson(SITE_JSON, {})); }
+
+function cleanMediaName(value){
+  return String(value || 'Untitled image').replace(/[\\/\0-\x1f\x7f]+/g, '-').replace(/\s+/g, ' ').trim().slice(0, 180) || 'Untitled image';
+}
+function cleanFocal(value){
+  if (!isPlain(value)) return { x: 0.5, y: 0.5 };
+  const x = Number(value.x), y = Number(value.y);
+  return {
+    x: Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0.5,
+    y: Number.isFinite(y) ? Math.max(0, Math.min(1, y)) : 0.5
+  };
+}
+function loadMedia(){
+  const raw = readJson(MEDIA_JSON, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.filter(item => isPlain(item) && /^[a-f0-9]{16}$/.test(item.id || '') && ['image/png', 'image/jpeg', 'image/webp'].includes(item.type))
+    .map(item => ({
+      id: item.id,
+      name: cleanMediaName(item.name),
+      alt: typeof item.alt === 'string' ? item.alt.slice(0, 500) : '',
+      width: Number.isInteger(item.width) ? item.width : 0,
+      height: Number.isInteger(item.height) ? item.height : 0,
+      bytes: Number.isInteger(item.bytes) ? item.bytes : 0,
+      type: item.type,
+      ext: ['png', 'jpg', 'webp'].includes(item.ext) ? item.ext : (item.type === 'image/png' ? 'png' : item.type === 'image/webp' ? 'webp' : 'jpg'),
+      variants: Array.isArray(item.variants) ? item.variants.filter(w => MEDIA_WIDTHS.includes(w)).sort((a, b) => a - b) : [],
+      variantTypes: isPlain(item.variantTypes) ? item.variantTypes : {},
+      variantBytes: isPlain(item.variantBytes) ? item.variantBytes : {},
+      focal: cleanFocal(item.focal),
+      uploadedAt: typeof item.uploadedAt === 'string' ? item.uploadedAt : null
+    }));
+}
+function saveMedia(items){ writeJsonAtomic(MEDIA_JSON, items); }
+function mediaDiskBytes(){
+  let total = 0;
+  try {
+    for (const name of fs.readdirSync(MEDIA_DIR)){
+      if (!/^[a-f0-9]{16}(?:-(?:480|960|1600)\.webp|\.(?:png|jpg|webp))$/.test(name)) continue;
+      try { const stat = fs.statSync(path.join(MEDIA_DIR, name)); if (stat.isFile()) total += stat.size; } catch (e) {}
+    }
+  } catch (e) {}
+  return total;
+}
+function imageInfo(buffer){
+  if (!Buffer.isBuffer(buffer) || !buffer.length) return null;
+  if (buffer.length >= 24 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))){
+    const width = buffer.readUInt32BE(16), height = buffer.readUInt32BE(20);
+    return width > 0 && height > 0 && width <= 30000 && height <= 30000 ? { type: 'image/png', ext: 'png', width, height } : null;
+  }
+  if (buffer.length >= 12 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff){
+    let offset = 2;
+    while (offset + 9 < buffer.length){
+      if (buffer[offset] !== 0xff){ offset++; continue; }
+      const marker = buffer[offset + 1];
+      if ([0xc0, 0xc1, 0xc2, 0xc3, 0xc5, 0xc6, 0xc7, 0xc9, 0xca, 0xcb, 0xcd, 0xce, 0xcf].includes(marker)){
+        const height = buffer.readUInt16BE(offset + 5), width = buffer.readUInt16BE(offset + 7);
+        return width > 0 && height > 0 && width <= 30000 && height <= 30000 ? { type: 'image/jpeg', ext: 'jpg', width, height } : null;
+      }
+      if (marker === 0xd8 || marker === 0xd9){ offset += 2; continue; }
+      const size = buffer.readUInt16BE(offset + 2);
+      if (size < 2) break;
+      offset += 2 + size;
+    }
+    return null;
+  }
+  if (buffer.length >= 30 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP'){
+    const chunk = buffer.toString('ascii', 12, 16);
+    let width = 0, height = 0;
+    if (chunk === 'VP8X' && buffer.length >= 30){
+      width = 1 + buffer.readUIntLE(24, 3); height = 1 + buffer.readUIntLE(27, 3);
+    } else if (chunk === 'VP8 ' && buffer.length >= 30){
+      width = buffer.readUInt16LE(26) & 0x3fff; height = buffer.readUInt16LE(28) & 0x3fff;
+    } else if (chunk === 'VP8L' && buffer.length >= 25 && buffer[20] === 0x2f){
+      width = 1 + (((buffer[22] & 0x3f) << 8) | buffer[21]);
+      height = 1 + ((buffer[24] << 6) | ((buffer[23] & 0x0f) << 2) | (buffer[22] >> 6));
+    }
+    return width > 0 && height > 0 && width <= 30000 && height <= 30000 ? { type: 'image/webp', ext: 'webp', width, height } : null;
+  }
+  return null;
+}
+function mediaReferences(id){
+  const refs = [];
+  const inspect = (site, prefix) => {
+    if (!isPlain(site)) return;
+    if (isPlain(site.images)) for (const key of Object.keys(site.images)) if (site.images[key] && site.images[key].id === id) refs.push(prefix + key);
+    if (site.settings && site.settings.ogImage === id) refs.push(prefix + 'settings.ogImage');
+    if (isPlain(site.pages)) for (const key of Object.keys(site.pages)) if (site.pages[key] && site.pages[key].ogImage === id) refs.push(prefix + 'pages.' + key + '.ogImage');
+  };
+  inspect(loadSite(), 'live:');
+  const draft = readDraft(); if (draft) inspect(draft.draft, 'draft:');
+  listHistory().forEach(version => inspect(version.site, 'history:' + version.id + ':'));
+  return Array.from(new Set(refs));
+}
 
 /* Everything the browser will evaluate as JS — keep "</script" from
    terminating the tag. */
@@ -168,6 +273,10 @@ function cleanIdArray(arr, max){
   if (!Array.isArray(arr)) return [];
   return Array.from(new Set(arr.filter(x => typeof x === 'string' && /^[a-z0-9-]{1,40}$/.test(x)))).slice(0, max || 60);
 }
+function safeMediaValue(value){
+  const trimmed = String(value || '').trim();
+  return /^[a-f0-9]{16}$/.test(trimmed) || /^https?:\/\//i.test(trimmed) ? trimmed.slice(0, 2000) : '';
+}
 const FONT_PRESETS = {
   'bricolage-inter': ['Bricolage Grotesque', 'Inter', 'JetBrains Mono'],
   'sora-dmsans': ['Sora', 'DM Sans', 'Fira Code'],
@@ -190,7 +299,8 @@ function validateSite(input){
     return m && schemes.includes(m[1].toLowerCase()) ? v : '';
   };
   for (const k of ['linkedin', 'privacyUrl', 'termsUrl']) site.settings[k] = safeLink(site.settings[k], ['http', 'https', 'mailto', 'tel']);
-  for (const k of ['siteUrl', 'ogImage']) site.settings[k] = /^https?:\/\//i.test(site.settings[k] || '') ? site.settings[k].trim() : '';
+  site.settings.siteUrl = /^https?:\/\//i.test(site.settings.siteUrl || '') ? site.settings.siteUrl.trim() : '';
+  site.settings.ogImage = safeMediaValue(site.settings.ogImage);
   site.settings.schedulerUrl = /^https:\/\//i.test(site.settings.schedulerUrl || '') ? site.settings.schedulerUrl.trim() : '';
   if (isPlain(input.features)) for (const k of Object.keys(site.features)) if (k in input.features) site.features[k] = !!input.features[k];
   if (isPlain(input.design)){
@@ -244,12 +354,20 @@ function validateSite(input){
     site.hiddenItems = Array.from(new Set(input.hiddenItems.filter(value => typeof value === 'string' &&
       /^[a-z0-9.-]{1,60}:[a-z0-9-]{1,40}$/.test(value)))).slice(0, 500);
   }
+  if (isPlain(input.images)) for (const key of Object.keys(input.images)){
+    const raw = input.images[key];
+    if (!/^[a-z0-9.-]{1,60}$/.test(key) || !isPlain(raw) || !/^[a-f0-9]{16}$/.test(raw.id || '')) continue;
+    const image = { id: raw.id };
+    if (typeof raw.alt === 'string') image.alt = raw.alt.slice(0, 500);
+    if (isPlain(raw.focal)) image.focal = cleanFocal(raw.focal);
+    site.images[key] = image;
+  }
   if (isPlain(input.pages)) for (const k of Object.keys(input.pages)){
     if (!/^[a-z0-9-]{1,60}$/i.test(k) || !isPlain(input.pages[k])) continue;
     const raw = input.pages[k], p = {};
     if (typeof raw.title === 'string') p.title = raw.title.slice(0, 1000);
     if (typeof raw.description === 'string') p.description = raw.description.slice(0, 1000);
-    if (typeof raw.ogImage === 'string') p.ogImage = /^https?:\/\//i.test(raw.ogImage.trim()) ? raw.ogImage.trim().slice(0, 2000) : '';
+    if (typeof raw.ogImage === 'string') p.ogImage = safeMediaValue(raw.ogImage);
     if (typeof raw.noindex === 'boolean') p.noindex = raw.noindex;
     if (Object.keys(p).length) site.pages[k] = p;
   }
@@ -292,6 +410,7 @@ function publishSummary(before, after){
       { order: after.sectionOrder || {}, hidden: after.hiddenSections || [], accent: after.sectionAccent || {} }),
     items: diffCount({ order: before.itemOrder || {}, hidden: before.hiddenItems || [] },
       { order: after.itemOrder || {}, hidden: after.hiddenItems || [] }),
+    images: diffCount(before.images || {}, after.images || {}),
     catalogue: diffCount({ engines: before.engines, enginesAz: before.enginesAz, industries: before.industries, industriesAz: before.industriesAz },
       { engines: after.engines, enginesAz: after.enginesAz, industries: after.industries, industriesAz: after.industriesAz }),
     design: diffCount(before.design || {}, after.design || {}),
@@ -386,6 +505,7 @@ const submitLimiter = limiter(30, 10 * 60 * 1000);
 const recoverLimiter = limiter(3, 15 * 60 * 1000);
 const resetLimiter = limiter(5, 15 * 60 * 1000);
 const notifyTestLimiter = limiter(3, 10 * 60 * 1000);
+const mediaUploadLimiter = limiter(60, 10 * 60 * 1000);
 
 /* ---------- http helpers ---------- */
 function send(res, status, body, headers){
@@ -395,7 +515,7 @@ function send(res, status, body, headers){
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()'
   }, headers || {});
-  if (typeof body === 'string' || Buffer.isBuffer(body)) h['Content-Length'] = Buffer.byteLength(body);
+  if ((typeof body === 'string' || Buffer.isBuffer(body)) && h['Content-Length'] == null) h['Content-Length'] = Buffer.byteLength(body);
   res.writeHead(status, h);
   res.end(body);
 }
@@ -416,6 +536,23 @@ function readBody(req){
       try { resolve(JSON.parse(raw)); } catch (e) { reject(new Error('invalid JSON')); }
     });
     req.on('error', reject);
+  });
+}
+function readRawBody(req, limit){
+  return new Promise((resolve, reject) => {
+    let size = 0, settled = false; const chunks = [];
+    req.on('data', chunk => {
+      size += chunk.length;
+      if (settled) return;
+      if (size > limit){
+        settled = true;
+        const error = new Error('Image exceeds the upload size limit.'); error.status = 413;
+        reject(error); return;
+      }
+      chunks.push(chunk);
+    });
+    req.on('end', () => { if (!settled) resolve(Buffer.concat(chunks)); });
+    req.on('error', error => { if (!settled){ settled = true; reject(error); } });
   });
 }
 /* Mutating requests must come from our own pages: SameSite=Strict cookie
@@ -568,6 +705,12 @@ function pageInfo(file){
   return { key: file.replace(/\.html$/i, ''), file, title, description, sections };
 }
 
+function resolveMediaUrl(value, base, width){
+  const raw = String(value || '').trim();
+  if (/^[a-f0-9]{16}$/.test(raw)) return (base || '') + '/media/' + raw + '-' + (width || 1600) + '.webp';
+  return /^https?:\/\//i.test(raw) ? raw : '';
+}
+
 function structuredData(html, key, site, base, loc){
   if (!base || !loc) return null;
   const settings = site.settings || {};
@@ -596,7 +739,8 @@ function structuredData(html, key, site, base, loc){
     };
     if (desc) article.description = stripTags(desc);
     if (cfg.articleDateModified) article.dateModified = cfg.articleDateModified;
-    if (settings.ogImage) article.image = settings.ogImage;
+    const articleImage = resolveMediaUrl((site.pages && site.pages.article && site.pages.article.ogImage) || settings.ogImage, base, 1600);
+    if (articleImage) article.image = articleImage;
     graph.push(article);
   }
 
@@ -640,6 +784,19 @@ async function sendRecoveryEmail(req, token){
   });
 }
 
+function mediaRecordForClient(item){
+  return {
+    id: item.id, name: item.name, alt: item.alt, width: item.width, height: item.height,
+    bytes: item.bytes, type: item.type, variants: item.variants.slice(), focal: item.focal,
+    uploadedAt: item.uploadedAt, usedBy: mediaReferences(item.id)
+  };
+}
+function mediaPath(item){ return path.join(MEDIA_DIR, item.id + '.' + item.ext); }
+function variantPath(id, width){ return path.join(MEDIA_DIR, id + '-' + width + '.webp'); }
+function mediaQuotaAllows(extraBytes, replacingBytes){
+  return mediaDiskBytes() - (replacingBytes || 0) + extraBytes <= MAX_MEDIA_BYTES;
+}
+
 /* Inject admin-set title / description / og into a page as it is served. */
 function injectMeta(html, key, site){
   const pg = (site.pages && site.pages[key]) || {};
@@ -665,7 +822,7 @@ function injectMeta(html, key, site){
     if (/<meta\s+name="robots"[^>]*>/i.test(html)) html = html.replace(/<meta\s+name="robots"[^>]*>/i, '<meta name="robots" content="noindex,nofollow">');
     else extra.push('<meta name="robots" content="noindex,nofollow">');
   }
-  const img = pg.ogImage || (site.settings && site.settings.ogImage);
+  const img = resolveMediaUrl(pg.ogImage || (site.settings && site.settings.ogImage), base, 1600);
   if (img){
     const tag = '<meta property="og:image" content="' + escapeHtml(img) + '">';
     if (/property="og:image"/i.test(html)) html = html.replace(/<meta\s+property="og:image"[^>]*>/i, tag);
@@ -760,6 +917,87 @@ async function api(req, res, url){
   /* ---- everything below needs a session ---- */
   if (!isAuthed(req)) return json(res, 401, { error: 'Not signed in.' });
   if (method !== 'GET' && !sameOrigin(req)) return json(res, 403, { error: 'forbidden' });
+
+  if (p === '/media' && method === 'GET'){
+    const items = loadMedia().sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
+    return json(res, 200, items.map(mediaRecordForClient));
+  }
+  if (p === '/media' && method === 'POST'){
+    if (!mediaUploadLimiter(clientIp(req))) return json(res, 429, { error: 'Too many uploads. Wait 10 minutes.' });
+    const items = loadMedia();
+    if (items.length >= MAX_MEDIA_ITEMS) return json(res, 409, { error: 'The media library limit of 500 images has been reached.' });
+    let buffer;
+    try { buffer = await readRawBody(req, MAX_MEDIA_ORIGINAL); } catch (e) { return json(res, e.status || 400, { error: e.message }); }
+    const info = imageInfo(buffer);
+    if (!info) return json(res, 400, { error: 'Use a valid PNG, JPEG or WebP image. SVG files are not accepted.' });
+    if (!mediaQuotaAllows(buffer.length)) return json(res, 409, { error: 'The 500 MB media-library limit would be exceeded.' });
+    fs.mkdirSync(MEDIA_DIR, { recursive: true });
+    let id;
+    do { id = crypto.randomBytes(8).toString('hex'); } while (items.some(item => item.id === id));
+    const item = { id, name: cleanMediaName(url.searchParams.get('name')), alt: '', width: info.width, height: info.height,
+      bytes: buffer.length, type: info.type, ext: info.ext, variants: [], variantTypes: {}, variantBytes: {},
+      focal: { x: 0.5, y: 0.5 }, uploadedAt: new Date().toISOString() };
+    try {
+      writeBufferAtomic(mediaPath(item), buffer);
+      items.push(item); saveMedia(items);
+    } catch (e) {
+      try { fs.rmSync(mediaPath(item), { force: true }); } catch (ignore) {}
+      throw e;
+    }
+    return json(res, 201, { ok: true, item: mediaRecordForClient(item) });
+  }
+  const mediaVariant = p.match(/^\/media\/([a-f0-9]{16})\/variant$/);
+  if (mediaVariant && method === 'POST'){
+    if (!mediaUploadLimiter(clientIp(req))) return json(res, 429, { error: 'Too many uploads. Wait 10 minutes.' });
+    const width = Number(url.searchParams.get('w'));
+    if (!MEDIA_WIDTHS.includes(width)) return json(res, 400, { error: 'Variant width must be 480, 960 or 1600.' });
+    const items = loadMedia(), item = items.find(value => value.id === mediaVariant[1]);
+    if (!item) return json(res, 404, { error: 'Image not found.' });
+    let buffer;
+    try { buffer = await readRawBody(req, MAX_MEDIA_VARIANT); } catch (e) { return json(res, e.status || 400, { error: e.message }); }
+    const info = imageInfo(buffer);
+    if (!info || !['image/webp', 'image/jpeg'].includes(info.type)) return json(res, 400, { error: 'Variants must be valid WebP or JPEG images.' });
+    const file = variantPath(item.id, width);
+    let replacing = 0; try { replacing = fs.statSync(file).size; } catch (e) {}
+    if (!mediaQuotaAllows(buffer.length, replacing)) return json(res, 409, { error: 'The 500 MB media-library limit would be exceeded.' });
+    fs.mkdirSync(MEDIA_DIR, { recursive: true });
+    writeBufferAtomic(file, buffer);
+    if (!item.variants.includes(width)) item.variants.push(width);
+    item.variants.sort((a, b) => a - b);
+    item.variantTypes[String(width)] = info.type;
+    item.variantBytes[String(width)] = buffer.length;
+    saveMedia(items);
+    return json(res, 200, { ok: true, item: mediaRecordForClient(item) });
+  }
+  const mediaItem = p.match(/^\/media\/([a-f0-9]{16})$/);
+  if (mediaItem && method === 'PATCH'){
+    const items = loadMedia(), item = items.find(value => value.id === mediaItem[1]);
+    if (!item) return json(res, 404, { error: 'Image not found.' });
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (!isPlain(body) || !['alt', 'name', 'focal'].some(key => key in body)) return json(res, 400, { error: 'Provide alt text, a name or a focal point.' });
+    if ('alt' in body){ if (typeof body.alt !== 'string') return json(res, 400, { error: 'Alt text must be text.' }); item.alt = body.alt.trim().slice(0, 500); }
+    if ('name' in body){ if (typeof body.name !== 'string') return json(res, 400, { error: 'Image name must be text.' }); item.name = cleanMediaName(body.name); }
+    if ('focal' in body){
+      if (!isPlain(body.focal) || !Number.isFinite(Number(body.focal.x)) || !Number.isFinite(Number(body.focal.y)) || Number(body.focal.x) < 0 || Number(body.focal.x) > 1 || Number(body.focal.y) < 0 || Number(body.focal.y) > 1){
+        return json(res, 400, { error: 'Focal point coordinates must be between 0 and 1.' });
+      }
+      item.focal = cleanFocal(body.focal);
+    }
+    saveMedia(items);
+    return json(res, 200, { ok: true, item: mediaRecordForClient(item) });
+  }
+  if (mediaItem && method === 'DELETE'){
+    const items = loadMedia(), index = items.findIndex(value => value.id === mediaItem[1]);
+    if (index < 0) return json(res, 404, { error: 'Image not found.' });
+    const references = mediaReferences(mediaItem[1]);
+    if (references.length) return json(res, 409, { error: 'This image is still in use.', references });
+    const item = items[index];
+    fs.rmSync(mediaPath(item), { force: true });
+    MEDIA_WIDTHS.forEach(width => fs.rmSync(variantPath(item.id, width), { force: true }));
+    items.splice(index, 1); saveMedia(items);
+    return json(res, 200, { ok: true });
+  }
 
   if (p === '/site' && method === 'PUT'){
     let body;
@@ -916,7 +1154,30 @@ async function api(req, res, url){
   return json(res, 404, { error: 'no such endpoint' });
 }
 
-/* ---------- static files ---------- */
+/* ---------- public media + static files ---------- */
+function serveMedia(req, res, url, rawUrl){
+  if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed');
+  const rawPath = String(rawUrl || '').split('?')[0];
+  if (/\.{2}|%2e|%2f|%5c/i.test(rawPath)) return send(res, 404, 'Not found');
+  const match = url.pathname.match(/^\/media\/([a-f0-9]{16})(?:-(480|960|1600)\.webp|\.(png|jpg|webp))$/);
+  if (!match) return send(res, 404, 'Not found');
+  const item = loadMedia().find(value => value.id === match[1]);
+  if (!item) return send(res, 404, 'Not found');
+  let file, type;
+  if (match[2]){
+    const width = Number(match[2]);
+    if (!item.variants.includes(width)) return send(res, 404, 'Not found');
+    file = variantPath(item.id, width); type = item.variantTypes[String(width)] || 'image/webp';
+  } else {
+    if (match[3] !== item.ext) return send(res, 404, 'Not found');
+    file = mediaPath(item); type = item.type;
+  }
+  let buffer;
+  try { buffer = fs.readFileSync(file); } catch (e) { return send(res, 404, 'Not found'); }
+  const headers = { 'Content-Type': type, 'Cache-Control': 'public, max-age=31536000, immutable', 'Content-Length': buffer.length };
+  return send(res, 200, req.method === 'HEAD' ? '' : buffer, headers);
+}
+
 function serveStatic(req, res, url){
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); } catch (e) { return send(res, 400, 'Bad request'); }
@@ -927,7 +1188,7 @@ function serveStatic(req, res, url){
   let file = path.normalize(path.join(ROOT, pathname));
   if (!file.startsWith(ROOT + path.sep) && file !== ROOT) return send(res, 403, 'Forbidden');
   const rel = path.relative(ROOT, file).split(path.sep);
-  if (rel[0] === 'data' && (PRIVATE_FILES.has(rel[1]) || rel[1] === 'history')) return send(res, 403, 'Forbidden');
+  if (rel[0] === 'data' && (PRIVATE_FILES.has(rel[1]) || rel[1] === 'history' || rel[1] === 'media')) return send(res, 403, 'Forbidden');
   if (rel[0].startsWith('.') || rel[0] === 'node_modules' || rel[0] === 'server.js' || rel[0] === 'package.json') return send(res, 404, 'Not found');
 
   /* clean URLs: /about -> about.html */
@@ -973,6 +1234,8 @@ function main(){
       api(req, res, url).catch(err => { console.error(err); json(res, 500, { error: 'server error' }); });
       return;
     }
+    const rawPath = String(req.url || '').split('?')[0];
+    if (/^\/media(?:\/|$|%)/i.test(rawPath)) return serveMedia(req, res, url, req.url);
     try { serveStatic(req, res, url); } catch (err) { console.error(err); send(res, 500, 'Server error'); }
   });
   server.listen(PORT, HOST, () => {

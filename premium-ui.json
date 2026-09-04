@@ -14,6 +14,7 @@
   },
   "evidence": {
     "crudFullFlow": "test/server.test.js",
-    "failurePaths": "test/server.test.js"
+    "failurePaths": "test/server.test.js",
+    "fileUploadFlow": "test/browser-smoke.js"
   }
 }
