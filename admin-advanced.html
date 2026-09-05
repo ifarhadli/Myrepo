@@ -18,6 +18,10 @@
   <form class="login-card" id="loginForm" autocomplete="off" novalidate>
     <div class="brand">Omni<span>Mark</span> <em>admin</em></div>
     <p class="muted">Sign in to edit the site. The password was printed in the terminal the first time <code>node server.js</code> ran.</p>
+    <div id="advancedEmailField" hidden>
+      <label for="loginEmail">Email</label>
+      <input id="loginEmail" type="email" inputmode="email" autocomplete="username" aria-describedby="loginErr" aria-invalid="false">
+    </div>
     <label for="loginPw">Password</label>
     <div class="password-row">
       <input id="loginPw" type="password" autocomplete="current-password" aria-describedby="loginErr" aria-invalid="false" required>

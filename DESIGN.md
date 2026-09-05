@@ -162,6 +162,15 @@ crosshair focal control backed by keyboard-accessible axis sliders. On-page
 slot actions are restrained dark pills that appear on hover/focus; empty slots
 keep the action visible so absence never becomes an undiscoverable state.
 
+Users and Preview reuse the right operations sheet rather than introducing a
+new dashboard language. User rows pair a written role/status chip with native
+role selection and explicit Disable/Restore/Resend actions; destructive access
+changes use the shared confirmation dialog. Permission-denied controls either
+disappear when irrelevant (Settings/Users for Editors) or stay visibly disabled
+with concise guidance when the surrounding task remains useful (media deletion).
+The draft-preview surface keeps the public design intact under a slim ink ribbon
+with signal text: “Preview — not live.” It never resembles the editor bar.
+
 Collection listings reuse the established public case, article, role, team and
 testimonial compositions instead of introducing admin-looking cards. The
 editor adds one compact neutral control rail above each item; public geometry

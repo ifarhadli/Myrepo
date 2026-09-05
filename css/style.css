@@ -711,3 +711,12 @@ html:not(.show-verified-proof) [data-proof]{display:none!important}
 
 /* ---------- drawer disclosure buttons: kill the UA button chrome ---------- */
 .drawer button.d-link{background:none;border:0;width:100%;font:inherit;color:inherit;cursor:pointer;text-align:left;border-radius:0}
+
+/* ---------- private draft preview ---------- */
+html.omni-preview{scroll-padding-top:52px}
+html.omni-preview body{padding-top:40px}
+html.omni-preview .topnav{top:40px}
+.omni-preview-ribbon{position:fixed;z-index:var(--z-toast);inset:0 0 auto;min-height:40px;display:flex;align-items:center;justify-content:center;gap:12px;padding:8px 18px;background:#171821;color:#fff;border-bottom:1px solid rgba(255,255,255,.16);font:500 12px/1.35 var(--font-body);text-align:center}
+.omni-preview-ribbon strong{color:var(--signal);font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.omni-preview-ribbon span{color:#d7d9df}
+@media(max-width:600px){html.omni-preview body{padding-top:52px}html.omni-preview .topnav{top:52px}.omni-preview-ribbon{min-height:52px;gap:5px;flex-direction:column;padding:7px 12px}.omni-preview-ribbon span{font-size:11px}}

@@ -27,7 +27,7 @@ html.omni-editing .case-cover{display:block;min-height:220px;border:1px dashed v
 }
 .omni-bar{position:fixed;z-index:700;inset:0 0 auto;height:var(--oe-bar);display:flex;align-items:center;gap:5px;padding:6px 10px;background:var(--oe-ink);color:#fff;border-bottom:1px solid #30323d;box-shadow:0 7px 22px rgba(0,0,0,.18);overflow-x:auto;overflow-y:hidden;white-space:nowrap;scrollbar-width:thin}
 .omni-bar__desktop{display:contents}.omni-bar__mobile{display:none}
-.omni-bar__brand{display:flex;align-items:center;gap:7px;padding:0 7px 0 2px;font:600 12px/1 "JetBrains Mono",monospace;letter-spacing:.02em}
+.omni-bar__brand{display:flex;align-items:center;gap:7px;padding:0 7px 0 2px;font:600 12px/1 "JetBrains Mono",monospace;letter-spacing:.02em}.omni-bar__brand small{padding:3px 5px;border:1px solid #4b4e59;border-radius:999px;color:#c9ccd5;font-size:8px;letter-spacing:.08em;text-transform:uppercase}
 .omni-bar__dot{width:8px;height:8px;border-radius:50%;background:var(--oe-signal);box-shadow:0 0 0 3px rgba(198,242,78,.15)}
 .omni-bar__group{display:flex;align-items:center;gap:3px;padding-left:5px;border-left:1px solid #343641}
 .omni-bar button,.omni-bar select{height:34px;border:1px solid transparent;border-radius:7px;background:transparent;color:#fff;font-size:12px;font-weight:600;padding:0 9px;line-height:1;cursor:pointer}
@@ -198,3 +198,10 @@ html.omni-phone .omni-page-frame .side-nav{position:static}html.omni-phone .omni
 .omni-history__item strong{font-size:13px}
 .omni-history__item span{grid-column:1;font-size:12px;opacity:.72}
 .omni-history__item button{grid-row:1/3;grid-column:2}
+
+/* ---------- users, roles and private preview links ---------- */
+.omni-permission-note{display:block;margin-top:8px;padding:8px 10px;border-radius:7px;background:#f0f1f4;color:var(--oe-muted);font-size:11px;line-height:1.45}
+.omni-preview-panel,.omni-user-invite,.omni-users{display:grid;gap:14px}
+.omni-preview-link{display:grid;gap:8px;padding:12px;border:1px solid var(--oe-line);border-radius:10px;background:#fff}.omni-preview-link label{font:700 11px/1.3 "JetBrains Mono",monospace}.omni-preview-link textarea{width:100%;min-height:92px;padding:9px 10px;border:1px solid var(--oe-line);border-radius:8px;background:#f7f7f5;color:var(--oe-ink);font:500 12px/1.45 "JetBrains Mono",monospace;resize:none;overflow-wrap:anywhere}.omni-preview-link .omni-inline-actions a{background:var(--oe-ink)}
+.omni-user-invite{padding:14px;border:1px solid var(--oe-line);border-radius:11px;background:#fff}.omni-user-invite h3{margin:0}.omni-user-list{display:grid;gap:9px}.omni-user-card{display:grid;gap:7px;padding:13px 14px;border:1px solid var(--oe-line);border-radius:10px;background:#fff}.omni-user-card__head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.omni-user-card__head strong{font-size:13px}.omni-user-card__head span{padding:4px 7px;border-radius:999px;background:#efeff3;color:var(--oe-muted);font:600 9px/1.2 "JetBrains Mono",monospace;text-transform:uppercase}.omni-user-card p{margin:0;color:var(--oe-ink);font-size:12px;overflow-wrap:anywhere}.omni-user-card>small{color:var(--oe-muted);font-size:10px}.omni-user-card .omni-inline-actions{margin-top:4px}.omni-user-card select{min-height:34px;padding:0 8px;border:1px solid var(--oe-line);border-radius:7px;background:#fff;color:var(--oe-ink);font-size:12px}.omni-user-card select:disabled{opacity:.58}
+@media(max-width:700px){.omni-user-card__head{display:grid}.omni-user-card__head span{justify-self:start}.omni-preview-link textarea{font-size:16px}}

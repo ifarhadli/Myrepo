@@ -4,11 +4,12 @@
    temporary copy of the site, and never touches real admin/submission data. */
 'use strict';
 const { spawn } = require('child_process');
-const fs = require('fs'), os = require('os'), path = require('path');
+const fs = require('fs'), http = require('http'), os = require('os'), path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const APP_PORT = 4300 + Math.floor(Math.random() * 400);
 const DEBUG_PORT = APP_PORT + 500;
+const MAIL_PORT = APP_PORT + 900;
 const BASE = 'http://127.0.0.1:' + APP_PORT;
 const TEST_PASSWORD = 'browser-smoke-pass';
 const candidates = [
@@ -31,10 +32,14 @@ fs.rmSync(path.join(tmpRoot, 'data', 'submissions.json'), { force: true });
 fs.rmSync(path.join(tmpRoot, 'data', 'media.json'), { force: true });
 fs.rmSync(path.join(tmpRoot, 'data', 'media'), { recursive: true, force: true });
 
+const sentMail = [];
+const mailServer = http.createServer((req,res)=>{let raw='';req.on('data',chunk=>{raw+=chunk;});req.on('end',()=>{try{sentMail.push(JSON.parse(raw));}catch(error){}res.writeHead(200,{'Content-Type':'application/json'});res.end('{"id":"browser-email"}');});});
+const mailReady = new Promise((resolve,reject)=>{mailServer.once('error',reject);mailServer.listen(MAIL_PORT,'127.0.0.1',resolve);});
+
 const app = spawn(process.execPath, ['server.js'], {
   cwd: tmpRoot,
   env: Object.assign({}, process.env, { PORT: String(APP_PORT), HOST: '127.0.0.1', ADMIN_PASSWORD: TEST_PASSWORD,
-    RESEND_API_KEY: '', NOTIFY_EMAIL_TO: '', NOTIFY_WEBHOOK_URL: '' }),
+    RESEND_API_KEY: 're_browser_test', RESEND_API_URL: 'http://127.0.0.1:' + MAIL_PORT + '/emails', NOTIFY_EMAIL_TO: '', NOTIFY_WEBHOOK_URL: '' }),
   stdio: ['ignore', 'pipe', 'pipe']
 });
 let appOut = '';
@@ -58,6 +63,7 @@ async function waitFor(fn, timeout){
 }
 
 async function main(){
+  await mailReady;
   const pageInfo = await waitFor(async () => {
     const list = await (await fetch('http://127.0.0.1:' + DEBUG_PORT + '/json/list')).json();
     return list.find(item => item.type === 'page');
@@ -202,6 +208,21 @@ async function main(){
   await go('/index.html?edit=1'); await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')`), 10000);
   state = await evaluate(`document.querySelector('[data-i18n="home.hero.h1"]').textContent`);
   check('server draft survives an editor reload', state === 'A sharper draft headline.', state);
+  await evaluate(`document.querySelector('[data-editor-preview]').click()`);await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Draft preview'`),3000);
+  await evaluate(`document.querySelector('[data-preview-create]').click()`);
+  const previewCreated = await waitFor(() => evaluate(`document.querySelector('#omniPreviewUrl')?.value||''`),8000);
+  state=await evaluate(`({url:document.querySelector('#omniPreviewUrl').value,status:document.querySelector('[data-preview-status]').textContent,message:document.querySelector('.omni-form-message').textContent})`);
+  check('Preview panel creates a clear expiring private link',!!previewCreated&&/preview=/.test(state.url)&&/active until/.test(state.status)&&/Anyone with this URL/.test(state.message),JSON.stringify(state));
+  const previewToken=new URL(state.url).searchParams.get('preview');
+  await go('/?preview='+encodeURIComponent(previewToken));await waitFor(() => evaluate(`document.documentElement.classList.contains('omni-preview')`),5000);
+  state=await evaluate(`({ribbon:document.querySelector('.omni-preview-ribbon')?.textContent,headline:document.querySelector('[data-i18n="home.hero.h1"]')?.textContent.trim().replace(/\\s+/g,' '),editor:!!document.querySelector('.omni-bar'),linked:[...document.querySelectorAll('a[href]')].some(a=>a.href.includes('preview='))})`);
+  check('shared preview is visibly non-live, uses the draft, and carries access through internal links',/Preview — not live/.test(state.ribbon||'')&&state.headline==='A sharper draft headline.'&&!state.editor&&state.linked,JSON.stringify(state));
+  await evaluate(`document.querySelector('form')?.requestSubmit()`);await pause(80);
+  check('preview blocks forms with an owned explanation',await evaluate(`/No information was sent/.test(document.querySelector('.omni-preview-ribbon span')?.textContent||'')`));
+  await go('/index.html?edit=1');await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')`),10000);
+  await evaluate(`document.querySelector('[data-editor-preview]').click()`);await waitFor(() => evaluate(`!document.querySelector('[data-preview-revoke]').hidden`),3000);await evaluate(`document.querySelector('[data-preview-revoke]').click()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-dialog[open]')`),3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`!document.querySelector('.omni-dialog')`),5000);
+  check('Preview panel revokes the current URL immediately',await evaluate(`fetch('/?preview='+${JSON.stringify(previewToken)}).then(response=>response.status===403)`));
+  await evaluate(`document.querySelector('.omni-panel__close').click()`);
   await evaluate(`document.querySelector('[data-editor-lang="az"]').click()`); await pause(100);
   await evaluate(`(() => { const el=document.querySelector('[data-i18n="home.hero.h1"]'); el.click(); el.textContent='Daha kəskin qaralama başlıq.'; el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); document.querySelector('[data-editor-lang="en"]').click(); })()`); await pause(100);
   state = await evaluate(`({ text:document.querySelector('[data-i18n="home.hero.h1"]').textContent, lang:document.documentElement.lang, az:window.OmniEditor.getState().draft.i18n.az['home.hero.h1'] })`);
@@ -449,12 +470,40 @@ async function main(){
   await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-mobile-publish]').disabled`),10000);
   await go('/index.html');state=await evaluate(`({editor:!!document.querySelector('.omni-bar'),headline:document.querySelector('[data-i18n="home.hero.h1"]').textContent.trim().replace(/\\s+/g,' '),hidden:getComputedStyle(document.querySelector('[data-section="index.s1"]')).display,signal:getComputedStyle(document.documentElement).getPropertyValue('--signal').trim().toUpperCase(),overflow:document.documentElement.scrollWidth-innerWidth})`);
   check('mobile Publish promotes text, section and design changes without public overflow',!state.editor&&state.headline==='Mobile editor headline.'&&state.hidden==='none'&&state.signal==='#B9E84A'&&state.overflow<=0,JSON.stringify(state));
+  /* ---- multi-user invitation and Editor permission presentation ---- */
+  await viewport(1366,900);await go('/index.html?edit=1');await waitFor(() => evaluate(`!!document.querySelector('[data-editor-users]')`),10000);
+  await evaluate(`document.querySelector('[data-editor-users]').click()`);await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Users and roles'&&document.querySelectorAll('.omni-user-card').length===1`),5000);
+  state=await evaluate(`({cards:document.querySelectorAll('.omni-user-card').length,role:document.querySelector('.omni-user-card__head span').textContent,inviteDisabled:document.querySelector('.omni-user-invite [type="submit"]').disabled})`);
+  check('legacy Admin invitation stays disabled until the owner email is set',state.cards===1&&/admin/.test(state.role)&&state.inviteDisabled,JSON.stringify(state));
+  await evaluate(`fetch('/api/account/recovery-email',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Requested-With':'OmniAdmin'},body:JSON.stringify({current:${JSON.stringify(TEST_PASSWORD)},email:'owner@example.test'})}).then(r=>r.json())`);
+  await evaluate(`document.querySelector('.omni-panel__close').click();document.querySelector('[data-editor-users]').click()`);await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Users and roles'&&!document.querySelector('.omni-user-invite [type="submit"]').disabled`),5000);
+  state=await evaluate(`({cards:document.querySelectorAll('.omni-user-card').length,role:document.querySelector('.omni-user-card__head span').textContent,inviteDisabled:document.querySelector('.omni-user-invite [type="submit"]').disabled})`);
+  check('Admin user panel enables invitations after the owner email is set',state.cards===1&&/admin/.test(state.role)&&!state.inviteDisabled,JSON.stringify(state));
+  const inviteMailStart=sentMail.length;
+  await evaluate(`(() => {document.querySelector('#omniInviteName').value='Browser Editor';document.querySelector('#omniInviteEmail').value='browser-editor@example.test';document.querySelector('#omniInviteRole').value='editor';document.querySelector('.omni-user-invite').requestSubmit();})()`);
+  const invitationArrived=await waitFor(()=>sentMail.length===inviteMailStart+1,8000);
+  await waitFor(() => evaluate(`document.querySelectorAll('.omni-user-card').length===2`),5000);
+  const invitation=sentMail[inviteMailStart],inviteToken=invitation&&((invitation.text||'').match(/reset=([a-f0-9]{64})/)||[])[1];
+  state=await evaluate(`({cards:document.querySelectorAll('.omni-user-card').length,pending:[...document.querySelectorAll('.omni-user-card__head span')].some(x=>/editor · invited/.test(x.textContent)),message:document.querySelector('.omni-user-invite .omni-form-message').textContent})`);
+  check('Admin invitation UI sends mail and adds a pending Editor',!!invitationArrived&&!!inviteToken&&state.cards===2&&state.pending&&/expires in 48 hours/.test(state.message),JSON.stringify(state));
+  await go('/admin.html?reset='+inviteToken);await waitFor(() => evaluate(`!document.querySelector('#resetForm').hidden`),3000);
+  await evaluate(`(() => {document.querySelector('#resetPw').value='browser-editor-pass';document.querySelector('#resetPw2').value='browser-editor-pass';document.querySelector('#resetForm').requestSubmit();})()`);
+  await waitFor(() => evaluate(`!document.querySelector('#loginForm').hidden&&!document.querySelector('#loginEmailField').hidden`),5000);
+  await evaluate(`(() => {document.querySelector('#loginEmail').value='browser-editor@example.test';document.querySelector('#loginPw').value='browser-editor-pass';document.querySelector('#loginForm').requestSubmit();})()`);
+  await waitFor(() => evaluate(`!!window.OmniEditor?.getState().user`),10000);
+  state=await evaluate(`(() => {const s=window.OmniEditor.getState();return{role:s.user.role,settings:!!document.querySelector('[data-editor-settings]'),users:!!document.querySelector('[data-editor-users]'),preview:!!document.querySelector('[data-editor-preview]'),publish:s.permissions.publish};})()`);
+  check('Editor sees content tools but no Admin-only Settings or Users',state.role==='editor'&&!state.settings&&!state.users&&state.preview&&state.publish,JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-editor-media]').click()`);await waitFor(() => evaluate(`document.querySelectorAll('.omni-media-card').length>0`),5000);await evaluate(`document.querySelector('.omni-media-card').click()`);await pause(80);
+  state=await evaluate(`({disabled:document.querySelector('[data-media-delete]').disabled,title:document.querySelector('[data-media-delete]').title,help:document.querySelector('#omniMediaDeleteHelp')?.textContent})`);
+  check('Editor media deletion is visibly unavailable with role guidance',state.disabled&&/Only an Admin/.test(state.title)&&/requires an Admin/.test(state.help||''),JSON.stringify(state));
+  await go('/admin-advanced.html');
+  check('Editor receives an owned access-denied page for the advanced dashboard',await evaluate(`/Admin access required/.test(document.body.textContent)&&!/id="app"/.test(document.documentElement.innerHTML)`));
   ws.close();
   console.log('\n' + pass + ' browser checks passed, ' + fail + ' failed');
 }
 
 main().catch(error => { fail++; console.error(error.stack || error); }).then(async () => {
-  app.kill(); browser.kill();
+  app.kill(); browser.kill();mailServer.close();
   await pause(100);
   const tempBase = path.resolve(os.tmpdir()) + path.sep;
   for (const target of [tmpRoot, browserProfile]){

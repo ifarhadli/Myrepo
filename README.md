@@ -33,6 +33,7 @@ js/i18n.js           swaps text on [data-i18n] elements, persists language choic
 js/main.js           interactions: nav, drawer, accordions, forms, cookie banner, motion
 js/editor.js         on-page editing, draft autosave, undo/redo, panels
 js/login.js          editor sign-in and authenticated redirect
+js/preview.js        public-safe shell for expiring private draft previews
 js/admin.js          advanced dashboard
 server.js            static server + /api for the dashboard (Node built-ins only)
 data/site.json       what the dashboard saved (source of truth)
@@ -40,7 +41,7 @@ data/site.js         generated from site.json; loaded in <head> on every page
 data/draft.json      private unpublished editor draft (git-ignored)
 data/media.json      private media index (git-ignored)
 data/media/          originals + responsive variants (git-ignored; served at /media/:id)
-data/admin.json      password/recovery + private notification settings (git-ignored)
+data/admin.json      users/roles/recovery + private notification settings (git-ignored)
 data/submissions.json  contact / teardown / newsletter entries (git-ignored)
 sitemap.xml, robots.txt  regenerated on every publish from Settings → Site URL
 DESIGN.md            maintained visual direction and design-token contract
@@ -66,12 +67,17 @@ page in a contained 390 px layout.
 
 On screens up to 700 px, edit mode becomes a thumb-reachable bottom dock with
 **Undo**, **Publish**, and **More**. More opens the page switcher, EN/AZ,
-Design, This page, Media, History, Inbox, Settings, and Discard in one
-full-screen sheet. Section and card **⋯** buttons replace hover controls with
+Design, This page, Media, History, Preview, Inbox, role-appropriate Settings
+and Users, and Discard in one full-screen sheet. Section and card **⋯** buttons replace hover controls with
 Hide/Show, Accent, Move, status, image, and delete actions. Image slots keep a
 visible camera button, and every text edit has a **Done** action docked above
 the on-screen keyboard. The desktop editor and its 390 px preview remain
 unchanged above this breakpoint.
+
+**Preview** creates one revocable private link to the saved draft. The link
+expires after seven days, is excluded from search, blocks forms, and carries a
+clear “Preview — not live” ribbon. Creating another link replaces the old one;
+publishing or discarding the draft revokes it automatically.
 
 Image positions are fixed by the design. Hover a hero, case, team, logo,
 article, case-study or mega-menu image slot and choose **Add image** / **Change
@@ -97,14 +103,24 @@ publish, the live site never changes by itself. Every draft remembers which
 live version it started from: if the live site was changed meanwhile (for
 example from the advanced dashboard), Publish stops and asks before
 overwriting, and the advanced dashboard asks before saving while an editor
-draft exists.
+ draft exists.
+
+Draft records also carry a revision and the last editor’s identity. If another
+person saves first, the stale browser keeps its local copy and must explicitly
+load the latest shared draft instead of overwriting it.
 
 The **Inbox** panel lists submissions newest first, tracks unread state,
 opens a reply in the owner's mail app and exports CSV. **This page** edits the
 current page's search title, description, social image and index visibility,
 with live Google and LinkedIn/WhatsApp previews. **Settings** covers contact
 details, public site settings, scheduler/analytics tools, proof gating,
-private lead recipients and account recovery/password controls.
+ private lead recipients and account recovery/password controls.
+
+Admins also see **Users**, where they can invite up to ten people by email,
+choose Admin or Editor, change roles, disable access, restore it, and resend a
+pending invitation. Editors can edit and publish content, use the inbox, and
+upload or update media. Only Admins can manage users, account/server settings,
+the advanced dashboard, or permanently delete media files.
 
 Cases, articles and jobs are real collections with clean public URLs such as
 `/work/saas-pipeline-rebuild`, `/insights/mql-is-dead` and
@@ -140,13 +156,15 @@ false links; add the approved URLs in *Settings* before launch.
 ### Password
 
 On first start the server generates a password, prints it once, and stores
-only a scrypt hash in `data/admin.json`. Set `ADMIN_PASSWORD=…` in the
-environment before the first run to choose it yourself. In editor
-*Settings → Account*, set a recovery email (Resend must also be configured)
-and change the password. *Forgot password?* then sends a single-use link that
-expires after 30 minutes; completing it rotates the session secret and signs
-out every existing session. Without recovery configuration, the sign-in page
-honestly explains the server-side `data/admin.json` reset fallback.
+only a scrypt hash in `data/admin.json`. Set `ADMIN_PASSWORD=…` and optionally
+`ADMIN_EMAIL=…` before the first run. In editor *Settings → Account*, set or
+change the Admin recovery email (Resend must also be configured) and password.
+*Forgot password?* sends a non-enumerating, single-use link that expires after
+30 minutes. An invitation uses the same set-password screen and expires after
+48 hours. Password and role changes invalidate only that user’s sessions.
+Legacy single-password `admin.json` files migrate automatically to one Admin
+account. Without recovery configuration, the sign-in page honestly explains
+the server-side reset fallback.
 
 ### Form notifications (set before launch)
 
@@ -179,6 +197,7 @@ suppression list there rather than deleting consent records.
 | `PORT` | `3000` | Platforms inject this. |
 | `HOST` | `127.0.0.1`, or `0.0.0.0` when `PORT` is set by a platform | |
 | `ADMIN_PASSWORD` | generated | Read only on first run. |
+| `ADMIN_EMAIL` | empty | Optional first Admin email, read only when a new `data/admin.json` is created. |
 | `SECURE_COOKIES` | auto | Set `1` to force the `Secure` cookie flag; auto-on when `x-forwarded-proto: https`. |
 | `TRUST_PROXY` | off | Set `1` behind a reverse proxy so rate limits key on `X-Forwarded-For`. |
 
@@ -197,15 +216,15 @@ private paths. Approved image bytes are exposed only through opaque,
 allow-listed `/media/<id>-<width>.webp` or original URLs. Uploads are
 magic-byte checked; originals are capped at 8 MB, variants at 2 MB, and the
 library at 500 files / 500 MB. Upload writes are throttled to 60 / 10 min per
-IP.
+IP. User invitations are limited to 10 / hour and preview-link creation to 20
+/ hour.
 
 Copy that may contain markup (strings tagged `html`) is sanitised in the
 on-page editor (allow-list: `b strong em i a[href] br`). Collection bodies use
 the wider editorial allow-list (`p h2 h3 ul ol li blockquote b strong em i
 a[href] br`) in both the editor and server, so scripts, event handlers and
 unsupported markup are removed before storage. The administrator can still
-paste analytics snippets, so do not hand the password to anyone you would not
-let configure executable site integrations.
+paste analytics snippets, so only the Admin role can reach those settings.
 
 The server binds to `127.0.0.1` by default; set `HOST=0.0.0.0` to expose it,
 and put it behind HTTPS (nginx / Caddy / a platform proxy) before doing so.
@@ -241,13 +260,14 @@ static-media export command yet.
 - Adding a string: put it in both `en` and `az` in `js/i18n-data.js` and
   reference it with `data-i18n="ns.key"`. It shows up in *Copy* at once.
 - `npm run check` syntax-checks every script.
-- `npm test` also runs [test/server.test.js](test/server.test.js): 155
+- `npm test` also runs [test/server.test.js](test/server.test.js): 189
   integration checks in a disposable copy covering serving, auth, publish,
   media and collection validation/storage, clean item routing, structured
-  data, submissions, acknowledgements and passwords.
+  data, submissions, acknowledgements, account migration, roles, concurrent
+  draft guards and preview links.
 - `npm run test:browser` drives an installed Chrome/Edge through its debugging
-  protocol: 76 responsive, media, collection lifecycle, focus, inert-state,
-  validation, editor and admin checks. Set `BROWSER_BIN` if Chromium is
+  protocol: 97 responsive, media, collection lifecycle, focus, inert-state,
+  validation, role, preview, editor and admin checks. Set `BROWSER_BIN` if Chromium is
   installed somewhere non-standard.
 - Static design rules live in [DESIGN.md](DESIGN.md) and shared UI behavior in
   [UX-CONTRACT.md](UX-CONTRACT.md). Audit screenshots are intentionally ignored;

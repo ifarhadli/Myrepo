@@ -6,7 +6,7 @@
    Nothing in the real data/ directory is touched. */
 'use strict';
 const { spawn } = require('child_process');
-const fs = require('fs'), http = require('http'), os = require('os'), path = require('path');
+const fs = require('fs'), http = require('http'), os = require('os'), path = require('path'), crypto = require('crypto');
 
 const ROOT = path.join(__dirname, '..');
 const DEFAULT_COLLECTIONS = require(path.join(ROOT, 'js', 'data.js')).collections;
@@ -35,7 +35,8 @@ for (const f of fs.readdirSync(ROOT)){
   if (['.git', 'node_modules', 'audit', 'test'].includes(f)) continue;
   fs.cpSync(path.join(ROOT, f), path.join(TMP, f), { recursive: true });
 }
-fs.rmSync(path.join(TMP, 'data', 'admin.json'), { force: true });
+const legacySalt = crypto.randomBytes(16).toString('hex');
+fs.writeFileSync(path.join(TMP, 'data', 'admin.json'), JSON.stringify({ salt: legacySalt, hash: crypto.scryptSync(PW, legacySalt, 64).toString('hex'), secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), notifyEmails: [] }, null, 2));
 fs.rmSync(path.join(TMP, 'data', 'submissions.json'), { force: true });
 fs.rmSync(path.join(TMP, 'data', 'media.json'), { force: true });
 fs.rmSync(path.join(TMP, 'data', 'media'), { recursive: true, force: true });
@@ -60,15 +61,16 @@ let cookie = '';
 async function req(method, p, body, opts){
   opts = opts || {};
   const headers = Object.assign({ 'Content-Type': opts.raw ? (opts.type || 'application/octet-stream') : 'application/json' }, opts.headers || {});
-  if (cookie) headers.Cookie = cookie;
+  const requestCookie = Object.prototype.hasOwnProperty.call(opts, 'cookie') ? opts.cookie : cookie;
+  if (requestCookie) headers.Cookie = requestCookie;
   if (opts.admin) headers['X-Requested-With'] = 'OmniAdmin';
   const payload = body === undefined ? undefined : (opts.raw ? body : JSON.stringify(body));
   const r = await fetch(BASE + p, { method, headers, body: payload, redirect: 'manual' });
   const sc = r.headers.get('set-cookie');
-  if (sc) cookie = sc.split(';')[0];
+  if (sc && opts.captureCookie !== false) cookie = sc.split(';')[0];
   const text = await r.text();
   let json = null; try { json = JSON.parse(text); } catch (e) {}
-  return { status: r.status, text, json, headers: r.headers };
+  return { status: r.status, text, json, headers: r.headers, setCookie: sc ? sc.split(';')[0] : '' };
 }
 function rawHttpPath(rawPath){
   return new Promise((resolve, reject) => {
@@ -85,6 +87,8 @@ async function main(){
   const t0 = Date.now();
   while (!/Admin dashboard/.test(out) && Date.now() - t0 < 8000) await new Promise(r => setTimeout(r, 100));
   check('server booted', /Admin dashboard/.test(out), out);
+  const migratedAdmin = JSON.parse(readTmp('data/admin.json'));
+  check('legacy single-password installs migrate to one Admin user', migratedAdmin.version === 2 && migratedAdmin.users.length === 1 && migratedAdmin.users[0].role === 'admin' && !Object.prototype.hasOwnProperty.call(migratedAdmin, 'hash'));
 
   /* ---- static serving ---- */
   let r = await req('GET', '/');
@@ -363,6 +367,7 @@ async function main(){
   check('restore loads a version into the draft, not live', r.status === 200 && r.json.ok && r.json.draft.i18n.en['home.hero.h1'] !== 'Draft headline', r.text.slice(0, 200));
   r = await req('GET', '/api/draft');
   check('restored draft records its origin; live untouched', r.json.restoredFrom === versionId && r.json.live.i18n.en['home.hero.h1'] === 'Draft headline');
+  const restoredRevision = r.json.revision;
   r = await req('POST', '/api/history/nope-1/restore', undefined, { admin: true });
   check('restore of unknown version is 404', r.status === 404);
   r = await req('PUT', '/api/site', draftCfg, { admin: true });
@@ -372,7 +377,7 @@ async function main(){
   /* an editor that reloads after the live site moved must not be able to
      "refresh" the draft's base and hide the conflict */
   const liveNow = r.json.site.updatedAt;
-  r = await req('PUT', '/api/draft', Object.assign({}, draftCfg, { baseUpdatedAt: liveNow }), { admin: true });
+  r = await req('PUT', '/api/draft', Object.assign({}, draftCfg, { baseUpdatedAt: liveNow, draftRevision: restoredRevision }), { admin: true });
   check('re-saving an existing draft keeps its original base', r.status === 200 && r.json.baseUpdatedAt && r.json.baseUpdatedAt !== liveNow, r.text.slice(0, 200));
   r = await req('POST', '/api/publish', undefined, { admin: true });
   check('publishing a draft older than live is refused as stale', r.status === 409 && r.json.code === 'stale', r.text.slice(0, 200));
@@ -433,6 +438,8 @@ async function main(){
   /* ---- password recovery ---- */
   r = await req('POST', '/api/login', { password: 'newpass-5678' }, { admin: true });
   check('new password signs in for recovery setup', r.status === 200);
+  r = await req('POST', '/api/users/invite', { name: 'Too Soon', email: 'too-soon@example.test', role: 'editor' }, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.59' } });
+  check('legacy Admin must set an account email before inviting another user', r.status === 409 && r.json.code === 'owner-email-required');
   r = await req('POST', '/api/account/recovery-email', { current: 'wrong', email: 'owner@example.test' }, { admin: true });
   check('recovery email change requires the current password', r.status === 401);
   r = await req('POST', '/api/account/recovery-email', { current: 'newpass-5678', email: 'Recovery@Example.test' }, { admin: true });
@@ -474,6 +481,104 @@ async function main(){
   let resetThrottle;
   for (let i = 0; i < 6; i++) resetThrottle = await req('POST', '/api/reset', { token: 'f'.repeat(64), next: 'long-enough' }, { admin: true, headers: { 'X-Forwarded-For': '198.51.100.41' } });
   check('reset attempts are throttled at five per 15 minutes', resetThrottle.status === 429);
+
+  /* ---- Phase E: users, roles, shared-draft conflicts and preview links ---- */
+  const adminCookie = cookie;
+  r = await req('GET', '/api/users', undefined, { cookie: adminCookie });
+  const ownerId = r.json && r.json.currentUserId;
+  check('Admin can list safe user records and limits', r.status === 200 && r.json.users.length === 1 && r.json.users[0].role === 'admin' && r.json.maxUsers === 10 && !('hash' in r.json.users[0]), r.text);
+  r = await req('POST', '/api/users/invite', { name: '', email: 'bad', role: 'editor' }, { admin: true, cookie: adminCookie });
+  check('invitation validates owned fields', r.status === 400 && r.json.field === 'email');
+  const inviteMailStart = sentMail.length;
+  r = await req('POST', '/api/users/invite', { name: 'Editorial Lead', email: 'editor@example.test', role: 'editor' }, { admin: true, cookie: adminCookie, headers: { 'X-Forwarded-For': '198.51.100.60' } });
+  const editorId = r.json && r.json.user && r.json.user.id;
+  const inviteMail = sentMail[inviteMailStart], inviteToken = inviteMail && ((inviteMail.text || '').match(/reset=([a-f0-9]{64})/) || [])[1];
+  check('Admin invitation persists a pending Editor and sends one private link', r.status === 201 && /^[a-f0-9]{16}$/.test(editorId || '') && r.json.user.status === 'invited' && sentMail.length === inviteMailStart + 1 && inviteMail.to[0] === 'editor@example.test' && !!inviteToken, JSON.stringify(inviteMail));
+  r = await req('POST', '/api/users/invite', { name: 'Duplicate', email: 'editor@example.test', role: 'editor' }, { admin: true, cookie: adminCookie, headers: { 'X-Forwarded-For': '198.51.100.61' } });
+  check('user emails are unique', r.status === 409 && r.json.field === 'email');
+  r = await req('POST', '/api/reset', { token: inviteToken, next: 'editor-pass-123' }, { admin: true, cookie: '', captureCookie: false, headers: { 'X-Forwarded-For': '198.51.100.42' } });
+  check('accepting an invitation sets the password and activates the user', r.status === 200 && r.json.ok);
+  r = await req('GET', '/api/auth', undefined, { cookie: '' });
+  check('email becomes required when multiple users are active', r.status === 200 && r.json.emailRequired === true);
+  r = await req('POST', '/api/login', { password: 'editor-pass-123' }, { admin: true, cookie: '', captureCookie: false });
+  check('password-only login is rejected once accounts are ambiguous', r.status === 401);
+  r = await req('POST', '/api/login', { email: 'editor@example.test', password: 'editor-pass-123' }, { admin: true, cookie: '', headers: { 'X-Forwarded-For': '198.51.100.81' } });
+  const editorCookie = r.setCookie;
+  check('Editor signs in by email and receives the role capability map', r.status === 200 && r.json.user.role === 'editor' && r.json.permissions.editContent && r.json.permissions.publish && !r.json.permissions.manageSettings && !r.json.permissions.manageUsers, r.text);
+  r = await req('GET', '/admin-advanced.html', undefined, { cookie: editorCookie, captureCookie: false });
+  check('advanced dashboard is server-blocked for Editors', r.status === 403 && /Admin access required/.test(r.text));
+  r = await req('GET', '/api/users', undefined, { cookie: editorCookie, captureCookie: false });
+  const editorStatus = await req('GET', '/api/status', undefined, { cookie: editorCookie, captureCookie: false });
+  const editorNotifications = await req('GET', '/api/account/notifications', undefined, { cookie: editorCookie, captureCookie: false });
+  check('Editor cannot read user, account, or server settings', r.status === 403 && editorStatus.status === 403 && editorNotifications.status === 403);
+  r = await req('DELETE', '/api/media/' + mediaId, undefined, { admin: true, cookie: editorCookie, captureCookie: false });
+  check('Editor cannot permanently delete media', r.status === 403 && r.json.code === 'forbidden');
+  r = await req('GET', '/api/submissions', undefined, { cookie: editorCookie, captureCookie: false });
+  check('Editor can work with the lead inbox', r.status === 200 && Array.isArray(r.json));
+
+  r = await req('GET', '/api/site', undefined, { cookie: '' });
+  const roleDraft = JSON.parse(JSON.stringify(r.json));
+  roleDraft.i18n = roleDraft.i18n || { en: {}, az: {} }; roleDraft.i18n.en = roleDraft.i18n.en || {};
+  roleDraft.i18n.en['home.hero.h1'] = 'Shared role draft';
+  r = await req('PUT', '/api/draft', Object.assign({}, roleDraft, { draftRevision: 0 }), { admin: true, cookie: editorCookie, captureCookie: false });
+  const editorRevision = r.json && r.json.revision;
+  check('Editor can create a content draft and is recorded as its author', r.status === 200 && editorRevision === 1 && r.json.savedBy.id === editorId, r.text);
+  const protectedDraft = JSON.parse(JSON.stringify(roleDraft)); protectedDraft.settings.siteName = 'Forbidden settings edit';
+  r = await req('PUT', '/api/draft', Object.assign({}, protectedDraft, { draftRevision: editorRevision }), { admin: true, cookie: editorCookie, captureCookie: false });
+  check('server rejects settings changes smuggled through an Editor draft', r.status === 403 && r.json.code === 'forbidden');
+  const cssDraft = JSON.parse(JSON.stringify(roleDraft)); cssDraft.design.customCss = 'body{display:none}';
+  r = await req('PUT', '/api/draft', Object.assign({}, cssDraft, { draftRevision: editorRevision }), { admin: true, cookie: editorCookie, captureCookie: false });
+  check('Editor cannot smuggle advanced custom CSS through the draft API', r.status === 403 && r.json.code === 'forbidden');
+  r = await req('GET', '/api/draft', undefined, { cookie: adminCookie, captureCookie: false });
+  const adminDraft = JSON.parse(JSON.stringify(r.json.draft)), sharedRevision = r.json.revision;
+  adminDraft.i18n.en['home.hero.h1'] = 'Latest shared draft';
+  r = await req('PUT', '/api/draft', Object.assign({}, adminDraft, { draftRevision: sharedRevision }), { admin: true, cookie: adminCookie, captureCookie: false });
+  check('a second user advances the shared draft revision', r.status === 200 && r.json.revision === sharedRevision + 1 && r.json.savedBy.id === ownerId, r.text);
+  roleDraft.i18n.en['home.hero.h1'] = 'Stale overwrite attempt';
+  r = await req('PUT', '/api/draft', Object.assign({}, roleDraft, { draftRevision: sharedRevision }), { admin: true, cookie: editorCookie, captureCookie: false });
+  check('stale editor save is rejected without overwriting the shared draft', r.status === 409 && r.json.code === 'draft-stale' && r.json.savedBy.id === ownerId, r.text);
+  r = await req('DELETE', '/api/draft', { draftRevision: sharedRevision }, { admin: true, cookie: editorCookie, captureCookie: false });
+  check('a stale editor cannot discard a newer shared draft', r.status === 409 && r.json.code === 'draft-stale' && fs.existsSync(path.join(TMP, 'data', 'draft.json')));
+  r = await req('GET', '/api/draft', undefined, { cookie: editorCookie, captureCookie: false });
+  check('shared draft retains the latest accepted edit', r.json.draft.i18n.en['home.hero.h1'] === 'Latest shared draft');
+
+  r = await req('POST', '/api/preview-link', { path: '/' }, { admin: true, cookie: editorCookie, captureCookie: false, headers: { 'X-Forwarded-For': '198.51.100.70' } });
+  const previewUrl = r.json && r.json.url, previewToken = previewUrl && new URL(previewUrl).searchParams.get('preview');
+  check('Editor can create one expiring draft-preview link', r.status === 201 && /^https:\/\/example\.test\//.test(previewUrl || '') && !!previewToken && r.json.createdBy.id === editorId, r.text);
+  r = await req('GET', '/?preview=' + encodeURIComponent(previewToken), undefined, { cookie: '', captureCookie: false });
+  check('anonymous preview renders draft data with a clear non-live ribbon', r.status === 200 && /Latest shared draft/.test(r.text) && /Preview — not live/.test(r.text) && /js\/preview\.js/.test(r.text) && !/js\/editor\.js/.test(r.text), r.text.slice(0, 200));
+  check('preview responses are noindex, no-store, and suppress referrers', /noindex,nofollow/.test(r.text) && /no-store/.test(r.headers.get('cache-control') || '') && r.headers.get('referrer-policy') === 'no-referrer');
+  r = await req('GET', '/?preview=invalid', undefined, { cookie: '', captureCookie: false });
+  check('invalid preview tokens get an owned access-denied page', r.status === 403 && /Preview unavailable/.test(r.text));
+  r = await req('DELETE', '/api/preview-link', undefined, { admin: true, cookie: editorCookie, captureCookie: false });
+  const revokedPreview = await req('GET', '/?preview=' + encodeURIComponent(previewToken), undefined, { cookie: '', captureCookie: false });
+  check('revoking a preview invalidates it immediately without deleting the draft', r.status === 200 && revokedPreview.status === 403 && fs.existsSync(path.join(TMP, 'data', 'draft.json')));
+  r = await req('POST', '/api/preview-link', { path: '/' }, { admin: true, cookie: editorCookie, captureCookie: false, headers: { 'X-Forwarded-For': '198.51.100.71' } });
+  const publishPreviewToken = new URL(r.json.url).searchParams.get('preview');
+  r = await req('POST', '/api/publish', undefined, { admin: true, cookie: editorCookie, captureCookie: false });
+  check('Editor can publish content but not protected settings', r.status === 200 && r.json.site.i18n.en['home.hero.h1'] === 'Latest shared draft');
+  const publishedPreview = await req('GET', '/?preview=' + encodeURIComponent(publishPreviewToken), undefined, { cookie: '', captureCookie: false });
+  check('publishing consumes the draft and revokes its preview link', publishedPreview.status === 403 && !fs.existsSync(path.join(TMP, 'data', 'draft.json')));
+  r = await req('GET', '/api/history', undefined, { cookie: editorCookie, captureCookie: false });
+  check('published history records the responsible user', r.status === 200 && r.json[0].by && r.json[0].by.id === editorId && r.json[0].by.role === 'editor', r.text.slice(0, 240));
+
+  r = await req('PATCH', '/api/users/' + ownerId, { role: 'editor' }, { admin: true, cookie: adminCookie, captureCookie: false });
+  check('an Admin cannot change their own role or remove the last-admin guard', r.status === 409);
+  r = await req('PATCH', '/api/users/' + editorId, { role: 'admin' }, { admin: true, cookie: adminCookie, captureCookie: false });
+  const oldEditorMe = await req('GET', '/api/me', undefined, { cookie: editorCookie, captureCookie: false });
+  check('role changes invalidate that user’s existing sessions', r.status === 200 && r.json.user.role === 'admin' && oldEditorMe.json.authed === false);
+  r = await req('PATCH', '/api/users/' + editorId, { role: 'editor' }, { admin: true, cookie: adminCookie, captureCookie: false });
+  r = await req('POST', '/api/login', { email: 'editor@example.test', password: 'editor-pass-123' }, { admin: true, cookie: '', headers: { 'X-Forwarded-For': '198.51.100.80' } });
+  const refreshedEditorCookie = r.setCookie;
+  r = await req('PATCH', '/api/users/' + editorId, { status: 'disabled' }, { admin: true, cookie: adminCookie, captureCookie: false });
+  const disabledMe = await req('GET', '/api/me', undefined, { cookie: refreshedEditorCookie, captureCookie: false });
+  const disabledLogin = await req('POST', '/api/login', { email: 'editor@example.test', password: 'editor-pass-123' }, { admin: true, cookie: '', captureCookie: false, headers: { 'X-Forwarded-For': '198.51.100.82' } });
+  check('disabling access signs the user out and blocks login without deleting records', r.status === 200 && r.json.user.status === 'disabled' && disabledMe.json.authed === false && disabledLogin.status === 401);
+  r = await req('PATCH', '/api/users/' + editorId, { status: 'active' }, { admin: true, cookie: adminCookie, captureCookie: false });
+  const restoredLogin = await req('POST', '/api/login', { email: 'editor@example.test', password: 'editor-pass-123' }, { admin: true, cookie: '', captureCookie: false, headers: { 'X-Forwarded-For': '198.51.100.83' } });
+  check('Admin can restore a disabled account with its password intact', r.status === 200 && restoredLogin.status === 200 && restoredLogin.json.user.role === 'editor');
+  r = await req('PATCH', '/api/users/' + editorId, { status: 'invited' }, { admin: true, cookie: adminCookie, captureCookie: false });
+  check('active users cannot be put into a fake pending-invitation state', r.status === 400);
 
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
 }

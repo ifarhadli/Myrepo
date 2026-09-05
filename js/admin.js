@@ -832,20 +832,23 @@
   }
   function boot(){
     api('GET', 'api/me').then(function(me){
-      if (me.authed) return load();
-      $('#login').hidden = false;
+      if (me.authed && me.user && me.user.role === 'admin') return load();
+      if (me.authed){ location.replace('index.html?edit=1'); return; }
+      return api('GET', 'api/auth').then(function(info){ $('#advancedEmailField').hidden = !info.emailRequired; $('#loginEmail').required = !!info.emailRequired; $('#login').hidden = false; });
     }).catch(function(){ $('#noServer').hidden = false; });
   }
   $('#loginForm').addEventListener('submit', function(e){
     e.preventDefault();
-    var err = $('#loginErr'), input = $('#loginPw'), submit = e.target.querySelector('[type="submit"]');
-    err.hidden = true; input.setAttribute('aria-invalid', 'false');
+    var err = $('#loginErr'), input = $('#loginPw'), email = $('#loginEmail'), submit = e.target.querySelector('[type="submit"]');
+    err.hidden = true; input.setAttribute('aria-invalid', 'false'); email.setAttribute('aria-invalid', 'false');
+    if (!$('#advancedEmailField').hidden && (!email.value || !email.checkValidity())){ err.textContent = 'Enter your account email.'; err.hidden = false; email.setAttribute('aria-invalid', 'true'); email.focus(); return; }
     if (!input.value){ err.textContent = 'Enter your password.'; err.hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus(); return; }
     submit.disabled = true; submit.textContent = 'Signing in…';
-    api('POST', 'api/login', { password: input.value }).then(load).catch(function(ex){ err.textContent = ex.message; err.hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus(); })
+    api('POST', 'api/login', { email: email.value, password: input.value }).then(function(result){ if(result.user&&result.user.role!=='admin'){ location.replace('index.html?edit=1'); return; } return load(); }).catch(function(ex){ err.textContent = ex.message; err.hidden = false; input.setAttribute('aria-invalid', 'true'); input.focus(); })
       .then(function(){ submit.disabled = false; submit.textContent = 'Sign in'; });
   });
   $('#loginPw').addEventListener('input', function(){ this.setAttribute('aria-invalid', 'false'); $('#loginErr').hidden = true; });
+  $('#loginEmail').addEventListener('input', function(){ this.setAttribute('aria-invalid', 'false'); $('#loginErr').hidden = true; });
   $('#logoutBtn').addEventListener('click', async function(){
     if (isDirty() && !await confirmAction('You have unsaved changes. Sign out anyway?', 'Sign out')) return;
     api('POST', 'api/logout').then(function(){ location.reload(); });

@@ -38,6 +38,10 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const COOKIE = 'om_admin';
 const SESSION_TTL = 1000 * 60 * 60 * 12; // 12h
 const RECOVERY_TTL = process.env.NODE_ENV === 'test' && Number(process.env.RECOVERY_TTL_MS) > 0 ? Number(process.env.RECOVERY_TTL_MS) : 30 * 60 * 1000;
+const INVITE_TTL = process.env.NODE_ENV === 'test' && Number(process.env.INVITE_TTL_MS) > 0 ? Number(process.env.INVITE_TTL_MS) : 48 * 60 * 60 * 1000;
+const PREVIEW_TTL = process.env.NODE_ENV === 'test' && Number(process.env.PREVIEW_TTL_MS) > 0 ? Number(process.env.PREVIEW_TTL_MS) : 7 * 24 * 60 * 60 * 1000;
+const MAX_USERS = 10;
+const USER_ROLES = ['admin', 'editor'];
 const MAX_BODY = 2 * 1024 * 1024;        // 2 MB — site.json with full copy overrides
 const MAX_MEDIA_ORIGINAL = 8 * 1024 * 1024;
 const MAX_MEDIA_VARIANT = 2 * 1024 * 1024;
@@ -59,6 +63,7 @@ const MIME = {
 function readJson(file, fallback){
   try { return JSON.parse(fs.readFileSync(file, 'utf8')); } catch (e) { return fallback; }
 }
+function cloneJson(value){ return value == null ? value : JSON.parse(JSON.stringify(value)); }
 function writeTextAtomic(file, text){
   const tmp = file + '.' + process.pid + '.tmp';
   fs.writeFileSync(tmp, text);
@@ -232,19 +237,20 @@ function listHistory(){
   try { names = fs.readdirSync(HISTORY_DIR).filter(f => /^[0-9TZ-]+\.json$/.test(f)); } catch (e) { return []; }
   return names.sort().reverse().map(f => {
     const rec = readJson(path.join(HISTORY_DIR, f), null);
-    return rec && isPlain(rec.site) ? { id: f.replace(/\.json$/, ''), archivedAt: rec.archivedAt || null, publishedAt: rec.publishedAt || null, site: rec.site } : null;
+    return rec && isPlain(rec.site) ? { id: f.replace(/\.json$/, ''), archivedAt: rec.archivedAt || null, publishedAt: rec.publishedAt || null,
+      by: isPlain(rec.by) ? rec.by : null, site: rec.site } : null;
   }).filter(Boolean);
 }
-function archiveCurrent(){
+function archiveCurrent(by){
   const prev = readJson(SITE_JSON, null);
   if (!isPlain(prev)) return;
   fs.mkdirSync(HISTORY_DIR, { recursive: true });
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-  writeJsonAtomic(path.join(HISTORY_DIR, stamp + '.json'), { archivedAt: new Date().toISOString(), publishedAt: prev.updatedAt || null, site: prev });
+  writeJsonAtomic(path.join(HISTORY_DIR, stamp + '.json'), { archivedAt: new Date().toISOString(), publishedAt: prev.updatedAt || null, by: by || null, site: prev });
   listHistory().slice(HISTORY_KEEP).forEach(h => { try { fs.rmSync(path.join(HISTORY_DIR, h.id + '.json')); } catch (e) {} });
 }
-function saveSite(site){
-  archiveCurrent();
+function saveSite(site, by){
+  archiveCurrent(by);
   site.updatedAt = new Date().toISOString();
   writeJsonAtomic(SITE_JSON, site);
   writeTextAtomic(SITE_JS, siteToJs(site));
@@ -508,10 +514,12 @@ function validateSite(input){
 function readDraft(){
   const record = readJson(DRAFT_JSON, null);
   if (!record || !isPlain(record.draft)) return null;
-  return { draft: record.draft, savedAt: record.savedAt || null, baseUpdatedAt: record.baseUpdatedAt || null, restoredFrom: record.restoredFrom || null };
+  return { draft: record.draft, savedAt: record.savedAt || null, baseUpdatedAt: record.baseUpdatedAt || null, restoredFrom: record.restoredFrom || null,
+    revision: Number.isInteger(record.revision) && record.revision >= 0 ? record.revision : 0, savedBy: isPlain(record.savedBy) ? record.savedBy : null };
 }
 function removeDraft(){
   try { fs.rmSync(DRAFT_JSON, { force: true }); } catch (e) { if (e.code !== 'ENOENT') throw e; }
+  revokePreview();
 }
 function flatten(value, prefix, out){
   out = out || {};
@@ -557,20 +565,73 @@ function verifyPassword(pw, rec){
   const stored = Buffer.from(rec.hash, 'hex');
   return h.length === stored.length && crypto.timingSafeEqual(h, stored);
 }
+function freshUserId(users){
+  let id;
+  do { id = crypto.randomBytes(8).toString('hex'); } while ((users || []).some(user => user.id === id));
+  return id;
+}
+function freshSessionVersion(){ return crypto.randomBytes(12).toString('hex'); }
+function cleanRecovery(raw){
+  return isPlain(raw) && /^[a-f0-9]{64}$/.test(raw.hash || '') && raw.exp
+    ? { hash: raw.hash, exp: String(raw.exp).slice(0, 40), purpose: raw.purpose === 'invite' ? 'invite' : 'reset' }
+    : null;
+}
+function cleanUser(raw){
+  if (!isPlain(raw) || !/^[a-f0-9]{16}$/.test(raw.id || '')) return null;
+  const email = String(raw.email || '').trim().toLowerCase().slice(0, 254);
+  const status = ['active', 'invited', 'disabled'].includes(raw.status) ? raw.status : (raw.hash && raw.salt ? 'active' : 'invited');
+  return {
+    id: raw.id,
+    email: isEmail(email) ? email : '',
+    name: String(raw.name || 'Site user').replace(/[\r\n]+/g, ' ').trim().slice(0, 100) || 'Site user',
+    role: USER_ROLES.includes(raw.role) ? raw.role : 'editor',
+    status,
+    salt: typeof raw.salt === 'string' ? raw.salt.slice(0, 128) : '',
+    hash: typeof raw.hash === 'string' ? raw.hash.slice(0, 256) : '',
+    sessionVersion: /^[a-f0-9]{24}$/.test(raw.sessionVersion || '') ? raw.sessionVersion : freshSessionVersion(),
+    recovery: cleanRecovery(raw.recovery),
+    createdAt: validTimestamp(raw.createdAt) || new Date().toISOString(),
+    updatedAt: validTimestamp(raw.updatedAt) || new Date().toISOString(),
+    invitedAt: validTimestamp(raw.invitedAt) || null,
+    lastLoginAt: validTimestamp(raw.lastLoginAt) || null
+  };
+}
+function cleanPreview(raw){
+  if (!isPlain(raw)) return { version: 0, tokenHash: '', createdAt: null, expiresAt: null, createdBy: null };
+  return {
+    version: Number.isInteger(raw.version) && raw.version >= 0 ? raw.version : 0,
+    tokenHash: /^[a-f0-9]{64}$/.test(raw.tokenHash || '') ? raw.tokenHash : '',
+    createdAt: validTimestamp(raw.createdAt) || null,
+    expiresAt: validTimestamp(raw.expiresAt) || null,
+    createdBy: isPlain(raw.createdBy) ? { id: String(raw.createdBy.id || '').slice(0, 16), name: String(raw.createdBy.name || '').slice(0, 100) } : null
+  };
+}
 function loadAdmin(){
-  let admin = readJson(ADMIN_JSON, null);
+  let admin = readJson(ADMIN_JSON, null), generated = null, migrated = false;
   if (admin && admin.hash && admin.secret){
-    const recoveryEmail = typeof admin.recoveryEmail === 'string' ? admin.recoveryEmail.trim().toLowerCase().slice(0, 254) : '';
-    admin.recoveryEmail = isEmail(recoveryEmail) ? recoveryEmail : '';
-    admin.notifyEmails = cleanEmails(admin.notifyEmails);
-    if (!isPlain(admin.recovery) || !/^[a-f0-9]{64}$/.test(admin.recovery.hash || '') || !admin.recovery.exp) admin.recovery = null;
-    return { admin, generated: null };
+    const now = new Date().toISOString(), legacyEmail = String(admin.recoveryEmail || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+    const user = cleanUser({ id: freshUserId([]), email: isEmail(legacyEmail) ? legacyEmail : '', name: 'Site owner', role: 'admin', status: 'active',
+      salt: admin.salt, hash: admin.hash, sessionVersion: freshSessionVersion(), recovery: admin.recovery, createdAt: admin.createdAt || now, updatedAt: now });
+    admin = { version: 2, secret: admin.secret, createdAt: admin.createdAt || now, users: [user], notifyEmails: cleanEmails(admin.notifyEmails), preview: cleanPreview(null) };
+    writeJsonAtomic(ADMIN_JSON, admin); migrated = true;
+    return { admin, generated, migrated };
+  }
+  if (admin && admin.secret && Array.isArray(admin.users)){
+    const users = admin.users.map(cleanUser).filter(Boolean).slice(0, MAX_USERS);
+    if (users.length && users.some(user => user.role === 'admin' && user.status === 'active')){
+      admin = { version: 2, secret: admin.secret, createdAt: validTimestamp(admin.createdAt) || new Date().toISOString(),
+        users, notifyEmails: cleanEmails(admin.notifyEmails), preview: cleanPreview(admin.preview) };
+      writeJsonAtomic(ADMIN_JSON, admin);
+      return { admin, generated, migrated };
+    }
   }
   const pw = process.env.ADMIN_PASSWORD || crypto.randomBytes(9).toString('base64').replace(/[^a-zA-Z0-9]/g, '').slice(0, 12);
-  admin = Object.assign(hashPassword(pw), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString(),
-    recoveryEmail: '', recovery: null, notifyEmails: [] });
+  const now = new Date().toISOString(), email = String(process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  const user = Object.assign({ id: freshUserId([]), email: isEmail(email) ? email : '', name: 'Site owner', role: 'admin', status: 'active',
+    sessionVersion: freshSessionVersion(), recovery: null, createdAt: now, updatedAt: now, invitedAt: null, lastLoginAt: null }, hashPassword(pw));
+  admin = { version: 2, secret: crypto.randomBytes(32).toString('hex'), createdAt: now, users: [user], notifyEmails: [], preview: cleanPreview(null) };
   writeJsonAtomic(ADMIN_JSON, admin);
-  return { admin, generated: process.env.ADMIN_PASSWORD ? null : pw };
+  return { admin, generated: process.env.ADMIN_PASSWORD ? null : pw, migrated };
 }
 let ADMIN = null;
 function saveAdmin(next){
@@ -592,7 +653,7 @@ function verifyToken(tok){
   if (sig.length !== want.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(want))) return null;
   try {
     const p = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
-    if (!p.exp || p.exp < Date.now() || p.v !== ADMIN.createdAt) return null;
+    if (!p.exp || p.exp < Date.now()) return null;
     return p;
   } catch (e) { return null; }
 }
@@ -604,7 +665,67 @@ function parseCookies(req){
   });
   return out;
 }
-function isAuthed(req){ return !!verifyToken(parseCookies(req)[COOKIE]); }
+function activeUsers(){ return (ADMIN && Array.isArray(ADMIN.users) ? ADMIN.users : []).filter(user => user.status === 'active'); }
+function safeUser(user){ return user ? { id: user.id, email: user.email, name: user.name, role: user.role, status: user.status } : null; }
+function currentSession(req){
+  const payload = verifyToken(parseCookies(req)[COOKIE]);
+  if (!payload) return null;
+  let user = (ADMIN.users || []).find(value => value.id === payload.uid && value.status === 'active');
+  /* One restart after a legacy-file migration may still carry the old single-user cookie. */
+  if (!user && payload.v === ADMIN.createdAt && activeUsers().length === 1) user = activeUsers()[0];
+  if (!user || (payload.sv && payload.sv !== user.sessionVersion)) return null;
+  return { payload, user };
+}
+function isAuthed(req){ return !!currentSession(req); }
+function isAdmin(req){ const session = currentSession(req); return !!(session && session.user.role === 'admin'); }
+function sessionToken(user){ return sign({ uid: user.id, role: user.role, sv: user.sessionVersion, exp: Date.now() + SESSION_TTL, n: crypto.randomBytes(6).toString('hex') }); }
+function can(user, capability){
+  if (!user || user.status !== 'active') return false;
+  if (user.role === 'admin') return true;
+  return ['content', 'publish', 'media-write', 'submissions'].includes(capability);
+}
+function permissionsFor(user){
+  return {
+    editContent: can(user, 'content'), publish: can(user, 'publish'), manageSubmissions: can(user, 'submissions'),
+    manageSettings: can(user, 'settings'), manageAccount: can(user, 'account'), manageUsers: can(user, 'users'),
+    uploadMedia: can(user, 'media-write'), deleteMedia: can(user, 'media-delete')
+  };
+}
+function protectedSiteConfig(site){
+  const features = Object.assign({}, (site && site.features) || {});
+  ['customCursor', 'magneticButtons', 'kineticHeadlines', 'marquee', 'countUp', 'reveal'].forEach(key => { delete features[key]; });
+  return { settings: (site && site.settings) || {}, analytics: (site && site.analytics) || {}, structured: (site && site.structured) || {},
+    advancedDesign: { customCss: site && site.design && site.design.customCss || '' }, features };
+}
+function editorMaySave(before, after){ return JSON.stringify(protectedSiteConfig(before)) === JSON.stringify(protectedSiteConfig(after)); }
+function publicUserRecord(user){
+  return Object.assign(safeUser(user), { createdAt: user.createdAt, updatedAt: user.updatedAt, invitedAt: user.invitedAt, lastLoginAt: user.lastLoginAt,
+    inviteExpiresAt: user.status === 'invited' && user.recovery ? user.recovery.exp : null, canRestore: !!(user.hash && user.salt) });
+}
+function actor(user){ return user ? { id: user.id, name: user.name, email: user.email, role: user.role } : { id: '', name: 'System', email: '', role: 'system' }; }
+function signPreview(payload){
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', ADMIN.secret).update('preview.' + body).digest('base64url');
+  return body + '.' + sig;
+}
+function verifyPreviewToken(token){
+  if (!token || typeof token !== 'string' || !ADMIN || !ADMIN.preview) return null;
+  const i = token.lastIndexOf('.'); if (i < 0) return null;
+  const body = token.slice(0, i), sig = token.slice(i + 1);
+  const want = crypto.createHmac('sha256', ADMIN.secret).update('preview.' + body).digest('base64url');
+  if (sig.length !== want.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(want))) return null;
+  if (crypto.createHash('sha256').update(token).digest('hex') !== ADMIN.preview.tokenHash) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    if (payload.kind !== 'draft-preview' || payload.exp < Date.now() || payload.v !== ADMIN.preview.version) return null;
+    return payload;
+  } catch (e) { return null; }
+}
+function revokePreview(){
+  if (!ADMIN || !ADMIN.preview || !ADMIN.preview.tokenHash) return;
+  ADMIN.preview = { version: (ADMIN.preview.version || 0) + 1, tokenHash: '', createdAt: null, expiresAt: null, createdBy: null };
+  saveAdmin(ADMIN);
+}
 /* HTTPS is terminated by the platform / reverse proxy; it tells us via
    x-forwarded-proto. SECURE_COOKIES=1 forces the flag on. */
 function isSecure(req){
@@ -632,6 +753,8 @@ const recoverLimiter = limiter(3, 15 * 60 * 1000);
 const resetLimiter = limiter(5, 15 * 60 * 1000);
 const notifyTestLimiter = limiter(3, 10 * 60 * 1000);
 const mediaUploadLimiter = limiter(60, 10 * 60 * 1000);
+const inviteLimiter = limiter(10, 60 * 60 * 1000);
+const previewLimiter = limiter(20, 60 * 60 * 1000);
 
 /* ---------- http helpers ---------- */
 function send(res, status, body, headers){
@@ -648,6 +771,7 @@ function send(res, status, body, headers){
 function json(res, status, obj, headers){
   send(res, status, JSON.stringify(obj), Object.assign({ 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' }, headers || {}));
 }
+function forbidden(res, capability){ return json(res, 403, { error: 'You need the Admin role to ' + capability + '.', code: 'forbidden' }); }
 function readBody(req){
   return new Promise((resolve, reject) => {
     let size = 0; const chunks = [];
@@ -923,7 +1047,8 @@ function jsonLd(value){
   return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 }
 
-function recoveryAvailable(){ return !!(ADMIN && ADMIN.recoveryEmail && process.env.RESEND_API_KEY); }
+function recoveryUsers(){ return activeUsers().filter(user => user.email); }
+function recoveryAvailable(){ return !!(recoveryUsers().length && process.env.RESEND_API_KEY); }
 function requestBase(req){
   const site = loadSite();
   const configured = String((site.settings && site.settings.siteUrl) || '').replace(/\/+$/, '');
@@ -933,14 +1058,18 @@ function requestBase(req){
   const host = String(req.headers.host || '').trim();
   return /^[a-z0-9.-]+(?::\d{1,5})?$/i.test(host) ? scheme + '://' + host : '';
 }
-async function sendRecoveryEmail(req, token){
+async function sendRecoveryEmail(req, token, user, purpose){
   const site = loadSite(), mail = resendDetails(site), base = requestBase(req);
   if (!base) throw new Error('No safe public base URL is configured.');
   const link = base + '/admin.html?reset=' + encodeURIComponent(token);
+  const invite = purpose === 'invite';
   await postWithTimeout(mail.url, mail.headers, {
-    from: mail.sender, to: [ADMIN.recoveryEmail], subject: 'Reset your ' + mail.name + ' admin password',
-    text: 'A password reset was requested for the ' + mail.name + ' website editor.\n\nReset your password within 30 minutes:\n' + link +
-      '\n\nIf you did not request this, you can ignore this email.'
+    from: mail.sender, to: [user.email], subject: invite ? 'You are invited to edit ' + mail.name : 'Reset your ' + mail.name + ' editor password',
+    text: invite
+      ? 'Hello ' + user.name + ',\n\nYou were invited as ' + user.role + ' to the ' + mail.name + ' website editor. Set your password within 48 hours:\n' + link +
+        '\n\nIf you were not expecting this invitation, you can ignore this email.'
+      : 'A password reset was requested for the ' + mail.name + ' website editor.\n\nReset your password within 30 minutes:\n' + link +
+        '\n\nIf you did not request this, you can ignore this email.'
   });
 }
 
@@ -1009,17 +1138,26 @@ async function api(req, res, url){
   const method = req.method;
 
   if (p === '/site' && method === 'GET') return json(res, 200, loadSite());
-  if (p === '/me' && method === 'GET') return json(res, 200, { authed: isAuthed(req) });
-  if (p === '/recover' && method === 'GET') return json(res, 200, { available: recoveryAvailable() });
+  if (p === '/me' && method === 'GET'){
+    const session = currentSession(req);
+    return json(res, 200, { authed: !!session, user: session ? safeUser(session.user) : null, permissions: session ? permissionsFor(session.user) : null });
+  }
+  if (p === '/auth' && method === 'GET') return json(res, 200, { emailRequired: activeUsers().length > 1, recoveryAvailable: recoveryAvailable() });
+  if (p === '/recover' && method === 'GET') return json(res, 200, { available: recoveryAvailable(), emailRequired: recoveryUsers().length > 1 });
 
   if (p === '/recover' && method === 'POST'){
     if (!sameOrigin(req)) return json(res, 403, { error: 'forbidden' });
     if (!recoverLimiter(clientIp(req))) return json(res, 429, { error: 'Too many reset requests. Wait 15 minutes.' });
-    if (recoveryAvailable()){
+    let body = {};
+    try { body = await readBody(req); } catch (e) { body = {}; }
+    const email = String(body.email || '').trim().toLowerCase();
+    const candidates = recoveryUsers();
+    const user = email ? candidates.find(value => value.email === email) : (candidates.length === 1 ? candidates[0] : null);
+    if (user && process.env.RESEND_API_KEY){
       const token = crypto.randomBytes(32).toString('hex');
-      const recovery = { hash: crypto.createHash('sha256').update(token).digest('hex'), exp: new Date(Date.now() + RECOVERY_TTL).toISOString() };
-      saveAdmin(Object.assign({}, ADMIN, { recovery }));
-      try { await sendRecoveryEmail(req, token); }
+      user.recovery = { hash: crypto.createHash('sha256').update(token).digest('hex'), exp: new Date(Date.now() + RECOVERY_TTL).toISOString(), purpose: 'reset' };
+      user.updatedAt = new Date().toISOString(); saveAdmin(ADMIN);
+      try { await sendRecoveryEmail(req, token, user, 'reset'); }
       catch (e) { console.error('[recovery] email failed:', e.message); }
     }
     return json(res, 200, { ok: true });
@@ -1029,15 +1167,19 @@ async function api(req, res, url){
     if (!resetLimiter(clientIp(req))) return json(res, 429, { error: 'Too many reset attempts. Wait 15 minutes.' });
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: 'The reset link is invalid or expired.' }); }
-    const token = String(body.token || ''), next = String(body.next || ''), recovery = ADMIN && ADMIN.recovery;
-    let valid = /^[a-f0-9]{64}$/.test(token) && next.length >= 8 && next.length <= 200 && recovery && /^[a-f0-9]{64}$/.test(recovery.hash || '') && Date.parse(recovery.exp) > Date.now();
-    if (valid){
-      const got = Buffer.from(crypto.createHash('sha256').update(token).digest('hex'), 'hex');
-      const want = Buffer.from(recovery.hash, 'hex');
-      valid = got.length === want.length && crypto.timingSafeEqual(got, want);
+    const token = String(body.token || ''), next = String(body.next || ''), tokenHash = /^[a-f0-9]{64}$/.test(token) ? crypto.createHash('sha256').update(token).digest('hex') : '';
+    let user = null;
+    if (tokenHash && next.length >= 8 && next.length <= 200){
+      user = (ADMIN.users || []).find(value => {
+        const recovery = value.recovery;
+        if (!recovery || !/^[a-f0-9]{64}$/.test(recovery.hash || '') || Date.parse(recovery.exp) <= Date.now()) return false;
+        const got = Buffer.from(tokenHash, 'hex'), want = Buffer.from(recovery.hash, 'hex');
+        return got.length === want.length && crypto.timingSafeEqual(got, want);
+      }) || null;
     }
-    if (!valid) return json(res, 400, { error: 'The reset link is invalid or expired.' });
-    saveAdmin(Object.assign({}, ADMIN, hashPassword(next), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), recovery: null }));
+    if (!user) return json(res, 400, { error: 'The reset link is invalid or expired.' });
+    Object.assign(user, hashPassword(next), { status: 'active', sessionVersion: freshSessionVersion(), recovery: null, updatedAt: new Date().toISOString() });
+    saveAdmin(ADMIN);
     return json(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', 0, isSecure(req)) });
   }
 
@@ -1074,23 +1216,29 @@ async function api(req, res, url){
     if (!loginLimiter(clientIp(req))) return json(res, 429, { error: 'Too many attempts. Wait 15 minutes.' });
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
-    if (!verifyPassword(body.password || '', ADMIN)) return json(res, 401, { error: 'Wrong password.' });
-    const tok = sign({ exp: Date.now() + SESSION_TTL, v: ADMIN.createdAt, n: crypto.randomBytes(6).toString('hex') });
-    return json(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie(tok, SESSION_TTL / 1000, isSecure(req)) });
+    const email = String(body.email || '').trim().toLowerCase(), users = activeUsers();
+    const user = email ? users.find(value => value.email === email) : (users.length === 1 ? users[0] : null);
+    if (!user || !verifyPassword(body.password || '', user)) return json(res, 401, { error: 'Wrong email or password.' });
+    user.lastLoginAt = user.updatedAt = new Date().toISOString(); saveAdmin(ADMIN);
+    const tok = sessionToken(user);
+    return json(res, 200, { ok: true, user: safeUser(user), permissions: permissionsFor(user) }, { 'Set-Cookie': sessionCookie(tok, SESSION_TTL / 1000, isSecure(req)) });
   }
   if (p === '/logout' && method === 'POST'){
     return json(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie('', 0, isSecure(req)) });
   }
 
   /* ---- everything below needs a session ---- */
-  if (!isAuthed(req)) return json(res, 401, { error: 'Not signed in.' });
+  const session = currentSession(req);
+  if (!session) return json(res, 401, { error: 'Not signed in.' });
   if (method !== 'GET' && !sameOrigin(req)) return json(res, 403, { error: 'forbidden' });
+  const user = session.user;
 
   if (p === '/media' && method === 'GET'){
     const items = loadMedia().sort((a, b) => String(b.uploadedAt || '').localeCompare(String(a.uploadedAt || '')));
     return json(res, 200, items.map(mediaRecordForClient));
   }
   if (p === '/media' && method === 'POST'){
+    if (!can(user, 'media-write')) return forbidden(res, 'upload images');
     if (!mediaUploadLimiter(clientIp(req))) return json(res, 429, { error: 'Too many uploads. Wait 10 minutes.' });
     const items = loadMedia();
     if (items.length >= MAX_MEDIA_ITEMS) return json(res, 409, { error: 'The media library limit of 500 images has been reached.' });
@@ -1116,6 +1264,7 @@ async function api(req, res, url){
   }
   const mediaVariant = p.match(/^\/media\/([a-f0-9]{16})\/variant$/);
   if (mediaVariant && method === 'POST'){
+    if (!can(user, 'media-write')) return forbidden(res, 'upload image variants');
     if (!mediaUploadLimiter(clientIp(req))) return json(res, 429, { error: 'Too many uploads. Wait 10 minutes.' });
     const width = Number(url.searchParams.get('w'));
     if (!MEDIA_WIDTHS.includes(width)) return json(res, 400, { error: 'Variant width must be 480, 960 or 1600.' });
@@ -1139,6 +1288,7 @@ async function api(req, res, url){
   }
   const mediaItem = p.match(/^\/media\/([a-f0-9]{16})$/);
   if (mediaItem && method === 'PATCH'){
+    if (!can(user, 'media-write')) return forbidden(res, 'edit image details');
     const items = loadMedia(), item = items.find(value => value.id === mediaItem[1]);
     if (!item) return json(res, 404, { error: 'Image not found.' });
     let body;
@@ -1156,6 +1306,7 @@ async function api(req, res, url){
     return json(res, 200, { ok: true, item: mediaRecordForClient(item) });
   }
   if (mediaItem && method === 'DELETE'){
+    if (!can(user, 'media-delete')) return forbidden(res, 'delete images');
     const items = loadMedia(), index = items.findIndex(value => value.id === mediaItem[1]);
     if (index < 0) return json(res, 404, { error: 'Image not found.' });
     const references = mediaReferences(mediaItem[1]);
@@ -1168,6 +1319,7 @@ async function api(req, res, url){
   }
 
   if (p === '/site' && method === 'PUT'){
+    if (!can(user, 'settings')) return forbidden(res, 'save advanced settings');
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     /* the on-page editor may hold an unpublished draft; a direct save from the
@@ -1176,15 +1328,17 @@ async function api(req, res, url){
     if (pending && body.force !== true) return json(res, 409, { error: 'An unpublished draft exists in the on-page editor.', code: 'draft-exists', savedAt: pending.savedAt });
     let site;
     try { site = validateSite(body); } catch (e) { return json(res, 400, { error: e.message }); }
-    saveSite(site);
+    saveSite(site, actor(user));
     return json(res, 200, { ok: true, site });
   }
   if (p === '/draft' && method === 'GET'){
     const record = readDraft();
     return json(res, 200, { draft: record ? record.draft : null, savedAt: record ? record.savedAt : null,
-      baseUpdatedAt: record ? record.baseUpdatedAt : null, restoredFrom: record ? record.restoredFrom : null, live: loadSite() });
+      baseUpdatedAt: record ? record.baseUpdatedAt : null, restoredFrom: record ? record.restoredFrom : null,
+      revision: record ? record.revision : 0, savedBy: record ? record.savedBy : null, live: loadSite() });
   }
   if (p === '/draft' && method === 'PUT'){
+    if (!can(user, 'content')) return forbidden(res, 'edit content');
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     let draft;
@@ -1193,19 +1347,36 @@ async function api(req, res, url){
     /* remember which live version this draft was started from, so publish
        can refuse to silently overwrite a change made elsewhere meanwhile */
     const existing = readDraft();
+    const clientRevision = Number.isInteger(body.draftRevision) ? body.draftRevision : 0;
+    if (existing && body.forceDraft !== true && clientRevision !== existing.revision){
+      return json(res, 409, { error: 'Another editor changed this draft.', code: 'draft-stale', revision: existing.revision,
+        savedAt: existing.savedAt, savedBy: existing.savedBy });
+    }
+    const before = existing ? existing.draft : loadSite();
+    if (!can(user, 'settings') && !editorMaySave(before, draft)) return forbidden(res, 'change site settings');
     /* once a draft exists its base is fixed — a client reloading later must
        not be able to "refresh" it and hide a conflict */
     const baseUpdatedAt = (existing && existing.baseUpdatedAt)
       || (typeof body.baseUpdatedAt === 'string' ? body.baseUpdatedAt.slice(0, 40) : null)
       || loadSite().updatedAt || null;
-    writeJsonAtomic(DRAFT_JSON, { savedAt, baseUpdatedAt, draft, restoredFrom: existing ? existing.restoredFrom : null });
-    return json(res, 200, { ok: true, savedAt, baseUpdatedAt });
+    const revision = (existing ? existing.revision : 0) + 1;
+    writeJsonAtomic(DRAFT_JSON, { savedAt, baseUpdatedAt, revision, savedBy: actor(user), draft, restoredFrom: existing ? existing.restoredFrom : null });
+    return json(res, 200, { ok: true, savedAt, baseUpdatedAt, revision, savedBy: actor(user) });
   }
   if (p === '/draft' && method === 'DELETE'){
+    if (!can(user, 'content')) return forbidden(res, 'discard drafts');
+    let body = {};
+    try { body = await readBody(req); } catch (e) { body = {}; }
+    const existing = readDraft();
+    if (existing && Number.isInteger(body.draftRevision) && body.draftRevision !== existing.revision){
+      return json(res, 409, { error: 'Another editor changed this draft.', code: 'draft-stale', revision: existing.revision,
+        savedAt: existing.savedAt, savedBy: existing.savedBy });
+    }
     removeDraft();
     return json(res, 200, { ok: true });
   }
   if (p === '/publish' && method === 'POST'){
+    if (!can(user, 'publish')) return forbidden(res, 'publish content');
     let body = {};
     try { body = await readBody(req); } catch (e) { body = {}; }
     const record = readDraft();
@@ -1216,8 +1387,9 @@ async function api(req, res, url){
     }
     let site;
     try { site = validateSite(record.draft); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (!can(user, 'settings') && !editorMaySave(live, site)) return forbidden(res, 'publish site-setting changes');
     const summary = publishSummary(live, site);
-    saveSite(site);
+    saveSite(site, actor(user));
     removeDraft();
     return json(res, 200, { ok: true, site, summary });
   }
@@ -1225,38 +1397,143 @@ async function api(req, res, url){
      straight to live — the owner reviews and publishes) */
   if (p === '/history' && method === 'GET'){
     const live = loadSite();
-    return json(res, 200, listHistory().map(h => ({ id: h.id, archivedAt: h.archivedAt, publishedAt: h.publishedAt, changes: diffCount(live, h.site) })));
+    return json(res, 200, listHistory().map(h => ({ id: h.id, archivedAt: h.archivedAt, publishedAt: h.publishedAt, by: h.by, changes: diffCount(live, h.site) })));
   }
   const restore = p.match(/^\/history\/([0-9TZ-]{10,40})\/restore$/);
   if (restore && method === 'POST'){
+    if (!can(user, 'content')) return forbidden(res, 'restore content');
     const rec = listHistory().find(h => h.id === restore[1]);
     if (!rec) return json(res, 404, { error: 'No such version.' });
     let draft;
     try { draft = validateSite(rec.site); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (!can(user, 'settings')){
+      const live = loadSite();
+      draft.settings = cloneJson(live.settings); draft.analytics = cloneJson(live.analytics); draft.structured = cloneJson(live.structured);
+      const allowedMotion = new Set(['customCursor', 'magneticButtons', 'kineticHeadlines', 'marquee', 'countUp', 'reveal']);
+      const restoredFeatures = Object.assign({}, draft.features); draft.features = Object.assign({}, live.features);
+      allowedMotion.forEach(key => { if (key in restoredFeatures) draft.features[key] = restoredFeatures[key]; });
+    }
     const savedAt = new Date().toISOString();
-    writeJsonAtomic(DRAFT_JSON, { savedAt, baseUpdatedAt: loadSite().updatedAt || null, draft, restoredFrom: rec.id });
-    return json(res, 200, { ok: true, savedAt, draft, restoredFrom: rec.id });
+    const existing = readDraft(), revision = (existing ? existing.revision : 0) + 1;
+    writeJsonAtomic(DRAFT_JSON, { savedAt, baseUpdatedAt: loadSite().updatedAt || null, revision, savedBy: actor(user), draft, restoredFrom: rec.id });
+    return json(res, 200, { ok: true, savedAt, revision, savedBy: actor(user), draft, restoredFrom: rec.id });
   }
-  if (p === '/status' && method === 'GET'){
-    return json(res, 200, { notifications: notifyConfig(), recovery: { emailSet: !!ADMIN.recoveryEmail, resendConfigured: !!process.env.RESEND_API_KEY },
-      trustProxy: TRUST_PROXY, secure: isSecure(req), node: process.version });
+  if (p === '/preview-link' && method === 'GET'){
+    const preview = ADMIN.preview || cleanPreview(null), active = !!(preview.tokenHash && Date.parse(preview.expiresAt) > Date.now());
+    return json(res, 200, { active, createdAt: active ? preview.createdAt : null, expiresAt: active ? preview.expiresAt : null, createdBy: active ? preview.createdBy : null });
   }
-  if (p === '/account/recovery-email' && method === 'GET') return json(res, 200, { email: ADMIN.recoveryEmail || '', resendConfigured: !!process.env.RESEND_API_KEY });
-  if (p === '/account/recovery-email' && method === 'POST'){
+  if (p === '/preview-link' && method === 'POST'){
+    if (!can(user, 'content')) return forbidden(res, 'share draft previews');
+    if (!previewLimiter(clientIp(req))) return json(res, 429, { error: 'Too many preview links. Wait one hour.' });
+    const draft = readDraft(); if (!draft) return json(res, 409, { error: 'Save a draft before creating a preview link.' });
+    let body = {};
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    let previewPath = String(body.path || '/').trim();
+    if (!/^\/[a-z0-9./-]*$/i.test(previewPath) || /(?:^|\/)(?:api|admin|data|media)(?:\/|\.|$)/i.test(previewPath) || previewPath.includes('..')) previewPath = '/';
+    const base = requestBase(req); if (!base) return json(res, 409, { error: 'Set a safe public Site URL before sharing a preview.' });
+    const version = (ADMIN.preview && ADMIN.preview.version || 0) + 1, expiresAt = new Date(Date.now() + PREVIEW_TTL).toISOString();
+    const token = signPreview({ kind: 'draft-preview', exp: Date.now() + PREVIEW_TTL, v: version, n: crypto.randomBytes(8).toString('hex') });
+    ADMIN.preview = { version, tokenHash: crypto.createHash('sha256').update(token).digest('hex'), createdAt: new Date().toISOString(), expiresAt, createdBy: actor(user) };
+    saveAdmin(ADMIN);
+    return json(res, 201, { ok: true, url: base + previewPath + (previewPath.includes('?') ? '&' : '?') + 'preview=' + encodeURIComponent(token),
+      createdAt: ADMIN.preview.createdAt, expiresAt, createdBy: ADMIN.preview.createdBy });
+  }
+  if (p === '/preview-link' && method === 'DELETE'){
+    if (!can(user, 'content')) return forbidden(res, 'revoke draft previews');
+    revokePreview();
+    return json(res, 200, { ok: true });
+  }
+
+  if (p === '/users' && method === 'GET'){
+    if (!can(user, 'users')) return forbidden(res, 'manage users');
+    return json(res, 200, { users: (ADMIN.users || []).map(publicUserRecord), resendConfigured: !!process.env.RESEND_API_KEY,
+      maxUsers: MAX_USERS, currentUserId: user.id, currentUserEmailSet: !!user.email });
+  }
+  if (p === '/users/invite' && method === 'POST'){
+    if (!can(user, 'users')) return forbidden(res, 'invite users');
+    if (!user.email) return json(res, 409, { error: 'Set your Account email before inviting another user. This keeps your Admin sign-in accessible once email login is required.', code: 'owner-email-required' });
+    if (!inviteLimiter(clientIp(req))) return json(res, 429, { error: 'Too many invitations. Wait one hour.' });
+    if (!process.env.RESEND_API_KEY) return json(res, 409, { error: 'Email delivery is not configured. Set RESEND_API_KEY before inviting a user.' });
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
-    if (!verifyPassword(body.current || '', ADMIN)) return json(res, 401, { error: 'Current password is wrong.' });
+    const email = String(body.email || '').trim().toLowerCase(), name = String(body.name || '').replace(/[\r\n]+/g, ' ').trim(), role = String(body.role || 'editor');
+    if (!isEmail(email)) return json(res, 400, { error: 'Enter a valid email address.', field: 'email' });
+    if (!name || name.length > 100) return json(res, 400, { error: 'Enter a name of up to 100 characters.', field: 'name' });
+    if (!USER_ROLES.includes(role)) return json(res, 400, { error: 'Choose Admin or Editor.', field: 'role' });
+    if ((ADMIN.users || []).length >= MAX_USERS) return json(res, 409, { error: 'This installation supports up to 10 users.' });
+    if ((ADMIN.users || []).some(value => value.email === email)) return json(res, 409, { error: 'That email already belongs to a user.', field: 'email' });
+    const now = new Date().toISOString(), token = crypto.randomBytes(32).toString('hex');
+    const invited = cleanUser({ id: freshUserId(ADMIN.users), email, name, role, status: 'invited', sessionVersion: freshSessionVersion(),
+      recovery: { hash: crypto.createHash('sha256').update(token).digest('hex'), exp: new Date(Date.now() + INVITE_TTL).toISOString(), purpose: 'invite' },
+      createdAt: now, updatedAt: now, invitedAt: now });
+    ADMIN.users.push(invited); saveAdmin(ADMIN);
+    try { await sendRecoveryEmail(req, token, invited, 'invite'); }
+    catch (e) { console.error('[invite] email status uncertain:', e.message); return json(res, 502, { error: 'The invitation was saved, but email delivery could not be confirmed. Use Resend invitation to issue a new link.', user: publicUserRecord(invited) }); }
+    return json(res, 201, { ok: true, user: publicUserRecord(invited) });
+  }
+  const userRoute = p.match(/^\/users\/([a-f0-9]{16})$/);
+  const resendInvite = p.match(/^\/users\/([a-f0-9]{16})\/resend$/);
+  if (resendInvite && method === 'POST'){
+    if (!can(user, 'users')) return forbidden(res, 'invite users');
+    if (!inviteLimiter(clientIp(req))) return json(res, 429, { error: 'Too many invitations. Wait one hour.' });
+    if (!process.env.RESEND_API_KEY) return json(res, 409, { error: 'Email delivery is not configured. Set RESEND_API_KEY before inviting a user.' });
+    const target = (ADMIN.users || []).find(value => value.id === resendInvite[1]);
+    if (!target || target.status === 'active') return json(res, 409, { error: 'Only pending or disabled invitations can be resent.' });
+    const token = crypto.randomBytes(32).toString('hex'), now = new Date().toISOString();
+    target.status = 'invited'; target.invitedAt = target.updatedAt = now; target.recovery = { hash: crypto.createHash('sha256').update(token).digest('hex'),
+      exp: new Date(Date.now() + INVITE_TTL).toISOString(), purpose: 'invite' }; saveAdmin(ADMIN);
+    try { await sendRecoveryEmail(req, token, target, 'invite'); }
+    catch (e) { console.error('[invite] email status uncertain:', e.message); return json(res, 502, { error: 'A new invitation was saved, but email delivery could not be confirmed.', user: publicUserRecord(target) }); }
+    return json(res, 200, { ok: true, user: publicUserRecord(target) });
+  }
+  if (userRoute && method === 'PATCH'){
+    if (!can(user, 'users')) return forbidden(res, 'manage users');
+    const target = (ADMIN.users || []).find(value => value.id === userRoute[1]); if (!target) return json(res, 404, { error: 'User not found.' });
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (target.id === user.id && ('role' in body || 'status' in body)) return json(res, 409, { error: 'You cannot change your own role or access.' });
+    const nextRole = 'role' in body ? String(body.role) : target.role, nextStatus = 'status' in body ? String(body.status) : target.status;
+    if (!USER_ROLES.includes(nextRole)) return json(res, 400, { error: 'Choose Admin or Editor.' });
+    if (!['active', 'disabled', 'invited'].includes(nextStatus) || (nextStatus === 'active' && (!target.hash || !target.salt))) return json(res, 400, { error: 'This user must accept an invitation before access can be restored.' });
+    if (nextStatus === 'invited' && target.status !== 'invited') return json(res, 400, { error: 'Use Resend invitation to issue a fresh invitation link.' });
+    if (target.role === 'admin' && target.status === 'active' && (nextRole !== 'admin' || nextStatus !== 'active')){
+      const otherAdmins = activeUsers().filter(value => value.role === 'admin' && value.id !== target.id);
+      if (!otherAdmins.length) return json(res, 409, { error: 'At least one active administrator is required.' });
+    }
+    if ('name' in body){ const name = String(body.name || '').replace(/[\r\n]+/g, ' ').trim(); if (!name || name.length > 100) return json(res, 400, { error: 'Enter a name of up to 100 characters.' }); target.name = name; }
+    const accessChanged = target.role !== nextRole || target.status !== nextStatus;
+    target.role = nextRole; target.status = nextStatus; target.updatedAt = new Date().toISOString(); if (accessChanged) target.sessionVersion = freshSessionVersion();
+    if (target.status === 'disabled') target.recovery = null; saveAdmin(ADMIN);
+    return json(res, 200, { ok: true, user: publicUserRecord(target) });
+  }
+  if (p === '/status' && method === 'GET'){
+    if (!can(user, 'settings')) return forbidden(res, 'view server settings');
+    return json(res, 200, { notifications: notifyConfig(), recovery: { emailSet: !!user.email, resendConfigured: !!process.env.RESEND_API_KEY },
+      users: { active: activeUsers().length, total: (ADMIN.users || []).length }, trustProxy: TRUST_PROXY, secure: isSecure(req), node: process.version });
+  }
+  if (p === '/account/recovery-email' && method === 'GET'){
+    if (!can(user, 'account')) return forbidden(res, 'manage the account');
+    return json(res, 200, { email: user.email || '', resendConfigured: !!process.env.RESEND_API_KEY });
+  }
+  if (p === '/account/recovery-email' && method === 'POST'){
+    if (!can(user, 'account')) return forbidden(res, 'manage the account');
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    if (!verifyPassword(body.current || '', user)) return json(res, 401, { error: 'Current password is wrong.' });
     const email = String(body.email || '').trim().toLowerCase();
     if (email && !isEmail(email)) return json(res, 400, { error: 'Enter a valid recovery email.' });
-    saveAdmin(Object.assign({}, ADMIN, { recoveryEmail: email, recovery: null }));
+    if (email && (ADMIN.users || []).some(value => value.id !== user.id && value.email === email)) return json(res, 409, { error: 'That email already belongs to another user.' });
+    user.email = email; user.recovery = null; user.updatedAt = new Date().toISOString(); saveAdmin(ADMIN);
     return json(res, 200, { ok: true, email });
   }
   if (p === '/account/notifications' && method === 'GET'){
+    if (!can(user, 'settings')) return forbidden(res, 'manage notifications');
     const recipients = notificationRecipients();
     return json(res, 200, { emails: recipients.emails, source: recipients.source, resendConfigured: !!process.env.RESEND_API_KEY,
       webhookConfigured: /^https:\/\//i.test(process.env.NOTIFY_WEBHOOK_URL || '') });
   }
   if (p === '/account/notifications' && method === 'PUT'){
+    if (!can(user, 'settings')) return forbidden(res, 'manage notifications');
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     if (!Array.isArray(body.emails) || body.emails.length > 10) return json(res, 400, { error: 'Use a list of up to 10 email addresses.' });
@@ -1268,6 +1545,7 @@ async function api(req, res, url){
       webhookConfigured: /^https:\/\//i.test(process.env.NOTIFY_WEBHOOK_URL || '') });
   }
   if (p === '/notify/test' && method === 'POST'){
+    if (!can(user, 'settings')) return forbidden(res, 'test notifications');
     if (!notifyTestLimiter(clientIp(req))) return json(res, 429, { error: 'Too many test emails. Wait 10 minutes.' });
     const now = new Date().toISOString();
     const sample = { id: crypto.randomBytes(8).toString('hex'), form: 'test lead', at: now, page: '/admin', lang: 'en',
@@ -1285,10 +1563,12 @@ async function api(req, res, url){
     return json(res, 200, listPages().map(pageInfo));
   }
   if (p === '/submissions' && method === 'GET'){
+    if (!can(user, 'submissions')) return forbidden(res, 'view submissions');
     return json(res, 200, readJson(SUBS_JSON, []).slice().reverse());
   }
   const del = p.match(/^\/submissions\/([a-f0-9]{16})$/);
   if (del && method === 'PATCH'){
+    if (!can(user, 'submissions')) return forbidden(res, 'update submissions');
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     if (typeof body.read !== 'boolean') return json(res, 400, { error: 'read must be true or false' });
@@ -1300,23 +1580,26 @@ async function api(req, res, url){
     return json(res, 200, { ok: true, submission: sub });
   }
   if (del && method === 'DELETE'){
+    if (!can(user, 'submissions')) return forbidden(res, 'delete submissions');
     const subs = readJson(SUBS_JSON, []);
     const next = subs.filter(s => s.id !== del[1]);
     writeJsonAtomic(SUBS_JSON, next);
     return json(res, 200, { ok: true, removed: subs.length - next.length });
   }
   if (p === '/submissions' && method === 'DELETE'){
+    if (!can(user, 'submissions')) return forbidden(res, 'delete submissions');
     writeJsonAtomic(SUBS_JSON, []);
     return json(res, 200, { ok: true });
   }
   if (p === '/password' && method === 'POST'){
+    if (!can(user, 'account')) return forbidden(res, 'change the account password');
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
-    if (!verifyPassword(body.current || '', ADMIN)) return json(res, 401, { error: 'Current password is wrong.' });
+    if (!verifyPassword(body.current || '', user)) return json(res, 401, { error: 'Current password is wrong.' });
     const next = String(body.next || '');
     if (next.length < 8 || next.length > 200) return json(res, 400, { error: 'New password must be 8–200 characters.' });
-    saveAdmin(Object.assign({}, ADMIN, hashPassword(next), { secret: crypto.randomBytes(32).toString('hex'), createdAt: new Date().toISOString(), recovery: null }));
-    const tok = sign({ exp: Date.now() + SESSION_TTL, v: ADMIN.createdAt, n: crypto.randomBytes(6).toString('hex') });
+    Object.assign(user, hashPassword(next), { sessionVersion: freshSessionVersion(), recovery: null, updatedAt: new Date().toISOString() }); saveAdmin(ADMIN);
+    const tok = sessionToken(user);
     return json(res, 200, { ok: true }, { 'Set-Cookie': sessionCookie(tok, SESSION_TTL / 1000, isSecure(req)) });
   }
   return json(res, 404, { error: 'no such endpoint' });
@@ -1368,6 +1651,23 @@ function injectItemContext(html, context, cleanRoute){
   return html;
 }
 
+function unavailablePage(title, message){
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<meta name="robots" content="noindex,nofollow"><title>' + escapeHtml(title) + '</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f1ea;color:#0b0c10;font:16px/1.55 Inter,system-ui,sans-serif}main{width:min(520px,calc(100% - 40px));padding:32px;border:1px solid #cbc7bd;border-radius:16px;background:#fff}h1{margin:0 0 12px;font-size:28px}p{margin:0;color:#555b66}</style></head><body><main><h1>' +
+    escapeHtml(title) + '</h1><p>' + escapeHtml(message) + '</p></main></body></html>';
+}
+function forceNoindex(html){
+  const tag = '<meta name="robots" content="noindex,nofollow">';
+  return /<meta\s+name="robots"[^>]*>/i.test(html) ? html.replace(/<meta\s+name="robots"[^>]*>/i, tag) : html.replace(/<\/head>/i, tag + '\n</head>');
+}
+function injectPreview(html, draft, token){
+  const draftScript = '<script>document.documentElement.classList.add("omni-preview");\n' + siteToJs(draft).replace(/^\/\*[\s\S]*?\*\/\s*/, '') + '</script>\n';
+  html = html.replace(/<script\s+src="data\/site\.js"><\/script>/i, '$&\n' + draftScript);
+  return html.replace(/<\/body>/i,
+    '<div class="omni-preview-ribbon" role="status"><strong>Preview — not live</strong><span>Forms are disabled. This private link expires automatically.</span></div>\n' +
+    '<script>window.OMNI_PREVIEW_TOKEN=' + JSON.stringify(token).replace(/</g, '\\u003c') + ';</script>\n<script src="js/preview.js" defer></script>\n</body>');
+}
+
 function serveStatic(req, res, url){
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); } catch (e) { return send(res, 400, 'Bad request'); }
@@ -1376,13 +1676,18 @@ function serveStatic(req, res, url){
   if (pathname === '/sitemap.xml' && !fs.existsSync(path.join(ROOT, 'sitemap.xml'))) writeSeoFiles(loadSite());
 
   const wantsEditor = url.searchParams.get('edit') === '1' && isAuthed(req);
-  const draftRecord = wantsEditor ? readDraft() : null;
+  const rawPreviewToken = url.searchParams.get('preview') || '';
+  const previewPayload = rawPreviewToken ? verifyPreviewToken(rawPreviewToken) : null;
+  if (rawPreviewToken && !previewPayload) return send(res, 403, unavailablePage('Preview unavailable', 'This preview link is invalid, expired or has been revoked.'), { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+  const wantsPreview = !!previewPayload;
+  const draftRecord = (wantsEditor || wantsPreview) ? readDraft() : null;
+  if (wantsPreview && !draftRecord) return send(res, 410, unavailablePage('Preview unavailable', 'This draft no longer exists. Ask the site team for a new preview link.'), { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
   let pageSite = draftRecord ? draftRecord.draft : loadSite();
   let itemContext = collectionRoute(pathname);
   const cleanItemRoute = !!itemContext;
   if (itemContext){
     const item = (effectiveCollections(pageSite)[itemContext.type] || []).find(value => value.slug === itemContext.slug);
-    if (!item || (!item.published && !wantsEditor)){
+    if (!item || (!item.published && !wantsEditor && !wantsPreview)){
       const nf = path.join(ROOT, '404.html');
       return send(res, 404, fs.existsSync(nf) ? fs.readFileSync(nf) : 'Not found', { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store' });
     }
@@ -1413,13 +1718,17 @@ function serveStatic(req, res, url){
   const type = MIME[ext] || 'application/octet-stream';
   if (ext === '.html'){
     const key = path.basename(file, '.html');
+    if (key === 'admin-advanced'){
+      const session = currentSession(req);
+      if (session && session.user.role !== 'admin') return send(res, 403, unavailablePage('Admin access required', 'Your Editor role can change and publish site content, but it cannot open account or server settings.'), { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store' });
+    }
     if (!itemContext){
       const type = collectionTemplate(key);
       if (type){
         const items = effectiveCollections(pageSite)[type] || [];
         const slug = String(url.searchParams.get('item') || '');
-        const item = slug ? items.find(value => value.slug === slug) : items.find(value => value.published) || (wantsEditor ? items[0] : null);
-        if (slug && (!item || (!item.published && !wantsEditor))){
+        const item = slug ? items.find(value => value.slug === slug) : items.find(value => value.published) || ((wantsEditor || wantsPreview) ? items[0] : null);
+        if (slug && (!item || (!item.published && !wantsEditor && !wantsPreview))){
           const nf = path.join(ROOT, '404.html');
           return send(res, 404, fs.existsSync(nf) ? fs.readFileSync(nf) : 'Not found', { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store' });
         }
@@ -1429,11 +1738,12 @@ function serveStatic(req, res, url){
     let html = fs.readFileSync(file, 'utf8');
     html = injectItemContext(html, itemContext, cleanItemRoute);
     html = injectMeta(html, key, pageSite, itemContext);
+    if (wantsPreview && !['admin', 'admin-advanced', '404'].includes(key)) html = injectPreview(forceNoindex(html), pageSite, rawPreviewToken);
     if (wantsEditor && !['admin', 'admin-advanced', '404'].includes(key)){
       html = html.replace(/<\/body>/i,
         '<link rel="stylesheet" href="css/editor.css">\n<script src="js/editor.js" defer></script>\n</body>');
     }
-    return send(res, 200, html, { 'Content-Type': type, 'Cache-Control': 'no-cache' });
+    return send(res, 200, html, { 'Content-Type': type, 'Cache-Control': wantsPreview ? 'no-store' : 'no-cache', 'Referrer-Policy': wantsPreview ? 'no-referrer' : 'strict-origin-when-cross-origin' });
   }
   const cache = (rel[0] === 'data') ? 'no-cache' : 'public, max-age=300';
   send(res, 200, fs.readFileSync(file), { 'Content-Type': type, 'Cache-Control': cache });

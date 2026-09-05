@@ -43,7 +43,8 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - Secret inputs are masked by default and provide an explicit Show/Hide control.
 - Password recovery never confirms whether a private address exists. Reset
   tokens are one-time, expire after 30 minutes, and a completed reset rotates
-  the session secret so every prior session becomes invalid.
+  that user’s session version. Invitation links use the same password owner,
+  expire after 48 hours, and never activate an account before acceptance.
 - Lead-recipient chips accept at most ten unique valid addresses. A non-empty
   private list owns delivery; an empty list deliberately falls back to the
   environment recipient list.
@@ -57,9 +58,10 @@ Table selection and date-picker ownership are omitted because the editor has nei
   actions. Section order changes only among direct `<main>` siblings; the hero
   remains outside that ordering boundary.
 - At 700 px and below, the editor owns one bottom dock with Undo, Publish and
-  More. More provides Page, EN/AZ, Design, This page, Media, History, Inbox,
-  Settings and Discard; desktop Phone preview is omitted because the viewport
-  is already narrow. No desktop editor action disappears on touch.
+  More. More provides Page, EN/AZ, Design, This page, Media, History, Preview,
+  Inbox, role-appropriate Settings/Users, and Discard; desktop Phone preview is
+  omitted because the viewport is already narrow. No permitted desktop editor
+  action disappears on touch.
 - Touch section and card **⋯** controls open the shared owned action-sheet
   dialog. Sections expose Hide/Show, Accent and Move; cards expose the same
   reorder/status/image/removal operations as their desktop rails. Drag handles
@@ -119,11 +121,16 @@ Table selection and date-picker ownership are omitted because the editor has nei
 | Create collection item | + New on a listing | draft save before navigation | clean item URL in edit mode | Draft badge + editable page | item remains in draft if navigation fails | new item page | `js/editor.js` |
 | Edit collection item | direct text / Item details / Media | normal draft autosave | current item page | live repaint + saved timestamp | local draft retained | edited field or sheet | `js/editor.js`, `js/site-config.js` |
 | Publish/unpublish item | item/card status + site Publish | normal publish summary | current edit page | public route/listing/sitemap update together | server draft retained | publish trigger | `js/editor.js`, `server.js` |
+| Create draft preview | Preview → Create/Replace | draft saved, action disabled | open Preview sheet | private URL + expiry + copy action | existing link/draft retained + inline error | copy action | `js/editor.js`, `server.js` |
+| Revoke draft preview | Revoke + confirm | pessimistic request | open Preview sheet | inactive status + toast | link remains active + error toast | invoking control | `js/editor.js`, `server.js` |
+| Invite user | Users form | pessimistic send | open Users sheet | pending account + 48-hour status | saved pending account is surfaced if delivery is uncertain | invitation form | `js/editor.js`, `server.js` |
+| Change role/access | per-user select/action + confirm | pessimistic request | open Users sheet | row refresh + affected sessions invalidated | original access retained + error toast | invoking row | `js/editor.js`, `server.js` |
 
 ## Navigation and responsive behavior
 
-- `/admin` is login-only and redirects authenticated owners to
-  `index.html?edit=1`; `/admin-advanced.html` owns the legacy tab dashboard.
+- `/admin` is login-only and redirects authenticated users to
+  `index.html?edit=1`; `/admin-advanced.html` owns the legacy tab dashboard and
+  returns an owned 403 page to an authenticated Editor.
 - Advanced-admin tabs update the URL hash and document heading without a full navigation.
 - The editor page switcher saves the draft before full-page navigation and
   preserves `?edit=1`. Anonymous requests with that query never receive the
@@ -143,7 +150,7 @@ Table selection and date-picker ownership are omitted because the editor has nei
   Discard and lead deletion. Dialogs trap focus, Escape cancels, and focus
   returns to the invoking control.
 - Editor Design and Media are non-modal left sheets so the owner can inspect the page
-  while changing it. Inbox, Settings and This page are non-modal right sheets. Escape
+  while changing it. Inbox, Settings, Users, Preview and This page are non-modal right sheets. Escape
   closes a sheet and returns focus; dialogs opened from a sheet sit above it.
 - At 700 px and below, those same editor sheets become full-screen with sticky
   close headers and 16 px form controls. Publish/Discard dialogs also fill the
@@ -168,14 +175,18 @@ Table selection and date-picker ownership are omitted because the editor has nei
   normal draft/undo path while library metadata writes are pessimistic.
 - Failed publish keeps the draft. Failed lead notifications never discard the already persisted submission.
 - Session expiry returns to sign-in. Configuration writes use temporary files and atomic rename.
-- Offline editor changes remain in one local browser copy and reconcile by the
-  newest save timestamp when that browser returns. There is no multi-device
-  merge, automatic conflict resolution, multi-user editing, or per-field history.
+- Offline editor changes remain in a per-user local browser copy and reconcile
+  by the newest save timestamp when that browser returns. There is no automatic
+  merge or per-field history; a revision mismatch requires the user to load the
+  latest shared draft explicitly.
 
 ## Drafts, history and conflicts
 
-- One draft at a time (`data/draft.json`). It records `baseUpdatedAt`, the
-  live version it was started from.
+- One shared draft at a time (`data/draft.json`). It records `baseUpdatedAt`,
+  revision, `savedBy`, and the live version it was started from.
+- Save and Discard compare the browser’s draft revision. A stale request gets
+  `409 draft-stale`; its local copy is retained and an owned dialog identifies
+  the latest editor before offering to load the shared version.
 - Publish compares that base with the live `updatedAt`. If they differ the
   server answers `409 stale`; the editor shows a "The live site changed
   meanwhile" dialog and only republishes with an explicit *Publish anyway*.
@@ -186,7 +197,12 @@ Table selection and date-picker ownership are omitted because the editor has nei
   straight to live — so the normal review-then-publish path still applies.
   Restore replaces the current draft and says so before doing it.
 - Undo/Redo are session-scoped and cleared on publish; History is the
-  cross-session way back.
+  cross-session way back. History records who performed each publish.
+- One HMAC-signed preview token may expose only the saved draft. It is stored
+  hashed, expires after seven days, is replaced by a newer link, and is revoked
+  by Publish, Discard or the explicit Revoke action. Preview pages are noindex,
+  no-store, no-referrer, carry a non-live ribbon, preserve the token on internal
+  links, and block every form submission.
 
 ## Validation
 
@@ -205,12 +221,22 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 ## Permission and clipboard
 
-- The editor has one password-authenticated role; no field-level permissions exist.
+- Admin owns users, account/server settings, lead recipients, advanced custom
+  CSS, the advanced dashboard, and permanent media deletion. Editor owns
+  content/design/SEO drafts, Publish, Inbox, and media upload/metadata/use.
+  Routes enforce the same map; hidden UI is not the security boundary.
+- Role or access changes rotate only the affected user’s session version.
+  Self-demotion/self-disable and removal of the last active Admin are blocked.
 - Article copy-link writes the public canonical URL and reports success without exposing secret data.
+- Preview copy-link exposes only the signed draft URL and confirms success
+  without logging or toasting the token itself.
 
 ## Verification
 
 - Static: `npm run check` and the premium strict audit.
-- Integration: `npm test` covers configuration, validation, persistence, notifications, and schema guards.
-- Browser: `npm run test:browser` covers phone/laptop containment, navigation focus/inert behavior, validation, content affordances, admin layout, and the complete 390 px mobile edit/publish workflow.
+- Integration: `npm test` covers 189 configuration, validation, persistence,
+  notification, migration, role, conflict and preview checks.
+- Browser: `npm run test:browser` covers 97 phone/laptop containment,
+  navigation/focus, validation, content, preview, invitation/role, admin, and
+  complete 390 px mobile edit/publish checks.
 - Owner gates still required: native Azerbaijani review, approved privacy/retention terms, and written approval for every proof item before enabling it.

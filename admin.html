@@ -18,6 +18,10 @@
     <form id="loginForm" autocomplete="off" novalidate>
       <p class="muted">Sign in to edit the real website directly. Drafts save automatically and stay private until you publish.</p>
       <p class="login-notice" id="loginStatus" role="status" aria-live="polite" hidden></p>
+      <div id="loginEmailField" hidden>
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" inputmode="email" autocomplete="username" maxlength="254" aria-describedby="loginErr" aria-invalid="false">
+      </div>
       <label for="loginPw">Password</label>
       <div class="password-row">
         <input id="loginPw" type="password" autocomplete="current-password" maxlength="200" aria-describedby="loginErr" aria-invalid="false" required autofocus>
@@ -30,13 +34,17 @@
     <section id="recoverView" aria-labelledby="recoverTitle" hidden>
       <h1 id="recoverTitle">Reset your password</h1>
       <p class="muted" id="recoverHelp">We will email a private, one-time reset link to the recovery address saved by the site owner.</p>
+      <div id="recoverEmailField" hidden>
+        <label for="recoverEmail">Account email</label>
+        <input id="recoverEmail" type="email" inputmode="email" autocomplete="username" maxlength="254" aria-describedby="recoverStatus" aria-invalid="false">
+      </div>
       <p class="login-notice" id="recoverStatus" role="status" aria-live="polite" hidden></p>
       <button type="button" class="btn primary block" id="sendRecovery">Send reset link</button>
       <button type="button" class="login-text-button" data-back-login>Back to sign in</button>
     </section>
     <form id="resetForm" autocomplete="off" novalidate hidden>
       <h1>Choose a new password</h1>
-      <p class="muted">Use at least 8 characters. Saving it will sign out every existing editor session.</p>
+      <p class="muted">Use at least 8 characters. Saving it signs out this account on other devices.</p>
       <label for="resetPw">New password</label>
       <div class="password-row">
         <input id="resetPw" type="password" autocomplete="new-password" minlength="8" maxlength="200" aria-describedby="resetErr" required>
