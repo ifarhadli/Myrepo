@@ -396,12 +396,12 @@ async function main(){
   state = await evaluate(`({ title:document.querySelector('#omniPanelTitle').textContent, items:document.querySelectorAll('.omni-history__item').length, restore:!!document.querySelector('.omni-history__item button'), undoLabel:document.querySelector('[data-editor-undo]').textContent.trim() })`);
   check('History panel lists published versions with Restore, and Undo is labelled', state.title === 'History' && state.items >= 1 && state.restore && /Undo/.test(state.undoLabel), JSON.stringify(state));
   await evaluate(`document.querySelector('.omni-panel__close').click()`);
-  const tabCount = await evaluate(`document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])').length`);
-  await evaluate(`document.querySelector('.omni-bar select,.omni-bar button:not([disabled])').focus()`);
-  const reached = [await evaluate(`[...document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])')].indexOf(document.activeElement)`)];
+  const tabCount = await evaluate(`document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])').length`);
+  await evaluate(`document.querySelector('.omni-bar__desktop select,.omni-bar__desktop button:not([disabled])').focus()`);
+  const reached = [await evaluate(`[...document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])')].indexOf(document.activeElement)`)];
   for(let i=1;i<tabCount;i++){
     await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab'});
-    reached.push(await evaluate(`[...document.querySelectorAll('.omni-bar button:not([disabled]),.omni-bar select:not([disabled])')].indexOf(document.activeElement)`));
+    reached.push(await evaluate(`[...document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])')].indexOf(document.activeElement)`));
   }
   check('Tab reaches every enabled editor-bar control in order', reached.length === tabCount && reached.every((value,index)=>value===index), JSON.stringify(reached));
   await evaluate(`(() => { const button=document.querySelector('[data-editor-discard]');button.focus();button.click(); })()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-dialog[open]')`),3000);await evaluate(`document.querySelector('[data-dialog-confirm]').focus()`);
@@ -412,6 +412,43 @@ async function main(){
   state = await evaluate(`({ closed:!document.querySelector('.omni-dialog'),focus:document.activeElement.hasAttribute('data-editor-discard') })`);
   check('Escape closes an editor modal and restores its trigger', state.closed && state.focus, JSON.stringify(state));
   await evaluate(`document.querySelector('[data-editor-discard]').click()`);await waitFor(() => evaluate(`!!document.querySelector('[data-dialog-confirm]')`),3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')&&document.querySelector('[data-editor-publish]').disabled`),10000);
+
+  /* ---- native 390px editor: bottom dock, sheets and touch alternatives ---- */
+  await viewport(390,844);await go('/index.html?edit=1');await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')&&document.documentElement.classList.contains('omni-editing')`),10000);
+  state=await evaluate(`(() => {const mobile=document.querySelector('.omni-bar__mobile'),desktop=document.querySelector('.omni-bar__desktop'),buttons=[...mobile.querySelectorAll('button')].map(button=>{const r=button.getBoundingClientRect();return{label:button.textContent.trim(),left:r.left,right:r.right,height:r.height}}),camera=document.querySelector('[data-image="index.hero"]').parentElement.querySelector('.omni-image-action'),card=document.querySelector('[data-collection="cases"] [data-collection-id]');return{mobile:getComputedStyle(mobile).display,desktop:getComputedStyle(desktop).display,overflow:document.documentElement.scrollWidth-innerWidth,buttons:buttons,camera:getComputedStyle(camera).visibility,cardMenu:!!card&&getComputedStyle(card.querySelector(':scope > .omni-touch-menu')).display,cardTools:!!card&&getComputedStyle(card.querySelector(':scope > .omni-collection-tools')).display};})()`);
+  check('390px edit mode uses a contained Undo / Publish / More bottom dock',state.mobile==='grid'&&state.desktop==='none'&&state.overflow<=0&&state.buttons.length===3&&state.buttons.every(button=>button.left>=0&&button.right<=390&&button.height>=44),JSON.stringify(state));
+  check('touch editor exposes permanent card and image actions without hover',state.camera==='visible'&&state.cardMenu==='grid'&&state.cardTools==='none',JSON.stringify(state));
+  await screenshot('editor-mobile-390');
+  await evaluate(`document.querySelector('[data-collection="cases"] [data-collection-id] > .omni-touch-menu').click()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-action-sheet[open]')`),3000);
+  state=await evaluate(`[...document.querySelectorAll('.omni-action-sheet__body button')].map(button=>button.textContent.trim())`);
+  check('collection cards expose status, image, reorder and delete in the touch sheet',['Move up','Move down','Change image','Delete case'].every(label=>state.includes(label))&&state.some(label=>label==='Publish'||label==='Unpublish'),JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-action-sheet-close]').click()`);await pause(80);
+  await evaluate(`(() => {const el=document.querySelector('[data-i18n="home.hero.h1"]');el.click();el.textContent='Mobile editor headline.';})()`);await pause(100);
+  state=await evaluate(`(() => {const tools=document.querySelector('.omni-mini-tools'),done=tools&&tools.querySelector('[data-format="done"]'),style=tools&&getComputedStyle(tools);return{editable:document.querySelector('[data-i18n="home.hero.h1"]').isContentEditable,done:!!done&&getComputedStyle(done).display!=='none',position:style&&style.position,bottom:style&&style.bottom,overflow:tools?tools.scrollWidth-tools.clientWidth:0};})()`);
+  check('mobile text editing docks a keyboard-safe toolbar with Done',state.editable&&state.done&&state.position==='fixed'&&state.overflow<=0,JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-format="done"]').click()`);await pause(100);
+  check('mobile Done commits the text into the draft',await evaluate(`window.OmniEditor.getState().draft.i18n.en['home.hero.h1']==='Mobile editor headline.'`));
+  await evaluate(`document.querySelector('[data-section="index.s1"] > .omni-touch-menu').click()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-action-sheet[open]')`),3000);
+  state=await evaluate(`(() => {const sheet=document.querySelector('.omni-action-sheet'),labels=[...sheet.querySelectorAll('.omni-action-sheet__body button')].map(x=>x.textContent.trim());return{open:sheet.open,labels:labels,focus:sheet.contains(document.activeElement)};})()`);
+  check('section touch badge opens the owned Hide / Accent / Move action sheet',state.open&&state.focus&&['Hide section','Move up','Move down'].every(label=>state.labels.includes(label))&&state.labels.some(label=>label.startsWith('Accent')),JSON.stringify(state));
+  await screenshot('editor-section-sheet-390');
+  await evaluate(`[...document.querySelectorAll('.omni-action-sheet__body button')].find(button=>button.textContent.trim()==='Hide section').click()`);await pause(100);
+  check('section actions hide the section while keeping its editor badge visible',await evaluate(`document.querySelector('[data-section="index.s1"]').getAttribute('data-editor-hidden')==='true'&&!document.querySelector('[data-section="index.s1"] .omni-section-badge').hidden`));
+  await evaluate(`document.querySelector('[data-editor-more]').click()`);await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Editor menu'`),3000);
+  state=await evaluate(`(() => {const panel=document.querySelector('.omni-panel'),r=panel.getBoundingClientRect(),actions=[...panel.querySelectorAll('[data-mobile-open]')].map(x=>x.textContent.trim());return{width:r.width,height:r.height,expanded:document.querySelector('[data-editor-more]').getAttribute('aria-expanded'),page:!!panel.querySelector('#omniMobilePageSelect'),languages:panel.querySelectorAll('[data-mobile-lang]').length,actions:actions};})()`);
+  check('More opens a full-screen mobile menu with every secondary editor destination',Math.round(state.width)===390&&Math.round(state.height)===844&&state.expanded==='true'&&state.page&&state.languages===2&&['Design','This page','Media','History','Settings','Discard draft'].every(label=>state.actions.includes(label)),JSON.stringify(state));
+  await screenshot('editor-more-390');
+  await evaluate(`document.querySelector('[data-mobile-open="design"]').click()`);await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Design'`),3000);
+  await evaluate(`(() => {const input=document.querySelector('#omniColour7');input.value='#B9E84A';input.dispatchEvent(new Event('input',{bubbles:true}));})()`);await pause(100);
+  state=await evaluate(`(() => {const panel=document.querySelector('.omni-panel'),r=panel.getBoundingClientRect(),input=document.querySelector('#omniHex7');return{width:r.width,height:r.height,font:getComputedStyle(input).fontSize,signal:getComputedStyle(document.documentElement).getPropertyValue('--signal').trim().toUpperCase()};})()`);
+  check('mobile Design is full-screen, prevents iOS input zoom and repaints live',Math.round(state.width)===390&&Math.round(state.height)===844&&parseFloat(state.font)>=16&&state.signal==='#B9E84A',JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-panel__close').click();document.querySelector('[data-editor-mobile-publish]').click()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-dialog[open]')`),3000);
+  state=await evaluate(`(() => {const dialog=document.querySelector('.omni-dialog'),r=dialog.getBoundingClientRect();return{width:r.width,height:r.height,focus:dialog.contains(document.activeElement)};})()`);
+  check('mobile Publish uses a full-screen focus-contained review dialog',Math.round(state.width)===390&&Math.round(state.height)===844&&state.focus,JSON.stringify(state));
+  await screenshot('editor-publish-390');
+  await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-mobile-publish]').disabled`),10000);
+  await go('/index.html');state=await evaluate(`({editor:!!document.querySelector('.omni-bar'),headline:document.querySelector('[data-i18n="home.hero.h1"]').textContent.trim().replace(/\\s+/g,' '),hidden:getComputedStyle(document.querySelector('[data-section="index.s1"]')).display,signal:getComputedStyle(document.documentElement).getPropertyValue('--signal').trim().toUpperCase(),overflow:document.documentElement.scrollWidth-innerWidth})`);
+  check('mobile Publish promotes text, section and design changes without public overflow',!state.editor&&state.headline==='Mobile editor headline.'&&state.hidden==='none'&&state.signal==='#B9E84A'&&state.overflow<=0,JSON.stringify(state));
   ws.close();
   console.log('\n' + pass + ' browser checks passed, ' + fail + ' failed');
 }

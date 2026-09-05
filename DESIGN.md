@@ -143,6 +143,16 @@ edge. Search and share previews stay inside bordered white cards, use authored
 content fallbacks, and show an explicit loading/unavailable image state.
 Phone preview centers one 390px page frame on a quiet gray work surface.
 
+At 700px and below, the editor becomes a 62px ink bottom dock with exactly
+three primary controls: Undo, signal-filled Publish, and More. Secondary
+navigation moves into a full-screen paper sheet so the live page keeps its
+reading width and no toolbar scroll is required. Compact dark **⋯** badges are
+the touch equivalent of section and card hover rails; their actions open one
+owned bottom sheet. Image slots retain a separate camera badge. Text-format
+controls form a single horizontally scrollable dock immediately above the
+visual keyboard, with Done held at the trailing edge. These are responsive
+variants of the shared editor owners, not a second mobile design system.
+
 Media uses the same neutral left sheet as Design. The upload target is a
 bordered white drop surface with an explicit file-picker action; each file
 gets a stable progress row before entering a compact two-column thumbnail
@@ -172,6 +182,12 @@ owner. Publish/Discard dialogs use a bordered paper surface, cancel-first
 focus, sticky actions and the documented global layer scale. Hidden sections
 and items remain visible only in edit mode at reduced opacity with a textual
 badge; colour is never the sole status signal.
+
+On phones, long editor sheets and publish dialogs fill the visual viewport;
+headers/actions remain reachable across safe-area and virtual-keyboard
+changes. Short contextual section/card choices remain bottom sheets with a
+visible grab cue, clear text actions, focus containment, Escape dismissal and
+focus restoration.
 
 ### Iconography
 

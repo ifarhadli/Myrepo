@@ -64,6 +64,15 @@ items can also be added. **Design** changes the curated colours, font pairing
 and motion level while the page is visible. **Phone** previews the current
 page in a contained 390 px layout.
 
+On screens up to 700 px, edit mode becomes a thumb-reachable bottom dock with
+**Undo**, **Publish**, and **More**. More opens the page switcher, EN/AZ,
+Design, This page, Media, History, Inbox, Settings, and Discard in one
+full-screen sheet. Section and card **⋯** buttons replace hover controls with
+Hide/Show, Accent, Move, status, image, and delete actions. Image slots keep a
+visible camera button, and every text edit has a **Done** action docked above
+the on-screen keyboard. The desktop editor and its 390 px preview remain
+unchanged above this breakpoint.
+
 Image positions are fixed by the design. Hover a hero, case, team, logo,
 article, case-study or mega-menu image slot and choose **Add image** / **Change
 image**, or drop an image directly on the slot. The **Media** panel also opens

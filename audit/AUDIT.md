@@ -41,13 +41,14 @@ The findings below were verified against the source and screenshots, then addres
 | P2 Rate limit behind proxy | **Fixed** — `TRUST_PROXY=1` keys on `X-Forwarded-For` | `server.js` |
 | P2 URL fields not scheme-validated | **Fixed** | `server.js` |
 | P2 Submissions plaintext, no retention | **Open** — small-scale JSON by design; revisit with a DB | — |
-| P2 No automated tests | **Fixed** — 148 integration checks plus 65 real-browser checks | `test/`, `package.json` |
+| P2 No automated tests | **Fixed** — 155 integration checks plus 87 real-browser checks | `test/`, `package.json` |
 | P2 Mobile Services drawer button UA styling | **Fixed** — button reset | `css/style.css` |
 | Post-audit: no email / CRM notification | **Fixed** — Resend email + generic webhook; up to 10 private recipients are editable/testable and take precedence over the env fallback | `server.js`, `js/editor.js`, `js/admin.js`, `README.md` |
 | Admin plan 2: no password recovery | **Fixed** — private recovery email, non-enumerating request, expiring one-time token, password/session rotation, honest unavailable state | `server.js`, `admin.html`, `js/login.js`, `js/editor.js` |
 | Admin plan 2: per-page search control incomplete | **Fixed for current static pages** — per-page metadata, social image and noindex are draft/publish controlled; noindex pages leave the sitemap | `server.js`, `js/editor.js` |
 | Admin plan 2: no image management | **Fixed** — authored image slots, private upload/library, browser-built responsive variants, per-use alt/focal point, social-image picking and guarded deletion | `server.js`, `js/site-config.js`, `js/editor.js`, `css/editor.css` |
 | Admin plan 2: hard-coded cases, articles, jobs, team and testimonials | **Fixed** — bilingual validated collections, in-place lifecycle controls, clean detail routes, item metadata/schema and sitemap integration | `js/data.js`, `js/partials.js`, `js/site-config.js`, `js/editor.js`, `server.js` |
+| Admin plan 2: editor unusable on a phone | **Fixed** — 390 px bottom dock, complete More sheet, touch section/card/image actions, keyboard-aware Done toolbar and full-screen mobile panels/dialogs | `js/editor.js`, `css/editor.css`, `test/browser-smoke.js` |
 | Deep audit: mobile contact/service overflow | **Fixed** — all inline fixed-grid declarations swept; contact and service layouts collapse cleanly | `contact.html`, `css/style.css` |
 | Deep audit: mega-menu density/height | **Fixed** — admin-configurable link count (default 4), global All services link, viewport-bounded scroll | `js/partials.js`, `css/style.css`, `js/admin.js` |
 | Deep audit: hidden focus in drawer/accordions | **Fixed** — closed content is invisible and inert; modal background is inert | `js/main.js`, `js/partials.js`, `css/style.css` |

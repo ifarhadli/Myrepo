@@ -56,6 +56,18 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - Section and item drag handles have adjacent up/down or equivalent keyboard
   actions. Section order changes only among direct `<main>` siblings; the hero
   remains outside that ordering boundary.
+- At 700 px and below, the editor owns one bottom dock with Undo, Publish and
+  More. More provides Page, EN/AZ, Design, This page, Media, History, Inbox,
+  Settings and Discard; desktop Phone preview is omitted because the viewport
+  is already narrow. No desktop editor action disappears on touch.
+- Touch section and card **⋯** controls open the shared owned action-sheet
+  dialog. Sections expose Hide/Show, Accent and Move; cards expose the same
+  reorder/status/image/removal operations as their desktop rails. Drag handles
+  are not used for touch reordering. Image slots expose a permanent camera
+  action, separate from the card action menu.
+- Every phone text edit exposes Done. Its toolbar follows `visualViewport`
+  above the virtual keyboard; plain text receives only Done while rich text
+  retains its allow-listed formatting actions. Escape still cancels.
 - Images can be added only to authored `data-image` slots. The slot owns crop
   geometry; the owner controls a per-use alt string and focal point. Focal
   placement has both a direct image target and keyboard-operable horizontal /
@@ -133,6 +145,12 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - Editor Design and Media are non-modal left sheets so the owner can inspect the page
   while changing it. Inbox, Settings and This page are non-modal right sheets. Escape
   closes a sheet and returns focus; dialogs opened from a sheet sit above it.
+- At 700 px and below, those same editor sheets become full-screen with sticky
+  close headers and 16 px form controls. Publish/Discard dialogs also fill the
+  visual viewport with internally scrolling content and sticky safe-area
+  actions. Short section/card action sheets remain bottom-anchored modal
+  dialogs, trap focus, make the page inert, dismiss with Escape and restore
+  focus to their **⋯** trigger.
 - Cancel is initially focused, Escape cancels, and the browser restores focus to the invoking control.
 - Admin toast messages use a polite live region, appear at the bottom center, and clear after 3.2 seconds.
 - Unsaved changes use an in-app confirmation for editor actions and the platform unload guard for browser/tab exit.
@@ -194,5 +212,5 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 - Static: `npm run check` and the premium strict audit.
 - Integration: `npm test` covers configuration, validation, persistence, notifications, and schema guards.
-- Browser: `npm run test:browser` covers phone/laptop containment, navigation focus/inert behavior, validation, content affordances, and admin layout.
+- Browser: `npm run test:browser` covers phone/laptop containment, navigation focus/inert behavior, validation, content affordances, admin layout, and the complete 390 px mobile edit/publish workflow.
 - Owner gates still required: native Azerbaijani review, approved privacy/retention terms, and written approval for every proof item before enabling it.
