@@ -31,6 +31,8 @@ fs.rmSync(path.join(tmpRoot, 'data', 'admin.json'), { force: true });
 fs.rmSync(path.join(tmpRoot, 'data', 'submissions.json'), { force: true });
 fs.rmSync(path.join(tmpRoot, 'data', 'media.json'), { force: true });
 fs.rmSync(path.join(tmpRoot, 'data', 'media'), { recursive: true, force: true });
+fs.rmSync(path.join(tmpRoot, 'data', 'draft.json'), { force: true });
+fs.rmSync(path.join(tmpRoot, 'data', 'history'), { recursive: true, force: true });
 
 const sentMail = [];
 const mailServer = http.createServer((req,res)=>{let raw='';req.on('data',chunk=>{raw+=chunk;});req.on('end',()=>{try{sentMail.push(JSON.parse(raw));}catch(error){}res.writeHead(200,{'Content-Type':'application/json'});res.end('{"id":"browser-email"}');});});
@@ -194,6 +196,15 @@ async function main(){
   const editorReady = await waitFor(() => evaluate(`!!document.querySelector('.omni-bar') && document.documentElement.classList.contains('omni-editing')`), 10000);
   state = await evaluate(`({ bar:!!document.querySelector('.omni-bar'), editing:document.documentElement.classList.contains('omni-editing'), kinetic:document.querySelectorAll('.kinetic .kw').length, controls:document.querySelectorAll('.omni-bar button,.omni-bar select').length })`);
   check('authenticated edit mode renders the bar before motion starts', !!editorReady && state.bar && state.editing && state.kinetic === 0 && state.controls >= 11, JSON.stringify(state));
+  state = await evaluate(`(() => { const bar=document.querySelector('.omni-bar'); const visible=[...bar.querySelectorAll('.omni-bar__desktop button,.omni-bar__desktop select')].filter(el=>getComputedStyle(el).display!=='none'); return {
+    overflow:bar.scrollWidth-bar.clientWidth, inside:visible.every(el=>el.getBoundingClientRect().right<=window.innerWidth+0.5),
+    more:getComputedStyle(bar.querySelector('.omni-bar__desktop [data-editor-more]')).display!=='none', historyHidden:getComputedStyle(bar.querySelector('[data-editor-history]')).display==='none' }; })()`);
+  check('1366px desktop bar folds secondary controls into More and does not overflow', state.overflow <= 0 && state.inside && state.more && state.historyHidden, JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-bar__desktop [data-editor-more]').click()`);
+  await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Editor menu'`), 3000);
+  state = await evaluate(`({ title:document.querySelector('#omniPanelTitle')?.textContent, history:!!document.querySelector('[data-mobile-open="history"]'), expanded:document.querySelector('.omni-bar__desktop [data-editor-more]').getAttribute('aria-expanded') })`);
+  check('desktop More menu exposes the folded controls', state.title === 'Editor menu' && state.history && state.expanded === 'true', JSON.stringify(state));
+  await evaluate(`document.querySelector('.omni-panel__close').click()`); await pause(100);
   await evaluate(`document.querySelector('[data-editor-page]').click()`);
   await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='This page' && !!document.querySelector('#omniSeoTitle')?.placeholder`), 3000);
   await evaluate(`(() => { const values=[['#omniSeoTitle','Home search title'],['#omniSeoDescription','A precise page description for search and social sharing.'],['#omniSeoImage','https://example.test/home-share.jpg']]; values.forEach(([selector,value])=>{const input=document.querySelector(selector);input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));});const noindex=document.querySelector('#omniSeoNoindex');noindex.checked=true;noindex.dispatchEvent(new Event('change',{bubbles:true})); })()`);await pause(120);
@@ -417,12 +428,12 @@ async function main(){
   state = await evaluate(`({ title:document.querySelector('#omniPanelTitle').textContent, items:document.querySelectorAll('.omni-history__item').length, restore:!!document.querySelector('.omni-history__item button'), undoLabel:document.querySelector('[data-editor-undo]').textContent.trim() })`);
   check('History panel lists published versions with Restore, and Undo is labelled', state.title === 'History' && state.items >= 1 && state.restore && /Undo/.test(state.undoLabel), JSON.stringify(state));
   await evaluate(`document.querySelector('.omni-panel__close').click()`);
-  const tabCount = await evaluate(`document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])').length`);
+  const tabCount = await evaluate(`[...document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])')].filter(el=>getComputedStyle(el).display!=='none').length`);
   await evaluate(`document.querySelector('.omni-bar__desktop select,.omni-bar__desktop button:not([disabled])').focus()`);
-  const reached = [await evaluate(`[...document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])')].indexOf(document.activeElement)`)];
+  const reached = [await evaluate(`[...document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])')].filter(el=>getComputedStyle(el).display!=='none').indexOf(document.activeElement)`)];
   for(let i=1;i<tabCount;i++){
     await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Tab',code:'Tab'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Tab',code:'Tab'});
-    reached.push(await evaluate(`[...document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])')].indexOf(document.activeElement)`));
+    reached.push(await evaluate(`[...document.querySelectorAll('.omni-bar__desktop button:not([disabled]),.omni-bar__desktop select:not([disabled])')].filter(el=>getComputedStyle(el).display!=='none').indexOf(document.activeElement)`));
   }
   check('Tab reaches every enabled editor-bar control in order', reached.length === tabCount && reached.every((value,index)=>value===index), JSON.stringify(reached));
   await evaluate(`(() => { const button=document.querySelector('[data-editor-discard]');button.focus();button.click(); })()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-dialog[open]')`),3000);await evaluate(`document.querySelector('[data-dialog-confirm]').focus()`);

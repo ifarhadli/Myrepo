@@ -801,7 +801,8 @@
     var put = function(force){ return api('PUT', 'api/site', force ? Object.assign({}, state.site, { force: true }) : state.site); };
     put(false).catch(function(e){
       if (e.status === 409 && /draft/i.test(e.message || '')){
-        if (confirm('The on-page editor has an unpublished draft. Saving here works, but publishing that draft later will overwrite what you save now.\n\nSave anyway?')) return put(true);
+        return confirmAction('The on-page editor has an unpublished draft. Saving here works, but publishing that draft later will overwrite what you save now.', 'Save anyway')
+          .then(function(ok){ if (ok) return put(true); throw e; });
       }
       throw e;
     }).then(function(r){

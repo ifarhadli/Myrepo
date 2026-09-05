@@ -40,6 +40,10 @@ fs.writeFileSync(path.join(TMP, 'data', 'admin.json'), JSON.stringify({ salt: le
 fs.rmSync(path.join(TMP, 'data', 'submissions.json'), { force: true });
 fs.rmSync(path.join(TMP, 'data', 'media.json'), { force: true });
 fs.rmSync(path.join(TMP, 'data', 'media'), { recursive: true, force: true });
+/* a real draft or publish history on the developer's machine must not leak
+   into the run — the suite has to behave the same here and in CI */
+fs.rmSync(path.join(TMP, 'data', 'draft.json'), { force: true });
+fs.rmSync(path.join(TMP, 'data', 'history'), { recursive: true, force: true });
 
 const child = spawn(process.execPath, ['server.js'], {
   cwd: TMP,
