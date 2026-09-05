@@ -2,7 +2,8 @@
 
 Static, framework-free marketing site (15 pages, EN/AZ) with a zero-dependency
 Node server that adds an authenticated **on-page editor** for copy, layout,
-images, the services catalogue, design, settings and form submissions.
+images, reusable content collections, the services catalogue, design, settings
+and form submissions.
 
 ```
 node server.js
@@ -24,10 +25,10 @@ admin-advanced.html  developer dashboard for complete/raw configuration
 css/style.css        design tokens + every site component
 css/admin.css        dashboard styles (independent of the site's tokens)
 css/editor.css       authenticated editor bar, controls, sheets and preview
-js/data.js           service catalogue: 5 engines × groups × sub-services, industries
+js/data.js           fallback catalogue, industries and collection records
 js/i18n-data.js      EN + AZ dictionary — every string on the site (592 keys each)
 js/site-config.js    applies the admin-saved config (tokens, fonts, copy, catalogue…)
-js/partials.js       renders header, mega-menu, drawer, footer AND both accordions from data.js
+js/partials.js       renders shared navigation, accordions and collection listings
 js/i18n.js           swaps text on [data-i18n] elements, persists language choice
 js/main.js           interactions: nav, drawer, accordions, forms, cookie banner, motion
 js/editor.js         on-page editing, draft autosave, undo/redo, panels
@@ -96,6 +97,17 @@ with live Google and LinkedIn/WhatsApp previews. **Settings** covers contact
 details, public site settings, scheduler/analytics tools, proof gating,
 private lead recipients and account recovery/password controls.
 
+Cases, articles and jobs are real collections with clean public URLs such as
+`/work/saas-pipeline-rebuild`, `/insights/mql-is-dead` and
+`/careers/senior-media-buyer`. Team members and testimonials use the same
+collection model on their listing pages. In edit mode, use **+ New**, open an
+item, edit EN/AZ text directly, and use **Item details** for slugs, filters,
+dates, metrics and application metadata. Collection cards can be reordered,
+duplicated, unpublished or deleted; unpublished records remain visible with a
+Draft badge only to an authenticated editor. Rich item bodies support
+paragraphs, headings, lists, quotes and inline formatting. Publish updates the
+listing, detail route, metadata, structured data and sitemap together.
+
 ### Advanced dashboard
 
 `/admin-advanced.html` keeps the original structured dashboard for developer
@@ -109,9 +121,10 @@ Untouched fields inherit from `data.js`, `i18n-data.js` and `style.css`, so
 code defaults remain the fallback instead of being copied into every draft.
 
 Organization structured data is rendered server-side from the site settings
-on every page. Article schema appears only when author and publication date
-are filled in; JobPosting appears only when every required job field is
-complete. Keep those fields empty until they exactly match the visible page.
+on every page. Article and JobPosting schema is generated from each published
+collection item; JobPosting appears only when its required location, closing
+date and HTTPS application URL are complete. Legacy structured-data settings
+remain only as a fallback when no collection records exist.
 Unconfigured privacy/terms destinations render as muted non-links rather than
 false links; add the approved URLs in *Settings* before launch.
 
@@ -178,10 +191,12 @@ library at 500 files / 500 MB. Upload writes are throttled to 60 / 10 min per
 IP.
 
 Copy that may contain markup (strings tagged `html`) is sanitised in the
-on-page editor (allow-list: `b strong em i a[href] br`), but the server only
-length-caps it: the admin role is trusted at code-execution level anyway
-(it can paste analytics snippets). Do not hand the password to anyone you
-would not let edit the site's JavaScript.
+on-page editor (allow-list: `b strong em i a[href] br`). Collection bodies use
+the wider editorial allow-list (`p h2 h3 ul ol li blockquote b strong em i
+a[href] br`) in both the editor and server, so scripts, event handlers and
+unsupported markup are removed before storage. The administrator can still
+paste analytics snippets, so do not hand the password to anyone you would not
+let configure executable site integrations.
 
 The server binds to `127.0.0.1` by default; set `HOST=0.0.0.0` to expose it,
 and put it behind HTTPS (nginx / Caddy / a platform proxy) before doing so.
@@ -198,10 +213,11 @@ Persist the entire directory, including `data/media/`; media originals and
 variants are not stored in Git.
 
 **Static only:** copy the folder to any static host. The last published
-`data/site.js` ships with it, so design/copy/catalogue edits are live. Media
-library URLs require the Node `/media/` route; there is no static-media export
-command yet. Forms likewise need the Node server reachable at `/api/submit`
-on the same origin.
+`data/site.js` ships with it, so design/copy/catalogue/collection listings are
+live. Static detail fallbacks use `case-study.html?item=<slug>`,
+`article.html?item=<slug>` and `role-detail.html?item=<slug>`; clean collection
+URLs, media library URLs and forms require the Node server. There is no
+static-media export command yet.
 
 ---
 
@@ -216,14 +232,14 @@ on the same origin.
 - Adding a string: put it in both `en` and `az` in `js/i18n-data.js` and
   reference it with `data-i18n="ns.key"`. It shows up in *Copy* at once.
 - `npm run check` syntax-checks every script.
-- `npm test` also runs [test/server.test.js](test/server.test.js): 148
+- `npm test` also runs [test/server.test.js](test/server.test.js): 155
   integration checks in a disposable copy covering serving, auth, publish,
-  media validation/storage, structured data, submissions, acknowledgements
-  and passwords.
+  media and collection validation/storage, clean item routing, structured
+  data, submissions, acknowledgements and passwords.
 - `npm run test:browser` drives an installed Chrome/Edge through its debugging
-  protocol: 65 responsive, media, focus, inert-state, validation, editor and
-  admin checks. Set `BROWSER_BIN` if Chromium is installed somewhere
-  non-standard.
+  protocol: 76 responsive, media, collection lifecycle, focus, inert-state,
+  validation, editor and admin checks. Set `BROWSER_BIN` if Chromium is
+  installed somewhere non-standard.
 - Static design rules live in [DESIGN.md](DESIGN.md) and shared UI behavior in
   [UX-CONTRACT.md](UX-CONTRACT.md). Audit screenshots are intentionally ignored;
   the Markdown findings remain versioned under `audit/`.

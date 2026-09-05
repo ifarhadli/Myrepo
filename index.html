@@ -169,43 +169,7 @@
       <p class="eyebrow" data-i18n="home.work.eyebrow">Selected work</p>
       <h2 data-i18n="home.work.h2">The work, and what it moved.</h2>
     </div>
-    <div style="display:grid;gap:20px" class="stagger" data-list="index.cases">
-      <a class="case-card reveal" href="case-study.html" data-item="c1">
-        <div>
-          <span class="tagn src sector" data-i18n="home.work.c1sector">B2B SaaS</span>
-          <p class="result" data-i18n="home.work.c1result">3.4&times; qualified pipeline in two quarters</p>
-          <p class="muted" data-i18n="home.work.c1desc">Moved from category-generic to problem-led positioning, then rewired paid and outbound around the new message.</p>
-          <div class="metric-chips">
-            <span class="mchip" data-i18n="home.work.c1m1">+240% MQL→SQL</span><span class="mchip" data-i18n="home.work.c1m2">−38% CAC</span><span class="mchip" data-i18n="home.work.c1m3">19 days faster cycle</span>
-          </div>
-        </div>
-        <div class="case-visual" data-image-shell><img class="slot-image" data-image="index.cases.c1" alt="" hidden></div>
-      </a>
-      <article class="case-card reveal is-coming" data-item="c2">
-        <div>
-          <span class="tagn src sector" data-i18n="home.work.c2sector">DTC / Home</span>
-          <p class="result" data-i18n="home.work.c2result">From one channel to four, without raising blended CAC</p>
-          <p class="muted" data-i18n="home.work.c2desc">Diversified off a single paid platform and built a retention program that paid for the expansion.</p>
-          <p class="availability" data-i18n="availability.caseSoon">Case study coming soon</p>
-          <div class="metric-chips">
-            <span class="mchip" data-i18n="home.work.c2m1">4 profitable channels</span><span class="mchip" data-i18n="home.work.c2m2">+52% repeat rate</span><span class="mchip" data-i18n="home.work.c2m3">flat blended CAC</span>
-          </div>
-        </div>
-        <div class="case-visual" data-image-shell><img class="slot-image" data-image="index.cases.c2" alt="" hidden></div>
-      </article>
-      <article class="case-card reveal is-coming" data-item="c3">
-        <div>
-          <span class="tagn src sector" data-i18n="home.work.c3sector">Fintech (anonymised)</span>
-          <p class="result" data-i18n="home.work.c3result">A pipeline number leadership finally trusted</p>
-          <p class="muted" data-i18n="home.work.c3desc">Rebuilt lifecycle stages and attribution so board reporting stopped contradicting the CRM.</p>
-          <p class="availability" data-i18n="availability.caseSoon">Case study coming soon</p>
-          <div class="metric-chips">
-            <span class="mchip" data-i18n="home.work.c3m1">1 source of truth</span><span class="mchip" data-i18n="home.work.c3m2">6 weeks to deploy</span><span class="mchip" data-i18n="home.work.c3m3">100% stage compliance</span>
-          </div>
-        </div>
-        <div class="case-visual" data-image-shell><img class="slot-image" data-image="index.cases.c3" alt="" hidden></div>
-      </article>
-    </div>
+    <div style="display:grid;gap:20px" class="stagger" data-collection="cases" data-limit="4" data-legacy-image-prefix="index.cases"></div>
     <div style="margin-top:28px"><a href="work.html" class="btn btn-ghost"><span data-i18n="home.work.seeAll">See all work</span> <span class="arrow">&rarr;</span></a></div>
   </div>
 </section>
@@ -229,20 +193,7 @@
   <div class="wrap">
     <p class="eyebrow" data-i18n="home.testi.eyebrow">Proof</p>
     <h2 style="margin-bottom:30px" data-i18n="home.testi.h2">Don't take our word for it.</h2>
-    <div class="testi" data-testi data-list="home.testimonials">
-      <div class="testi-slide" data-item="q1">
-        <blockquote data-i18n="home.testi.q1">&ldquo;We'd been running marketing and sales like two separate companies. OmniMark made it one motion inside a quarter &mdash; and for the first time our forecast matched what actually closed.&rdquo;</blockquote>
-        <div class="testi-attr"><span class="avatar" data-i18n="home.testi.a1">RK</span><div><div class="name" data-i18n="home.testi.n1">Rania Kessler</div><div class="role" data-i18n="home.testi.r1">VP Revenue, Halo Bank</div></div></div>
-      </div>
-      <div class="testi-slide" data-item="q2">
-        <blockquote data-i18n="home.testi.q2">&ldquo;They killed a channel we loved in month two because the numbers said to. Nobody else has ever told us to stop spending.&rdquo;</blockquote>
-        <div class="testi-attr"><span class="avatar" data-i18n="home.testi.a2">DO</span><div><div class="name" data-i18n="home.testi.n2">Daniel Okafor</div><div class="role" data-i18n="home.testi.r2">Founder, Coastway</div></div></div>
-      </div>
-      <div class="testi-nav">
-        <button data-testi-prev aria-label="Previous testimonial">&larr;</button>
-        <button data-testi-next aria-label="Next testimonial">&rarr;</button>
-      </div>
-    </div>
+    <div class="testi" data-testi data-collection="testimonials"></div>
   </div>
 </section>
 
@@ -260,13 +211,7 @@
         <a href="about.html#team" class="btn-text"><span data-i18n="home.team.cta">Meet the team</span> &rarr;</a>
       </div>
     </div>
-    <div class="team-row stagger" style="margin-top:40px" data-list="index.team">
-      <div class="team-card reveal" data-item="t1" data-image-shell><img class="slot-image" data-image="index.team.t1" alt="" hidden><div class="ph" data-i18n="home.team.t1initial">MS</div><div class="info"><div class="n" data-i18n="home.team.t1name">Maya Sorensen</div><div class="p" data-i18n="home.team.t1role">Ex-VaynerMedia</div></div></div>
-      <div class="team-card reveal" data-item="t2" data-image-shell><img class="slot-image" data-image="index.team.t2" alt="" hidden><div class="ph" data-i18n="home.team.t2initial">JT</div><div class="info"><div class="n" data-i18n="home.team.t2name">Jonah Trent</div><div class="p" data-i18n="home.team.t2role">Ex-R/GA</div></div></div>
-      <div class="team-card reveal" data-item="t3" data-image-shell><img class="slot-image" data-image="index.team.t3" alt="" hidden><div class="ph" data-i18n="home.team.t3initial">PA</div><div class="info"><div class="n" data-i18n="home.team.t3name">Priya Anand</div><div class="p" data-i18n="home.team.t3role">Ex-HubSpot</div></div></div>
-      <div class="team-card reveal" data-item="t4" data-image-shell><img class="slot-image" data-image="index.team.t4" alt="" hidden><div class="ph" data-i18n="home.team.t4initial">LC</div><div class="info"><div class="n" data-i18n="home.team.t4name">Leo Castellan</div><div class="p" data-i18n="home.team.t4role">Ex-Wieden+Kennedy</div></div></div>
-      <div class="team-card reveal" data-item="t5" data-image-shell><img class="slot-image" data-image="index.team.t5" alt="" hidden><div class="ph" data-i18n="home.team.t5initial">EW</div><div class="info"><div class="n" data-i18n="home.team.t5name">Elena Wu</div><div class="p" data-i18n="home.team.t5role">Ex-Salesforce</div></div></div>
-    </div>
+    <div class="team-row stagger" style="margin-top:40px" data-collection="team" data-limit="5" data-legacy-image-prefix="index.team"></div>
   </div>
 </section>
 
@@ -277,11 +222,7 @@
       <p class="eyebrow" data-i18n="home.insights.eyebrow">Insights</p>
       <h2 data-i18n="home.insights.h2">What we're arguing about this month.</h2>
     </div>
-    <div class="article-rule-list stagger" data-list="index.insights">
-      <a class="article-row reveal" href="article.html" data-item="a1"><span class="title" data-i18n="home.insights.a1">The MQL is dead. Here's the metric that replaced it.</span><span class="meta" data-i18n="home.insights.a1m">Demand · 6 min</span></a>
-      <div class="article-row reveal is-coming" data-item="a2"><span class="title" data-i18n="home.insights.a2">Your attribution model is lying to your CFO</span><span class="row-meta"><span class="meta" data-i18n="home.insights.a2m">RevOps · 9 min</span><span class="availability" data-i18n="availability.insightSoon">Insight coming soon</span></span></div>
-      <div class="article-row reveal is-coming" data-item="a3"><span class="title" data-i18n="home.insights.a3">Cold outbound isn't dead. Your list is.</span><span class="row-meta"><span class="meta" data-i18n="home.insights.a3m">Sales · 5 min</span><span class="availability" data-i18n="availability.insightSoon">Insight coming soon</span></span></div>
-    </div>
+    <div class="article-rule-list stagger" data-collection="articles" data-limit="3"></div>
     <div style="margin-top:24px"><a href="insights.html" class="btn btn-ghost"><span data-i18n="home.insights.readMore">Read more insights</span> <span class="arrow">&rarr;</span></a></div>
   </div>
 </section>

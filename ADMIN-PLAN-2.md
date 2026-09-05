@@ -1,6 +1,6 @@
 # Admin plan 2 — the six things the owner will certainly need
 
-Status: Phases A–B implemented · Phases C–D approved · Author: Claude · Executor: Codex
+Status: Phases A–C implemented · Phase D approved · Author: Claude · Executor: Codex
 Branch: `claude/site-build-brief-jpmkd6` (continue; one commit per phase)
 Prerequisite: `EDITOR-PLAN.md` is implemented (`023b115`) plus the history /
 conflict-guard follow-up. Read `README.md`, `UX-CONTRACT.md` and

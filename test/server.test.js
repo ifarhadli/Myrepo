@@ -9,6 +9,7 @@ const { spawn } = require('child_process');
 const fs = require('fs'), http = require('http'), os = require('os'), path = require('path');
 
 const ROOT = path.join(__dirname, '..');
+const DEFAULT_COLLECTIONS = require(path.join(ROOT, 'js', 'data.js')).collections;
 const PORT = 3111 + Math.floor(Math.random() * 500);
 const BASE = 'http://127.0.0.1:' + PORT;
 const MAIL_PORT = PORT + 700;
@@ -258,8 +259,13 @@ async function main(){
     i18n: { en: { 'nav.work': 'Cases' }, az: { 'nav.work': 'Keyslər' } },
     engines: [{ id: 'x', num: '01', name: 'E1 <script>', promise: 'p', href: 'a.html', detail: 'b.html', groups: [{ title: 'G', items: ['one', 'two'] }] }],
     enginesAz: [{ name: 'E1az', promise: 'paz', groups: [{ title: 'Gaz', items: ['bir', 'iki'] }] }],
-    industries: ['Retail'], industriesAz: ['Pərakəndə']
+    industries: ['Retail'], industriesAz: ['Pərakəndə'],
+    collections: JSON.parse(JSON.stringify(DEFAULT_COLLECTIONS))
   };
+  cfg.collections.articles[0].fields.body.en = '<script>alert(1)</script><p onclick="alert(2)">Safe article body</p>';
+  const unpublishedCase = JSON.parse(JSON.stringify(cfg.collections.cases[0]));
+  unpublishedCase.id = 'ca5e000000000002'; unpublishedCase.slug = 'private-draft-case'; unpublishedCase.published = false; unpublishedCase.order = 1;
+  unpublishedCase.fields.title.en = 'Private draft case'; cfg.collections.cases.push(unpublishedCase);
   r = await req('PUT', '/api/site', cfg, { admin: true });
   check('PUT site ok', r.status === 200 && r.json && r.json.ok, r.text);
   const saved = r.json && r.json.site;
@@ -278,9 +284,12 @@ async function main(){
     saved.images['index.hero'].focal.x === 0.28 && !saved.images['bad/key'] && !saved.images['index.bad'], JSON.stringify(saved && saved.images));
   check('validation: page SEO fields are typed and URL-safe', saved && saved.pages.contact.noindex === true && saved.pages.article.noindex === false &&
     saved.pages.article.ogImage === '' && saved.pages.about.ogImage === 'https://example.test/about-og.png' && saved.pages.work.ogImage === mediaId, JSON.stringify(saved.pages));
+  check('validation: collections are typed and rich HTML is sanitized', saved && saved.collections.cases.length === 2 &&
+    saved.collections.articles[0].fields.body.en === '<p>Safe article body</p>' && saved.collections.jobs[0].applyUrl.startsWith('https://'), JSON.stringify(saved && saved.collections));
   const siteJs = readTmp('data/site.js');
   check('site.js regenerated + </script escaped', /hi@example\.test/.test(siteJs) && !/<\/script/.test(siteJs) && !/<\//.test(siteJs.replace(/<\\\//g, '')));
-  check('sitemap uses new siteUrl and excludes noindex pages', /https:\/\/example\.test\/about\.html/.test(readTmp('sitemap.xml')) && !/contact\.html/.test(readTmp('sitemap.xml')));
+  check('sitemap uses new siteUrl, collection routes, and excludes noindex/draft pages', /https:\/\/example\.test\/about\.html/.test(readTmp('sitemap.xml')) &&
+    /https:\/\/example\.test\/work\/saas-pipeline-rebuild/.test(readTmp('sitemap.xml')) && !/private-draft-case/.test(readTmp('sitemap.xml')) && !/contact\.html/.test(readTmp('sitemap.xml')));
   r = await req('GET', '/about.html');
   check('meta injection: title escaped', /<title>About us &lt;b&gt;<\/title>/.test(r.text), (r.text.match(/<title>[^<]*<\/title>/) || [])[0]);
   check('meta injection: description', /name="description" content="Desc &quot;quoted&quot;"/.test(r.text));
@@ -300,16 +309,27 @@ async function main(){
   fs.writeFileSync(mediaIndexPath, realMediaIndex);
   r = await req('GET', '/article.html');
   check('Article structured data emitted with publishing fields', /"@type":"Article"/.test(r.text) && /"name":"Priya Anand"/.test(r.text) && /"datePublished":"2026-09-01"/.test(r.text));
+  r = await req('GET', '/work/saas-pipeline-rebuild');
+  check('published collection item has a clean canonical route', r.status === 200 && /window\.OMNI_ITEM/.test(r.text) && /https:\/\/example\.test\/work\/saas-pipeline-rebuild/.test(r.text) && /3\.4× qualified pipeline/.test(r.text));
+  r = await req('GET', '/case-study.html?item=saas-pipeline-rebuild');
+  check('static collection fallback resolves by item query', r.status === 200 && /window\.OMNI_ITEM/.test(r.text) && /saas-pipeline-rebuild/.test(r.text));
+  r = await req('GET', '/work/no-such-case');
+  check('unknown collection slug returns the 404 page', r.status === 404 && /Page not found/.test(r.text));
+  r = await req('GET', '/work/private-draft-case');
+  check('unpublished collection item is not public', r.status === 404);
+  r = await req('GET', '/work/private-draft-case?edit=1');
+  check('unpublished collection item is visible to its authenticated editor', r.status === 200 && /js\/editor\.js/.test(r.text) && /Private draft case/.test(r.text));
+  const duplicateCollections = JSON.parse(JSON.stringify(cfg));
+  const duplicateCase = JSON.parse(JSON.stringify(duplicateCollections.collections.cases[0])); duplicateCase.id = 'ca5e000000000003'; duplicateCollections.collections.cases.push(duplicateCase);
+  r = await req('PUT', '/api/site', duplicateCollections, { admin: true });
+  check('collection slugs must be unique within a type', r.status === 400 && /unique/.test(r.json.error), r.text);
   r = await req('GET', '/role-detail.html');
   check('partial JobPosting data is not published', !/"@type":"JobPosting"/.test(r.text));
   const cfgWithJob = JSON.parse(JSON.stringify(cfg));
-  Object.assign(cfgWithJob.structured, { jobTitle: 'Senior Media Buyer, Offline & Digital',
-    jobDescription: 'Plan and buy accountable media across offline and digital channels.', jobDatePosted: '2026-09-01',
-    jobValidThrough: '2026-12-31', jobEmploymentType: 'FULL_TIME', jobLocation: 'Austin, TX, US',
-    jobRemote: true, jobApplyUrl: 'https://example.test/apply' });
+  Object.assign(cfgWithJob.collections.jobs[0], { validThrough: '2026-12-31', remote: true, applyUrl: 'https://example.test/apply' });
   r = await req('PUT', '/api/site', cfgWithJob, { admin: true });
-  check('complete JobPosting settings save', r.status === 200 && r.json.site.structured.jobRemote === true, r.text);
-  r = await req('GET', '/role-detail.html');
+  check('complete collection JobPosting fields save', r.status === 200 && r.json.site.collections.jobs[0].remote === true, r.text);
+  r = await req('GET', '/careers/senior-media-buyer');
   check('complete JobPosting is server-rendered', /"@type":"JobPosting"/.test(r.text) && /"employmentType":"FULL_TIME"/.test(r.text) && /"jobLocationType":"TELECOMMUTE"/.test(r.text));
   r = await req('GET', '/api/site');
   check('GET site is public + reflects save', r.status === 200 && r.json.settings.email === 'hi@example.test');

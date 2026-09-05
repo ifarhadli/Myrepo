@@ -16,6 +16,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const DEFAULT_CONTENT = require('./js/data.js');
 
 const ROOT = __dirname;
 const DATA = path.join(ROOT, 'data');
@@ -86,7 +87,8 @@ const DEFAULT_SITE = {
     jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
   hiddenSections: [], sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
   pages: {}, i18n: { en: {}, az: {} },
-  engines: null, enginesAz: null, industries: null, industriesAz: null
+  engines: null, enginesAz: null, industries: null, industriesAz: null,
+  collections: null
 };
 function loadSite(){ return Object.assign({}, DEFAULT_SITE, readJson(SITE_JSON, {})); }
 
@@ -176,6 +178,13 @@ function mediaReferences(id){
     if (isPlain(site.images)) for (const key of Object.keys(site.images)) if (site.images[key] && site.images[key].id === id) refs.push(prefix + key);
     if (site.settings && site.settings.ogImage === id) refs.push(prefix + 'settings.ogImage');
     if (isPlain(site.pages)) for (const key of Object.keys(site.pages)) if (site.pages[key] && site.pages[key].ogImage === id) refs.push(prefix + 'pages.' + key + '.ogImage');
+    if (isPlain(site.collections)) for (const type of Object.keys(site.collections)){
+      const items = Array.isArray(site.collections[type]) ? site.collections[type] : [];
+      items.forEach(item => {
+        if (item && item.image && item.image.id === id) refs.push(prefix + 'collections.' + type + '.' + item.id + '.image');
+        if (item && item.seo && item.seo.ogImage === id) refs.push(prefix + 'collections.' + type + '.' + item.id + '.seo.ogImage');
+      });
+    }
   };
   inspect(loadSite(), 'live:');
   const draft = readDraft(); if (draft) inspect(draft.draft, 'draft:');
@@ -197,13 +206,20 @@ function listPages(){
 function writeSeoFiles(site){
   const base = String((site.settings && site.settings.siteUrl) || '').replace(/\/+$/, '');
   const today = new Date().toISOString().slice(0, 10);
-  const urls = listPages().filter(f => {
+  const detailTemplates = new Set(['case-study.html', 'article.html', 'role-detail.html']);
+  const urls = listPages().filter(f => !detailTemplates.has(f)).filter(f => {
     const key = f.replace(/\.html$/i, '');
     return !(site.pages && site.pages[key] && site.pages[key].noindex === true);
   }).map(f => {
     const loc = base + '/' + (f === 'index.html' ? '' : f);
     return '  <url><loc>' + escapeXml(loc) + '</loc><lastmod>' + today + '</lastmod></url>';
   });
+  const collections = effectiveCollections(site);
+  for (const type of ['cases', 'articles', 'jobs']) for (const item of collections[type] || []){
+    if (!item.published || (item.seo && item.seo.noindex)) continue;
+    const loc = base + collectionPath(type, item.slug);
+    urls.push('  <url><loc>' + escapeXml(loc) + '</loc><lastmod>' + escapeXml(String(item.updatedAt || today).slice(0, 10)) + '</lastmod></url>');
+  }
   writeTextAtomic(path.join(ROOT, 'sitemap.xml'),
     '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + urls.join('\n') + '\n</urlset>\n');
   writeTextAtomic(path.join(ROOT, 'robots.txt'),
@@ -276,6 +292,115 @@ function cleanIdArray(arr, max){
 function safeMediaValue(value){
   const trimmed = String(value || '').trim();
   return /^[a-f0-9]{16}$/.test(trimmed) || /^https?:\/\//i.test(trimmed) ? trimmed.slice(0, 2000) : '';
+}
+const COLLECTION_TYPES = ['cases', 'articles', 'jobs', 'team', 'testimonials'];
+const COLLECTION_ROUTES = { cases: '/work/', articles: '/insights/', jobs: '/careers/' };
+function collectionPath(type, slug){ return (COLLECTION_ROUTES[type] || '/') + String(slug || ''); }
+function effectiveCollections(site){
+  return isPlain(site && site.collections) ? site.collections : DEFAULT_CONTENT.collections;
+}
+function localized(value, limit, html){
+  value = isPlain(value) ? value : {};
+  const out = {};
+  for (const lang of ['en', 'az']){
+    let text = typeof value[lang] === 'string' ? value[lang] : '';
+    if (html) text = sanitizeCollectionHtml(text.slice(0, 50000));
+    else text = text.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, limit || 5000);
+    out[lang] = text;
+  }
+  return out;
+}
+function sanitizeCollectionHtml(value){
+  let html = String(value || '').slice(0, 50000);
+  html = html.replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/<(script|style|iframe|object|embed|svg|math)\b[^>]*>[\s\S]*?<\/\1\s*>/gi, '');
+  const allowed = new Set(['p', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'b', 'strong', 'em', 'i', 'a', 'br']);
+  return html.replace(/<\s*(\/?)\s*([a-z0-9]+)([^>]*)>/gi, (tag, closing, rawName, attrs) => {
+    const name = rawName.toLowerCase();
+    if (!allowed.has(name)) return '';
+    if (closing) return name === 'br' ? '' : '</' + name + '>';
+    if (name === 'br') return '<br>';
+    if (name !== 'a') return '<' + name + '>';
+    const match = String(attrs || '').match(/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/i);
+    const href = String(match ? (match[1] || match[2] || match[3] || '') : '').trim();
+    if (!/^(https?:|mailto:|tel:|\/|#|[a-z0-9-]+\.html)/i.test(href)) return '<a>';
+    return '<a href="' + escapeHtml(href) + '">';
+  }).trim();
+}
+function cleanCollectionImage(raw){
+  if (!isPlain(raw) || !/^[a-f0-9]{16}$/.test(raw.id || '')) return null;
+  const out = { id: raw.id, alt: typeof raw.alt === 'string' ? raw.alt.trim().slice(0, 500) : '' };
+  if (isPlain(raw.focal)) out.focal = cleanFocal(raw.focal);
+  return out;
+}
+function validIsoDate(value){
+  value = String(value || '').trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(Date.parse(value + 'T00:00:00Z')) ? value : '';
+}
+function validTimestamp(value){
+  value = String(value || '').trim();
+  return value && !Number.isNaN(Date.parse(value)) ? new Date(value).toISOString() : '';
+}
+function cleanCollectionItem(type, raw, index){
+  if (!isPlain(raw) || !/^[a-f0-9]{16}$/.test(raw.id || '') || !/^[a-z0-9-]{2,60}$/.test(raw.slug || '')) return null;
+  const now = new Date().toISOString();
+  const item = {
+    id: raw.id, slug: raw.slug, published: raw.published === true,
+    order: Number.isInteger(raw.order) ? Math.max(-10000, Math.min(10000, raw.order)) : index,
+    createdAt: validTimestamp(raw.createdAt) || now, updatedAt: validTimestamp(raw.updatedAt) || now,
+    fields: {}
+  };
+  const fields = isPlain(raw.fields) ? raw.fields : {};
+  if (type === 'cases'){
+    item.sector = /^[a-z0-9-]{1,40}$/.test(raw.sector || '') ? raw.sector : 'other';
+    item.client = String(raw.client || '').trim().slice(0, 300);
+    item.year = String(raw.year || '').trim().slice(0, 20);
+    item.fields.title = localized(fields.title, 500); item.fields.summary = localized(fields.summary, 2000); item.fields.body = localized(fields.body, 50000, true);
+    item.fields.metrics = (Array.isArray(fields.metrics) ? fields.metrics : []).slice(0, 4).filter(isPlain).map(metric => ({
+      value: String(metric.value || '').trim().slice(0, 40), label: localized(metric.label, 160)
+    }));
+  } else if (type === 'articles'){
+    item.category = ['demand', 'revops', 'sales', 'brand'].includes(raw.category) ? raw.category : 'demand';
+    item.author = String(raw.author || '').trim().slice(0, 200); item.date = validIsoDate(raw.date);
+    item.readingMinutes = Number.isInteger(raw.readingMinutes) ? Math.max(1, Math.min(180, raw.readingMinutes)) : 5;
+    item.fields.title = localized(fields.title, 500); item.fields.dek = localized(fields.dek, 2000); item.fields.body = localized(fields.body, 50000, true);
+  } else if (type === 'jobs'){
+    item.location = String(raw.location || '').trim().slice(0, 300); item.remote = raw.remote === true;
+    item.type = ['full-time', 'part-time', 'contract'].includes(raw.type) ? raw.type : 'full-time';
+    item.applyUrl = /^https:\/\//i.test(raw.applyUrl || '') ? String(raw.applyUrl).trim().slice(0, 2000) : '';
+    item.validThrough = validIsoDate(raw.validThrough);
+    item.fields.title = localized(fields.title, 500); item.fields.summary = localized(fields.summary, 2000); item.fields.body = localized(fields.body, 50000, true);
+  } else if (type === 'team'){
+    item.name = String(raw.name || '').trim().slice(0, 200); item.linkedin = /^https:\/\//i.test(raw.linkedin || '') ? String(raw.linkedin).trim().slice(0, 2000) : '';
+    item.fields.role = localized(fields.role, 500); item.fields.bio = localized(fields.bio, 2000);
+  } else {
+    item.name = String(raw.name || '').trim().slice(0, 200); item.company = String(raw.company || '').trim().slice(0, 200);
+    item.fields.quote = localized(fields.quote, 3000); item.fields.role = localized(fields.role, 500);
+  }
+  const image = cleanCollectionImage(raw.image); if (image) item.image = image;
+  if (isPlain(raw.seo)){
+    const seo = {};
+    if (typeof raw.seo.title === 'string') seo.title = raw.seo.title.trim().slice(0, 1000);
+    if (typeof raw.seo.description === 'string') seo.description = raw.seo.description.trim().slice(0, 1000);
+    if (typeof raw.seo.ogImage === 'string') seo.ogImage = safeMediaValue(raw.seo.ogImage);
+    if (typeof raw.seo.noindex === 'boolean') seo.noindex = raw.seo.noindex;
+    if (Object.keys(seo).length) item.seo = seo;
+  }
+  return item;
+}
+function cleanCollections(raw){
+  if (!isPlain(raw)) return null;
+  const defaults = DEFAULT_CONTENT.collections || {}, out = {};
+  for (const type of COLLECTION_TYPES){
+    const source = Array.isArray(raw[type]) ? raw[type] : (defaults[type] || []);
+    const seenIds = new Set(), seenSlugs = new Set();
+    out[type] = source.slice(0, 100).map((item, index) => cleanCollectionItem(type, item, index)).filter(item => {
+      if (!item) return false;
+      if (seenIds.has(item.id) || seenSlugs.has(item.slug)) throw new Error('Collection IDs and slugs must be unique within ' + type + '.');
+      seenIds.add(item.id); seenSlugs.add(item.slug); return true;
+    });
+  }
+  return out;
 }
 const FONT_PRESETS = {
   'bricolage-inter': ['Bricolage Grotesque', 'Inter', 'JetBrains Mono'],
@@ -376,6 +501,7 @@ function validateSite(input){
   site.enginesAz = site.engines ? cleanEngines(input.enginesAz) : null;
   site.industries = cleanStrArray(input.industries);
   site.industriesAz = site.industries ? cleanStrArray(input.industriesAz) : null;
+  site.collections = cleanCollections(input.collections);
   return site;
 }
 
@@ -408,8 +534,8 @@ function publishSummary(before, after){
     texts: diffCount(before.i18n || {}, after.i18n || {}),
     sections: diffCount({ order: before.sectionOrder || {}, hidden: before.hiddenSections || [], accent: before.sectionAccent || {} },
       { order: after.sectionOrder || {}, hidden: after.hiddenSections || [], accent: after.sectionAccent || {} }),
-    items: diffCount({ order: before.itemOrder || {}, hidden: before.hiddenItems || [] },
-      { order: after.itemOrder || {}, hidden: after.hiddenItems || [] }),
+    items: diffCount({ order: before.itemOrder || {}, hidden: before.hiddenItems || [], collections: before.collections },
+      { order: after.itemOrder || {}, hidden: after.hiddenItems || [], collections: after.collections }),
     images: diffCount(before.images || {}, after.images || {}),
     catalogue: diffCount({ engines: before.engines, enginesAz: before.enginesAz, industries: before.industries, industriesAz: before.industriesAz },
       { engines: after.engines, enginesAz: after.enginesAz, industries: after.industries, industriesAz: after.industriesAz }),
@@ -711,7 +837,12 @@ function resolveMediaUrl(value, base, width){
   return /^https?:\/\//i.test(raw) ? raw : '';
 }
 
-function structuredData(html, key, site, base, loc){
+function itemText(item, key, lang){
+  const value = item && item.fields && item.fields[key];
+  if (isPlain(value)) return String(value[lang] || value.en || value.az || '');
+  return String(value || '');
+}
+function structuredData(html, key, site, base, loc, context){
   if (!base || !loc) return null;
   const settings = site.settings || {};
   const cfg = site.structured || {};
@@ -728,7 +859,21 @@ function structuredData(html, key, site, base, loc){
   if (/^https?:\/\//i.test(settings.linkedin || '')) org.sameAs = [settings.linkedin];
   const graph = [org];
 
-  if (key === 'article' && cfg.articleAuthor && cfg.articleDatePublished){
+  if (context && context.type === 'articles'){
+    const item = context.item, lang = (settings.defaultLang === 'az' ? 'az' : 'en');
+    const article = {
+      '@type': 'Article', '@id': loc + '#article', mainEntityOfPage: loc,
+      headline: stripTags(itemText(item, 'title', lang)), publisher: { '@id': orgId }
+    };
+    const description = stripTags((item.seo && item.seo.description) || itemText(item, 'dek', lang));
+    if (description) article.description = description;
+    if (item.date) article.datePublished = item.date;
+    if (item.updatedAt) article.dateModified = item.updatedAt;
+    if (item.author) article.author = { '@type': 'Person', name: item.author };
+    const image = resolveMediaUrl((item.seo && item.seo.ogImage) || (item.image && item.image.id), base, 1600);
+    if (image) article.image = image;
+    graph.push(article);
+  } else if (key === 'article' && !(effectiveCollections(site).articles || []).length && cfg.articleAuthor && cfg.articleDatePublished){
     const h1 = html.match(/<h1\b[^>]*>([\s\S]*?)<\/h1>/i);
     const desc = ((site.pages && site.pages.article && site.pages.article.description) || ((html.match(/<meta\s+name="description"\s+content="([^"]*)"/i) || [])[1]) || '').trim();
     const article = {
@@ -744,7 +889,22 @@ function structuredData(html, key, site, base, loc){
     graph.push(article);
   }
 
-  const jobReady = key === 'role-detail' && ['jobTitle', 'jobDescription', 'jobDatePosted', 'jobValidThrough', 'jobEmploymentType', 'jobLocation', 'jobApplyUrl'].every(k => cfg[k]);
+  const collectionJob = context && context.type === 'jobs' ? context.item : null;
+  const collectionJobReady = collectionJob && collectionJob.validThrough && collectionJob.applyUrl && collectionJob.location;
+  if (collectionJobReady){
+    const lang = settings.defaultLang === 'az' ? 'az' : 'en';
+    const job = {
+      '@type': 'JobPosting', '@id': loc + '#job', title: itemText(collectionJob, 'title', lang),
+      description: itemText(collectionJob, 'body', lang), datePosted: String(collectionJob.createdAt || '').slice(0, 10),
+      validThrough: collectionJob.validThrough, employmentType: collectionJob.type.replace('-', '_').toUpperCase(),
+      hiringOrganization: { '@id': orgId }, url: collectionJob.applyUrl,
+      jobLocation: { '@type': 'Place', address: { '@type': 'PostalAddress', addressLocality: collectionJob.location } }
+    };
+    if (collectionJob.remote) job.jobLocationType = 'TELECOMMUTE';
+    graph.push(job);
+  }
+
+  const jobReady = !context && !(effectiveCollections(site).jobs || []).length && key === 'role-detail' && ['jobTitle', 'jobDescription', 'jobDatePosted', 'jobValidThrough', 'jobEmploymentType', 'jobLocation', 'jobApplyUrl'].every(k => cfg[k]);
   if (jobReady){
     const job = {
       '@type': 'JobPosting', '@id': loc + '#job', title: cfg.jobTitle,
@@ -798,38 +958,46 @@ function mediaQuotaAllows(extraBytes, replacingBytes){
 }
 
 /* Inject admin-set title / description / og into a page as it is served. */
-function injectMeta(html, key, site){
-  const pg = (site.pages && site.pages[key]) || {};
-  if (pg.title){
-    const t = escapeHtml(pg.title);
+function injectMeta(html, key, site, context){
+  const item = context && context.item;
+  const lang = site.settings && site.settings.defaultLang === 'az' ? 'az' : 'en';
+  const pg = item ? (item.seo || {}) : ((site.pages && site.pages[key]) || {});
+  const itemTitle = item ? itemText(item, 'title', lang) : '';
+  const itemDescription = item ? itemText(item, context.type === 'articles' ? 'dek' : 'summary', lang) : '';
+  const titleValue = pg.title || itemTitle;
+  const descriptionValue = pg.description || itemDescription;
+  if (titleValue){
+    const suffix = item && site.settings && site.settings.siteName ? ' — ' + site.settings.siteName : '';
+    const t = escapeHtml(titleValue + suffix);
     html = html.replace(/<title>[^<]*<\/title>/i, '<title>' + t + '</title>')
                .replace(/(<meta\s+property="og:title"\s+content=")[^"]*(")/i, '$1' + t + '$2');
   }
-  if (pg.description){
-    const d = escapeHtml(pg.description);
+  if (descriptionValue){
+    const d = escapeHtml(stripTags(descriptionValue));
     html = html.replace(/(<meta\s+name="description"\s+content=")[^"]*(")/i, '$1' + d + '$2')
                .replace(/(<meta\s+property="og:description"\s+content=")[^"]*(")/i, '$1' + d + '$2');
   }
   /* canonical / social tags for every page, derived from Settings */
   const base = String((site.settings && site.settings.siteUrl) || '').replace(/\/+$/, '');
   const extra = [];
-  const loc = base ? base + '/' + (key === 'index' ? '' : key + '.html') : '';
+  const loc = base ? base + (context && context.path ? context.path : '/' + (key === 'index' ? '' : key + '.html')) : '';
   if (base && !/rel="canonical"/i.test(html)){
     extra.push('<link rel="canonical" href="' + escapeHtml(loc) + '">');
     extra.push('<meta property="og:url" content="' + escapeHtml(loc) + '">');
   }
-  if (pg.noindex === true){
+  if (pg.noindex === true || (item && item.published !== true)){
     if (/<meta\s+name="robots"[^>]*>/i.test(html)) html = html.replace(/<meta\s+name="robots"[^>]*>/i, '<meta name="robots" content="noindex,nofollow">');
     else extra.push('<meta name="robots" content="noindex,nofollow">');
   }
-  const img = resolveMediaUrl(pg.ogImage || (site.settings && site.settings.ogImage), base, 1600);
+  const img = resolveMediaUrl(pg.ogImage || (item && item.image && item.image.id) || (site.settings && site.settings.ogImage), base, 1600);
   if (img){
     const tag = '<meta property="og:image" content="' + escapeHtml(img) + '">';
     if (/property="og:image"/i.test(html)) html = html.replace(/<meta\s+property="og:image"[^>]*>/i, tag);
     else extra.push(tag);
   }
   if (!/name="twitter:card"/i.test(html)) extra.push('<meta name="twitter:card" content="' + (img ? 'summary_large_image' : 'summary') + '">');
-  const schema = structuredData(html, key, site, base, loc);
+  if (item && context.type === 'articles') html = html.replace(/<meta\s+property="og:type"[^>]*>/i, '<meta property="og:type" content="article">');
+  const schema = structuredData(html, key, site, base, loc, context);
   if (schema) extra.push('<script type="application/ld+json">' + jsonLd(schema) + '</script>');
   if (extra.length) html = html.replace(/<\/head>/i, extra.join('\n') + '\n</head>');
   return html;
@@ -1178,12 +1346,49 @@ function serveMedia(req, res, url, rawUrl){
   return send(res, 200, req.method === 'HEAD' ? '' : buffer, headers);
 }
 
+function collectionRoute(pathname){
+  const match = pathname.match(/^\/(work|insights|careers)\/([a-z0-9-]{2,60})\/?$/);
+  if (!match) return null;
+  const map = {
+    work: { type: 'cases', template: 'case-study.html', key: 'case-study' },
+    insights: { type: 'articles', template: 'article.html', key: 'article' },
+    careers: { type: 'jobs', template: 'role-detail.html', key: 'role-detail' }
+  };
+  return Object.assign({ slug: match[2], path: '/' + match[1] + '/' + match[2] }, map[match[1]]);
+}
+function collectionTemplate(key){
+  return { 'case-study': 'cases', article: 'articles', 'role-detail': 'jobs' }[key] || '';
+}
+function injectItemContext(html, context, cleanRoute){
+  if (!context) return html;
+  const payload = jsonLd({ type: context.type, item: context.item, templateKey: context.key, path: context.path });
+  const script = '<script>window.OMNI_ITEM=' + payload + ';</script>\n';
+  html = html.replace(/<script\s+src="data\/site\.js"><\/script>/i, script + '$&');
+  if (cleanRoute && !/<base\s/i.test(html)) html = html.replace(/<head>/i, '<head>\n<base href="/">');
+  return html;
+}
+
 function serveStatic(req, res, url){
   let pathname;
   try { pathname = decodeURIComponent(url.pathname); } catch (e) { return send(res, 400, 'Bad request'); }
   if (pathname.includes('\0')) return send(res, 400, 'Bad request');
   if (pathname === '/') pathname = '/index.html';
   if (pathname === '/sitemap.xml' && !fs.existsSync(path.join(ROOT, 'sitemap.xml'))) writeSeoFiles(loadSite());
+
+  const wantsEditor = url.searchParams.get('edit') === '1' && isAuthed(req);
+  const draftRecord = wantsEditor ? readDraft() : null;
+  let pageSite = draftRecord ? draftRecord.draft : loadSite();
+  let itemContext = collectionRoute(pathname);
+  const cleanItemRoute = !!itemContext;
+  if (itemContext){
+    const item = (effectiveCollections(pageSite)[itemContext.type] || []).find(value => value.slug === itemContext.slug);
+    if (!item || (!item.published && !wantsEditor)){
+      const nf = path.join(ROOT, '404.html');
+      return send(res, 404, fs.existsSync(nf) ? fs.readFileSync(nf) : 'Not found', { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store' });
+    }
+    itemContext.item = item;
+    pathname = '/' + itemContext.template;
+  }
 
   let file = path.normalize(path.join(ROOT, pathname));
   if (!file.startsWith(ROOT + path.sep) && file !== ROOT) return send(res, 403, 'Forbidden');
@@ -1208,8 +1413,23 @@ function serveStatic(req, res, url){
   const type = MIME[ext] || 'application/octet-stream';
   if (ext === '.html'){
     const key = path.basename(file, '.html');
-    let html = injectMeta(fs.readFileSync(file, 'utf8'), key, loadSite());
-    if (url.searchParams.get('edit') === '1' && isAuthed(req) && !['admin', 'admin-advanced', '404'].includes(key)){
+    if (!itemContext){
+      const type = collectionTemplate(key);
+      if (type){
+        const items = effectiveCollections(pageSite)[type] || [];
+        const slug = String(url.searchParams.get('item') || '');
+        const item = slug ? items.find(value => value.slug === slug) : items.find(value => value.published) || (wantsEditor ? items[0] : null);
+        if (slug && (!item || (!item.published && !wantsEditor))){
+          const nf = path.join(ROOT, '404.html');
+          return send(res, 404, fs.existsSync(nf) ? fs.readFileSync(nf) : 'Not found', { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store' });
+        }
+        if (item) itemContext = { type, item, key, path: collectionPath(type, item.slug) };
+      }
+    }
+    let html = fs.readFileSync(file, 'utf8');
+    html = injectItemContext(html, itemContext, cleanItemRoute);
+    html = injectMeta(html, key, pageSite, itemContext);
+    if (wantsEditor && !['admin', 'admin-advanced', '404'].includes(key)){
       html = html.replace(/<\/body>/i,
         '<link rel="stylesheet" href="css/editor.css">\n<script src="js/editor.js" defer></script>\n</body>');
     }

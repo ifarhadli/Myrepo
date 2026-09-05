@@ -270,6 +270,55 @@
     }
   }
 
+  function collectionLang(){ return (window.OmniI18n && window.OmniI18n.getLang && window.OmniI18n.getLang()) || document.documentElement.lang || 'en'; }
+  function collectionValue(item,key,lang){ var value=item&&item.fields&&item.fields[key];return value&&typeof value==='object'?String(value[lang]||value.en||value.az||''):String(value||''); }
+  function sectorLabel(value){return{b2b:'B2B SaaS',dtc:'DTC / Home',fintech:'Fintech',retail:'Retail & FMCG'}[value]||String(value||'Other').replace(/-/g,' ').replace(/\b\w/g,function(letter){return letter.toUpperCase();});}
+  function collectionHref(type,slug){ var base={cases:'/work/',articles:'/insights/',jobs:'/careers/'}[type]||'/';return base+encodeURIComponent(slug)+(document.documentElement.classList.contains('omni-editing')?'?edit=1':''); }
+  function collectionImage(item,legacyKey,alt){
+    if(item.image&&/^[a-f0-9]{16}$/.test(item.image.id||'')){
+      var focal=item.image.focal||{x:.5,y:.5};
+      return '<img class="slot-image" data-collection-image src="/media/'+item.image.id+'-960.webp" srcset="/media/'+item.image.id+'-480.webp 480w, /media/'+item.image.id+'-960.webp 960w, /media/'+item.image.id+'-1600.webp 1600w" sizes="(max-width:760px) 100vw, 50vw" alt="'+esc(item.image.alt||alt||'')+'" loading="lazy" style="object-position:'+(Number(focal.x)*100)+'% '+(Number(focal.y)*100)+'%">';
+    }
+    return legacyKey?'<img class="slot-image" data-image="'+esc(legacyKey)+'" alt="" hidden>':'';
+  }
+  function sortedPublished(items,editing){ return (items||[]).filter(function(item){return editing||item.published;}).slice().sort(function(a,b){return(a.order||0)-(b.order||0);}); }
+  function renderCollectionMount(mount,collections){
+    mount.removeAttribute('data-testi-bound');
+    var type=mount.getAttribute('data-collection'),editing=document.documentElement.classList.contains('omni-editing'),lang=collectionLang();
+    var items=sortedPublished(collections[type],editing);if(mount.hasAttribute('data-exclude-current')&&window.OMNI_ITEM)items=items.filter(function(item){return item.id!==window.OMNI_ITEM.item.id;});var limit=parseInt(mount.getAttribute('data-limit'),10);if(isFinite(limit)&&limit>0)items=items.slice(0,limit);
+    var legacy=mount.getAttribute('data-legacy-image-prefix')||'',html='';
+    items.forEach(function(item,index){
+      var draft=!item.published?'<span class="collection-draft">Draft</span>':'',attrs=' data-collection-type="'+type+'" data-collection-id="'+item.id+'" data-item="'+item.id+'"';
+      if(type==='cases'){
+        var title=collectionValue(item,'title',lang),summary=collectionValue(item,'summary',lang),metrics=(item.fields.metrics||[]).slice(0,3).map(function(metric){return'<span class="mchip">'+esc(metric.value)+' '+esc((metric.label&& (metric.label[lang]||metric.label.en||metric.label.az))||'')+'</span>';}).join('');
+        var open=editing?'<article class="case-card reveal"'+attrs+' data-industry="'+esc(item.sector||'other')+'><div>':'<a class="case-card reveal" href="'+collectionHref(type,item.slug)+'"'+attrs+' data-industry="'+esc(item.sector||'other')+'><div>';
+        var close=editing?'</article>':'</a>';
+        html+=open+draft+'<span class="tagn src sector">'+esc(sectorLabel(item.sector))+'</span><p class="result" data-collection-field="title">'+esc(title)+'</p><p class="muted" data-collection-field="summary">'+esc(summary)+'</p><div class="metric-chips">'+metrics+'</div></div><div class="case-visual" data-image-shell>'+collectionImage(item,legacy?legacy+'.c'+(index+1):'',title)+'</div>'+close;
+      }else if(type==='articles'){
+        var atitle=collectionValue(item,'title',lang),tag=(item.category||'demand'),meta=tag.charAt(0).toUpperCase()+tag.slice(1)+' · '+(item.readingMinutes||5)+' min';
+        html+=(editing?'<article class="article-row reveal"':'<a class="article-row reveal" href="'+collectionHref(type,item.slug)+'"')+attrs+' data-industry="'+esc(tag)+'">'+draft+'<span class="title" data-collection-field="title">'+esc(atitle)+'</span><span class="meta">'+esc(meta)+'</span>'+(editing?'</article>':'</a>');
+      }else if(type==='jobs'){
+        var jtitle=collectionValue(item,'title',lang),summary=collectionValue(item,'summary',lang);
+        html+='<article class="role-card has-link"'+attrs+'>'+draft+'<div><h4 data-collection-field="title" style="margin-bottom:2px">'+esc(jtitle)+'</h4><div class="meta" data-collection-field="summary">'+esc(summary)+'</div></div><a href="'+collectionHref(type,item.slug)+'" class="btn btn-ghost">View role →</a></article>';
+      }else if(type==='team'){
+        var name=item.name||'',role=collectionValue(item,'role',lang),bio=collectionValue(item,'bio',lang),initials=name.split(/\s+/).map(function(part){return part.charAt(0);}).join('').slice(0,2).toUpperCase();
+        html+='<article class="team-card reveal"'+attrs+' data-image-shell>'+draft+collectionImage(item,legacy?legacy+'.t'+(index+1):'',name)+'<div class="ph">'+esc(initials)+'</div><div class="info"><div class="n" data-collection-plain="name">'+esc(name)+'</div><div class="p" data-collection-field="role">'+esc(role)+'</div><p class="team-bio" data-collection-field="bio" data-placeholder="Add a short bio">'+esc(bio)+'</p>'+(item.linkedin?'<a class="team-linkedin" href="'+esc(item.linkedin)+'" target="_blank" rel="noopener">LinkedIn</a>':'')+'</div></article>';
+      }else if(type==='testimonials'){
+        var quote=collectionValue(item,'quote',lang),roleText=collectionValue(item,'role',lang);
+        html+='<article class="testi-slide"'+attrs+'>'+draft+'<blockquote data-collection-field="quote">“'+esc(quote)+'”</blockquote><div class="testi-attr"><span class="avatar">'+esc((item.name||'').split(/\s+/).map(function(p){return p.charAt(0);}).join('').slice(0,2).toUpperCase())+'</span><div><div class="name" data-collection-plain="name">'+esc(item.name||'')+'</div><div class="role"><span data-collection-field="role">'+esc(roleText)+'</span><span aria-hidden="true">, </span><span data-collection-plain="company">'+esc(item.company||'')+'</span></div></div></div></article>';
+      }
+    });
+    if(!html)html='<div class="collection-empty" role="status">No published '+esc(type)+' yet.</div>';
+    if(type==='testimonials'&&items.length>1)html+='<div class="testi-nav"><button type="button" data-testi-prev aria-label="Previous testimonial">←</button><button type="button" data-testi-next aria-label="Next testimonial">→</button></div>';
+    mount.innerHTML=html;
+  }
+  function renderCollections(nextCollections){
+    var source=nextCollections&&typeof nextCollections==='object'?nextCollections:(site.collections||window.OMNI_COLLECTIONS||{});
+    var mounts=document.querySelectorAll('[data-collection]');for(var i=0;i<mounts.length;i++)renderCollectionMount(mounts[i],source);
+    document.dispatchEvent(new CustomEvent('omni:collections-ready'));
+  }
+  window.OmniPartials={renderCollections:renderCollections};
+
   document.addEventListener('DOMContentLoaded', function(){
     var h = document.getElementById('site-header');
     var f = document.getElementById('site-footer');
@@ -278,6 +327,7 @@
     var mounts = document.querySelectorAll('[data-accordion]');
     for (var i = 0; i < mounts.length; i++) mounts[i].innerHTML = accordion(mounts[i].getAttribute('data-accordion'));
     industryStrip(document.querySelector('[data-list="industry.strip"]'));
+    renderCollections(site.collections||window.OMNI_COLLECTIONS||{});
     bindSiteFields(document);
     /* skip-link target */
     var m = document.querySelector('main');

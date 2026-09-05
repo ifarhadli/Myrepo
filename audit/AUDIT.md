@@ -21,7 +21,7 @@ The findings below were verified against the source and screenshots, then addres
 | P0-5 Hard-coded “OmniMark” marks | **Fixed** — follow *Site name* | `js/partials.js` |
 | P0-5 `formFallbackNote` dead field | **Fixed** — removed | `server.js`, `js/admin.js`, `data/site.*` |
 | P0-5 Admin copy claim overstated | **Fixed** — wording corrected | `js/admin.js` |
-| P0-5 Collections, nav editor, page CRUD, revisions, roles | **Open — scope**, needs a product decision | — |
+| P0-5 Nav editor, arbitrary page/block CRUD and roles | **Open — scope**, needs a product decision | — |
 | P1 1,111 unlabelled admin controls | **Fixed** — `labelize()` links every `.field` label and adds `aria-label` (key + language, engine + field) to the rest | `js/admin.js` |
 | P1 Admin nav no focus style | **Fixed** | `css/admin.css` |
 | P1 Form errors without `aria-invalid` / focus | **Fixed** — linked text under every required field, autocomplete, `aria-invalid`, server field mapping, focus to first invalid | `js/main.js`, `server.js` |
@@ -47,6 +47,7 @@ The findings below were verified against the source and screenshots, then addres
 | Admin plan 2: no password recovery | **Fixed** — private recovery email, non-enumerating request, expiring one-time token, password/session rotation, honest unavailable state | `server.js`, `admin.html`, `js/login.js`, `js/editor.js` |
 | Admin plan 2: per-page search control incomplete | **Fixed for current static pages** — per-page metadata, social image and noindex are draft/publish controlled; noindex pages leave the sitemap | `server.js`, `js/editor.js` |
 | Admin plan 2: no image management | **Fixed** — authored image slots, private upload/library, browser-built responsive variants, per-use alt/focal point, social-image picking and guarded deletion | `server.js`, `js/site-config.js`, `js/editor.js`, `css/editor.css` |
+| Admin plan 2: hard-coded cases, articles, jobs, team and testimonials | **Fixed** — bilingual validated collections, in-place lifecycle controls, clean detail routes, item metadata/schema and sitemap integration | `js/data.js`, `js/partials.js`, `js/site-config.js`, `js/editor.js`, `server.js` |
 | Deep audit: mobile contact/service overflow | **Fixed** — all inline fixed-grid declarations swept; contact and service layouts collapse cleanly | `contact.html`, `css/style.css` |
 | Deep audit: mega-menu density/height | **Fixed** — admin-configurable link count (default 4), global All services link, viewport-bounded scroll | `js/partials.js`, `css/style.css`, `js/admin.js` |
 | Deep audit: hidden focus in drawer/accordions | **Fixed** — closed content is invisible and inert; modal background is inert | `js/main.js`, `js/partials.js`, `css/style.css` |

@@ -152,6 +152,17 @@ crosshair focal control backed by keyboard-accessible axis sliders. On-page
 slot actions are restrained dark pills that appear on hover/focus; empty slots
 keep the action visible so absence never becomes an undiscoverable state.
 
+Collection listings reuse the established public case, article, role, team and
+testimonial compositions instead of introducing admin-looking cards. The
+editor adds one compact neutral control rail above each item; public geometry
+must not move when that rail is absent. Draft status is a written badge, and
+unpublished records use reduced emphasis only as a secondary cue. Detail pages
+keep the editorial reading measure, place operational metadata above the body,
+and use the existing media-slot crop language. Rich body controls stay in the
+editor's floating ink toolbar; they do not imitate a full document processor.
+Collection empty states are direct and non-promotional, and no public card may
+link to an item without a resolvable published route.
+
 ### Forms and overlays
 
 Forms own validation with `novalidate`, visible linked field errors, first-error focus, preserved values, and duplicate-submit prevention. The mobile drawer and any admin confirmation surface use owned semantics, Escape behavior, focus containment, and focus restoration.

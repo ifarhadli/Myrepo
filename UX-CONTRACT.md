@@ -31,7 +31,7 @@ No external business policy is maintained in this repository yet. `README.md` do
 | Toast | Editor/admin toast utilities | `js/editor.js`, `js/admin.js` | success / error | live region + browser smoke |
 | Dialog | Native `<dialog>` with owned focus/return contract | `js/editor.js`, `js/admin.js` | publish / discard / destructive | keyboard browser smoke |
 | Drawer/Sheet | Non-modal editor sheet | `js/editor.js`, `css/editor.css` | design-left / operations-right | browser responsive smoke |
-| CRUD | Editor/admin API clients + server routes | `js/editor.js`, `js/admin.js`, `server.js` | draft / publish / submission state / account / notification recipients / delete / reset | integration suite |
+| CRUD | Editor/admin API clients + server routes | `js/editor.js`, `js/admin.js`, `server.js` | draft / publish / collections / submission state / account / notification recipients / delete / reset | integration + collection browser lifecycle |
 | File upload | Media panel + opaque media API | `js/editor.js`, `server.js` | picker / drag-drop / retry / responsive variants | integration + browser upload smoke |
 
 Table selection and date-picker ownership are omitted because the editor has neither selection nor a date-picker; structured-data dates use typed ISO text fields.
@@ -49,9 +49,10 @@ Table selection and date-picker ownership are omitted because the editor has nei
   environment recipient list.
 - Textareas use a stable minimum height and do not resize into adjacent editor controls.
 - The submissions table owns horizontal overflow at narrow widths.
-- On-page text editing uses Enter to commit and Escape to cancel. Shift+Enter
-  is reserved for authored multiline HTML strings; pasted content is plain
-  text and saved HTML is allow-listed.
+- On-page plain-text editing uses Enter to commit and Escape to cancel.
+  Collection body fields keep normal paragraph/list Enter behavior and expose
+  an explicit Done action; Ctrl/Command+Enter also commits. Pasted content is
+  plain text and every saved HTML surface is allow-listed.
 - Section and item drag handles have adjacent up/down or equivalent keyboard
   actions. Section order changes only among direct `<main>` siblings; the hero
   remains outside that ordering boundary.
@@ -63,6 +64,15 @@ Table selection and date-picker ownership are omitted because the editor has nei
   selection, exposes per-file preparation/upload/progress/failure/Retry state,
   and never accepts SVG. The browser makes the 480/960/1600 responsive copies
   without upscaling; the server verifies the bytes again.
+- Collection listings are the canonical UI for cases, articles, jobs, team and
+  testimonials. Published items are links only when they own a real detail
+  route; unpublished items stay visible in edit mode with a textual Draft
+  badge and are absent from public listings. Each list has one New action and
+  each item has drag plus keyboard move controls, publish state, duplication,
+  image selection and owned delete confirmation.
+- Case, article and job detail pages use clean server routes. Item fields are
+  bilingual; slugs and operational metadata are language-neutral. Changing a
+  title never silently changes an existing slug.
 
 ## Dataset navigation
 
@@ -94,6 +104,9 @@ Table selection and date-picker ownership are omitted because the editor has nei
 | Upload media | picker or slot drop | per-file preparation, progress and stage label | open Media sheet | Ready row + thumbnail + toast | failed row retains file + Retry | upload row / picker | `js/editor.js`, `server.js` |
 | Assign image slot | Use here / direct drop | metadata save when needed | current page | image and focal crop repaint live | draft unchanged if metadata save fails | Media sheet | `js/editor.js` |
 | Delete media | Delete from library + confirm | pessimistic request, confirm disabled | open Media sheet | item removed + toast | item retained + error; blocked uses named | invoking item / sheet | `js/editor.js`, `server.js` |
+| Create collection item | + New on a listing | draft save before navigation | clean item URL in edit mode | Draft badge + editable page | item remains in draft if navigation fails | new item page | `js/editor.js` |
+| Edit collection item | direct text / Item details / Media | normal draft autosave | current item page | live repaint + saved timestamp | local draft retained | edited field or sheet | `js/editor.js`, `js/site-config.js` |
+| Publish/unpublish item | item/card status + site Publish | normal publish summary | current edit page | public route/listing/sitemap update together | server draft retained | publish trigger | `js/editor.js`, `server.js` |
 
 ## Navigation and responsive behavior
 
@@ -103,6 +116,10 @@ Table selection and date-picker ownership are omitted because the editor has nei
 - The editor page switcher saves the draft before full-page navigation and
   preserves `?edit=1`. Anonymous requests with that query never receive the
   editor assets.
+- Published collection routes are `/work/<slug>`, `/insights/<slug>` and
+  `/careers/<slug>`. Unknown and unpublished public slugs return the owned 404;
+  an authenticated `?edit=1` request may resolve an unpublished draft item.
+  Static hosting uses the documented `?item=<slug>` template fallback.
 - Below 820px the sidebar becomes an in-flow wrapping navigation; tables scroll within their own container.
 - The public drawer is modal, makes background content inert, traps focus, closes on Escape, and restores focus.
 - Route errors use `404.html`; the server returns explicit JSON errors for API routes.
@@ -163,6 +180,9 @@ Table selection and date-picker ownership are omitted because the editor has nei
   or an owned 16-character media ID, and `noindex` pages are omitted from the
   generated sitemap. Image slot keys and IDs are pattern constrained; focal
   coordinates are finite values from 0 to 1 and alt text is length-capped.
+- Collection types are capped at 100 records. IDs and slugs are constrained,
+  slugs are unique within a type, application URLs require HTTPS, and rich
+  bodies are sanitised server-side to the documented editorial element list.
 - Secrets remain environment-only and are never copied into the public configuration or toast text. Recovery and lead-recipient addresses live only in private `data/admin.json`. Media metadata and files live under private `data/` paths; public bytes are served only through opaque ID/width routes with immutable caching.
 
 ## Permission and clipboard

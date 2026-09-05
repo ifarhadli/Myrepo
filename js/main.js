@@ -203,7 +203,8 @@
   /* ---------- testimonial manual nav (no autoplay) ---------- */
   function initTestimonials(){
     var wrap = document.querySelector('[data-testi]');
-    if(!wrap) return;
+    if(!wrap || wrap.getAttribute('data-testi-bound')==='true') return;
+    wrap.setAttribute('data-testi-bound','true');
     var slides = Array.prototype.slice.call(wrap.querySelectorAll('.testi-slide'));
     if(slides.length < 2) return;
     var idx = 0;
@@ -348,10 +349,11 @@
     var bar = document.querySelector('.filters');
     if(!bar) return;
     var buttons = Array.prototype.slice.call(bar.querySelectorAll('button'));
-    var cards = document.querySelectorAll('[data-industry]');
     buttons.forEach(function(b){
       b.setAttribute('aria-pressed', b.classList.contains('active') ? 'true' : 'false');
+      if(b.getAttribute('data-filter-bound')==='true')return;b.setAttribute('data-filter-bound','true');
       b.addEventListener('click', function(){
+        var cards = document.querySelectorAll('[data-industry]');
         buttons.forEach(function(x){ x.classList.remove('active'); x.setAttribute('aria-pressed','false'); });
         b.classList.add('active'); b.setAttribute('aria-pressed','true');
         var f = b.getAttribute('data-filter');
@@ -638,6 +640,7 @@
     document.querySelectorAll('.kinetic').forEach(function(el){ delete el.dataset.kineticDone; });
     initKinetic();
   });
+  document.addEventListener('omni:collections-ready', function(){ initFilters();initTestimonials();initReveal(); });
 
   /* partials.js (loaded before this file) injects header/footer on its own
      DOMContentLoaded listener, which — registered first — runs before this

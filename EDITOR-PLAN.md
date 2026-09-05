@@ -1,6 +1,6 @@
 # On-page editor — implementation plan
 
-Status: implemented · extended by Admin plan 2 Phases A–B · Author: Claude · Executor: Codex
+Status: implemented · extended by Admin plan 2 Phases A–C · Author: Claude · Executor: Codex
 Branch: `claude/site-build-brief-jpmkd6` (continue on this branch, commit per phase)
 
 ## 0. Goal and non-goals
