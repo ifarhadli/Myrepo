@@ -30,7 +30,7 @@ html.omni-editing .case-cover{display:block;min-height:220px;border:1px dashed v
 .omni-bar__brand{display:flex;align-items:center;gap:7px;padding:0 7px 0 2px;font:600 12px/1 "JetBrains Mono",monospace;letter-spacing:.02em}.omni-bar__brand small{padding:3px 5px;border:1px solid #4b4e59;border-radius:999px;color:#c9ccd5;font-size:8px;letter-spacing:.08em;text-transform:uppercase}
 .omni-bar__dot{width:8px;height:8px;border-radius:50%;background:var(--oe-signal);box-shadow:0 0 0 3px rgba(198,242,78,.15)}
 .omni-bar__group{display:flex;align-items:center;gap:3px;padding-left:5px;border-left:1px solid #343641}
-.omni-bar button,.omni-bar select{height:34px;border:1px solid transparent;border-radius:7px;background:transparent;color:#fff;font-size:12px;font-weight:600;padding:0 9px;line-height:1;cursor:pointer}
+.omni-bar button,.omni-bar select{height:34px;border:1px solid transparent;border-radius:7px;background:transparent;color:#fff;font-size:12px;font-weight:600;padding:0 9px;line-height:1;cursor:pointer;align-items:center;justify-content:center}
 .omni-bar select{max-width:126px;background:#252731;color-scheme:dark}
 .omni-bar button:hover,.omni-bar select:hover{background:#2b2d38}
 .omni-bar button:focus-visible,.omni-bar select:focus-visible,.omni-mini-tools button:focus-visible,.omni-section-tools button:focus-visible,.omni-touch-menu:focus-visible,.omni-collection-tools :focus-visible,.omni-item-toolbar :focus-visible,.omni-collection-add:focus-visible,.omni-dialog button:focus-visible,.omni-action-sheet button:focus-visible,.omni-panel :focus-visible{outline:2px solid var(--oe-signal);outline-offset:2px}
