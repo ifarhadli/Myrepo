@@ -241,3 +241,14 @@ html.omni-dragging .omni-drop-before,html.omni-dragging .omni-drop-after{positio
 .omni-image-shell--compact>.omni-image-action::before{content:"F4F7";font-size:13px;line-height:1}
 .omni-image-shell--compact:hover>.omni-image-action,.omni-image-shell--compact>.omni-image-action:focus-visible{width:auto;min-height:30px;padding:0 11px;font-size:11px;opacity:1}
 .omni-image-shell--compact:hover>.omni-image-action::before,.omni-image-shell--compact>.omni-image-action:focus-visible::before{content:"F4F7  ";font-size:12px}
+/* Owner settings: choose one task before opening its fields. */
+.omni-settings-menu{display:grid;gap:12px;margin-top:18px}
+.omni-settings-menu button{display:grid;gap:7px;width:100%;padding:20px;text-align:left;background:#fff;color:var(--oe-ink);border:1px solid var(--oe-line);border-radius:10px;cursor:pointer}
+.omni-settings-menu button:hover{border-color:var(--oe-violet);background:#faf9ff}
+.omni-settings-menu button:focus-visible{outline:2px solid var(--oe-violet);outline-offset:3px}
+.omni-settings-menu strong{font-size:16px}.omni-settings-menu span{font-size:13px;line-height:1.5;color:var(--oe-muted)}
+.omni-settings-links{border-top:1px solid var(--oe-line);padding-top:16px}.omni-settings-links summary{padding:8px 0;font-weight:700;cursor:pointer}.omni-settings-links .omni-field{margin-top:14px}
+.omni-account-actions{display:flex;gap:10px;flex-wrap:wrap;padding:20px 0}.omni-account-actions a{text-decoration:none}
+.omni-inbox-filters{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:12px}.omni-inbox-filters input,.omni-inbox-filters select{min-width:0;min-height:40px;padding:8px;border:1px solid var(--oe-line);border-radius:7px;background:#fff;color:var(--oe-ink)}
+.omni-inbox-pages{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0}
+@media(max-width:700px){.omni-inbox-filters input,.omni-inbox-filters select{font-size:16px}}

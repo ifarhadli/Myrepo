@@ -15,3 +15,9 @@ Thumbs.db
 # Audit evidence stays local; the Markdown findings remain versioned.
 audit/**/screenshots/
 premium-audit.json
+
+# Audit evidence stays local: screenshots, DOM dumps and raw run logs.
+# The Markdown findings and the reusable audit script remain versioned.
+audit/**/*.dom.json
+audit/**/results.json
+audit/*.log

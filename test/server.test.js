@@ -15,12 +15,19 @@ const BASE = 'http://127.0.0.1:' + PORT;
 const MAIL_PORT = PORT + 700;
 const PW = 'test-pass-1234';
 
-const sentMail = [];
+const sentMail = [], mailKeys = [];
+let failNextLead = false;
 const mailServer = http.createServer((req, res) => {
   let raw = '';
   req.on('data', d => { raw += d; });
   req.on('end', () => {
-    try { sentMail.push(JSON.parse(raw)); } catch (e) {}
+    let message;
+    try { message = JSON.parse(raw); sentMail.push(message); mailKeys.push(req.headers['idempotency-key']); } catch (e) {}
+    if (failNextLead && message && /New newsletter submission/.test(message.subject || '')) {
+      failNextLead = false;
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      return res.end('{"error":"Temporary test outage"}');
+    }
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end('{"id":"test-email"}');
   });
@@ -68,6 +75,10 @@ async function req(method, p, body, opts){
   const requestCookie = Object.prototype.hasOwnProperty.call(opts, 'cookie') ? opts.cookie : cookie;
   if (requestCookie) headers.Cookie = requestCookie;
   if (opts.admin) headers['X-Requested-With'] = 'OmniAdmin';
+  if(opts.admin&&!opts.noRevision){
+    if(method==='PUT'&&p==='/api/site'&&!Object.prototype.hasOwnProperty.call(body||{},'baseUpdatedAt')){const live=await (await fetch(BASE+'/api/site')).json();body=Object.assign({},body,{baseUpdatedAt:live.updatedAt||null});}
+    if(((method==='POST'&&p==='/api/publish')||(method==='DELETE'&&p==='/api/draft')||(method==='POST'&&/^\/api\/history\/.+\/restore$/.test(p)))&&!Object.prototype.hasOwnProperty.call(body||{},'draftRevision')){const d=await (await fetch(BASE+'/api/draft',{headers})).json();body=Object.assign({},body,{draftRevision:d.revision||0});}
+  }
   const payload = body === undefined ? undefined : (opts.raw ? body : JSON.stringify(body));
   const r = await fetch(BASE + p, { method, headers, body: payload, redirect: 'manual' });
   const sc = r.headers.get('set-cookie');
@@ -390,6 +401,35 @@ async function main(){
   r = await req('GET', '/api/history');
   check('history grows with each publish and is capped at 10', r.json.length >= 2 && r.json.length <= 10);
 
+  /* ---- audit regression: exact revisions and validation ---- */
+  const liveBeforeAudit=(await req('GET','/api/site')).json;
+  const clientA=JSON.parse(JSON.stringify(liveBeforeAudit)),clientB=JSON.parse(JSON.stringify(liveBeforeAudit));
+  clientA.settings.siteName='First admin change';
+  r=await req('PUT','/api/site',Object.assign({},clientA,{baseUpdatedAt:liveBeforeAudit.updatedAt}),{admin:true});
+  check('first advanced client publishes with its reviewed live revision',r.status===200,r.text);
+  clientB.settings.phone='Second admin change';
+  r=await req('PUT','/api/site',Object.assign({},clientB,{baseUpdatedAt:liveBeforeAudit.updatedAt}),{admin:true});
+  check('stale advanced client cannot erase newer changes',r.status===409&&r.json.code==='site-stale',r.text);
+  r=await req('PUT','/api/site',clientB,{admin:true,noRevision:true});
+  check('advanced publish requires a live revision',r.status===428,r.text);
+  const invalidEmail=JSON.parse(JSON.stringify(liveBeforeAudit));invalidEmail.settings.email='not-an-email';
+  r=await req('PUT','/api/site',invalidEmail,{admin:true});
+  check('invalid contact email is rejected with its field name',r.status===400&&r.json.field==='settings.email',r.text);
+  const currentAuditLive=(await req('GET','/api/site')).json;
+  r=await req('PUT','/api/draft',Object.assign({},currentAuditLive,{draftRevision:0}),{admin:true});const reviewRevision=r.json.revision;
+  const editedAgain=JSON.parse(JSON.stringify(currentAuditLive));editedAgain.i18n.en['home.hero.h1']='Someone edited after review';
+  r=await req('PUT','/api/draft',Object.assign({},editedAgain,{draftRevision:reviewRevision}),{admin:true});const newerRevision=r.json.revision;
+  r=await req('POST','/api/publish',{draftRevision:reviewRevision},{admin:true});
+  check('publish cannot promote a draft changed after review',r.status===409&&r.json.code==='draft-stale',r.text);
+  r=await req('POST','/api/publish',{}, {admin:true,noRevision:true});
+  check('publish without reviewed revision is rejected',r.status===409&&r.json.code==='draft-stale',r.text);
+  r=await req('POST','/api/history/'+versionId+'/restore',{draftRevision:reviewRevision},{admin:true});
+  check('history restore cannot replace a newer shared draft',r.status===409&&r.json.code==='draft-stale',r.text);
+  await req('DELETE','/api/draft',{draftRevision:newerRevision},{admin:true});
+  r=await req('PUT','/api/draft',Object.assign({},editedAgain,{draftRevision:newerRevision}),{admin:true});
+  check('stale draft cannot resurrect after another client discards it',r.status===409&&r.json.code==='draft-stale',r.text);
+  await req('PUT','/api/site',liveBeforeAudit,{admin:true});
+
   /* ---- submissions ---- */
   cookie = '';
   const formMailStart = sentMail.length;
@@ -416,6 +456,14 @@ async function main(){
   const newsletterSub = r.json.find(s => s.form === 'newsletter');
   check('submissions listed', r.status === 200 && r.json.length === 2 && contactSub && contactSub.fields.email === 'a@b.co');
   check('newsletter consent metadata stored', newsletterSub && newsletterSub.fields.email === 'news@example.test' && !!newsletterSub.consentAt && newsletterSub.consentSource === 'footer-newsletter-form', JSON.stringify(newsletterSub));
+  check('notification acceptance is persisted separately from the enquiry', contactSub.delivery.email === 'accepted' && contactSub.delivery.attempts === 1);
+  check('lead email requests carry a stable idempotency key', mailKeys.includes('lead-' + contactSub.id));
+  r = await req('GET', '/api/submissions?limit=1&page=2');
+  check('enquiries paginate with full totals', r.status === 200 && r.json.items.length === 1 && r.json.total === 2 && r.json.pages === 2 && r.json.page === 2);
+  r = await req('GET', '/api/submissions?limit=1&page=99&form=contact&q=a%40b.co');
+  check('form and search combine and out-of-range pages clamp', r.status === 200 && r.json.total === 1 && r.json.page === 1 && r.json.items[0].id === contactSub.id && r.json.allTotal === 2);
+  r = await req('GET', '/api/submissions?form=newsletter&q=NEWS');
+  check('export query returns only matching rows without pagination', r.status === 200 && r.json.length === 1 && r.json[0].id === newsletterSub.id);
   const id = contactSub.id;
   r = await req('PATCH', '/api/submissions/' + id, { read: true }, { admin: true });
   check('submission read flag can be patched', r.status === 200 && r.json.submission.read === true, r.text);
@@ -583,6 +631,25 @@ async function main(){
   check('Admin can restore a disabled account with its password intact', r.status === 200 && restoredLogin.status === 200 && restoredLogin.json.user.role === 'editor');
   r = await req('PATCH', '/api/users/' + editorId, { status: 'invited' }, { admin: true, cookie: adminCookie, captureCookie: false });
   check('active users cannot be put into a fake pending-invitation state', r.status === 400);
+
+  /* Retention and notification retries use only the disposable fixture. */
+  const subsPath = path.join(TMP, 'data', 'submissions.json');
+  const retainedSubs = fs.readFileSync(subsPath, 'utf8');
+  const synthetic = Array.from({ length: 10001 }, (_, i) => ({ id: 'retention-' + i, form: 'newsletter', at: new Date(1700000000000 + i).toISOString(), fields: { email: 'retained-' + i + '@example.test' }, read: true }));
+  fs.writeFileSync(subsPath, JSON.stringify(synthetic));
+  failNextLead = true;
+  r = await req('POST', '/api/submit', { form: 'newsletter', email: 'retry@example.test' }, { headers: { 'X-Forwarded-For': '198.51.100.99' } });
+  check('new enquiries never silently delete the oldest retained record', r.status === 200 && JSON.parse(fs.readFileSync(subsPath, 'utf8')).length === 10002 && JSON.parse(fs.readFileSync(subsPath, 'utf8'))[0].id === 'retention-0');
+  const retryRow = () => JSON.parse(fs.readFileSync(subsPath, 'utf8')).find(item => item.fields.email === 'retry@example.test');
+  let retryDeadline = Date.now() + 3000;
+  while (retryRow().delivery.email !== 'retrying' && Date.now() < retryDeadline) await new Promise(resolve => setTimeout(resolve, 25));
+  check('temporary email failures leave a durable retry status', retryRow().delivery.email === 'retrying' && retryRow().delivery.attempts === 1);
+  retryDeadline = Date.now() + 33000;
+  while (retryRow().delivery.email !== 'accepted' && Date.now() < retryDeadline) await new Promise(resolve => setTimeout(resolve, 100));
+  const deliveredRetry = retryRow();
+  check('failed lead email retries once and records acceptance', deliveredRetry.delivery.email === 'accepted' && deliveredRetry.delivery.attempts === 2);
+  check('retry reuses the original notification idempotency key', mailKeys.filter(key => key === 'lead-' + deliveredRetry.id).length === 2);
+  fs.writeFileSync(subsPath, retainedSubs);
 
   console.log('\n' + pass + ' passed, ' + fail + ' failed');
 }

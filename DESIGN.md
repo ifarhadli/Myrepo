@@ -184,6 +184,15 @@ link to an item without a resolvable published route.
 
 ### Forms and overlays
 
+Owner settings present three task choices before showing fields: Website
+details, Enquiry emails, and Account. Website details uses one readable column
+with seven main fields; policy and booking links are collapsed. Technical
+deployment controls, raw CSS/layout tokens and obsolete global collection
+metadata stay outside the owner interface. Proof approval lives beside page
+content. Keep operational status actionable: unread enquiries, draft status,
+last publish, and email acceptance/failure. The structured dashboard uses a
+collapsed mobile navigation menu so the current task starts near the top.
+
 Forms own validation with `novalidate`, visible linked field errors, first-error focus, preserved values, and duplicate-submit prevention. The mobile drawer and any admin confirmation surface use owned semantics, Escape behavior, focus containment, and focus restoration.
 
 Editor sheets keep compact labels, stable field geometry and their own scroll

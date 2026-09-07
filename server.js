@@ -251,7 +251,7 @@ function archiveCurrent(by){
 }
 function saveSite(site, by){
   archiveCurrent(by);
-  site.updatedAt = new Date().toISOString();
+  site.updatedAt = new Date(Math.max(Date.now(), (Date.parse(loadSite().updatedAt) || 0) + 1)).toISOString();
   writeJsonAtomic(SITE_JSON, site);
   writeTextAtomic(SITE_JS, siteToJs(site));
   writeSeoFiles(site);
@@ -419,6 +419,9 @@ function validateSite(input){
   if (!isPlain(input)) throw new Error('config must be an object');
   const site = JSON.parse(JSON.stringify(DEFAULT_SITE));
   site.settings = Object.assign({}, site.settings, strMap(input.settings, 2000));
+  for (const key of ['email', 'geoEmail']) {
+    if (site.settings[key] && !isEmail(site.settings[key])) { const error = new Error(key === 'email' ? 'Enter a valid contact email.' : 'Enter a valid office email.'); error.field = 'settings.' + key; throw error; }
+  }
   const megaMenuLinkLimit = Number.parseInt(input.settings && input.settings.megaMenuLinkLimit, 10);
   site.settings.megaMenuLinkLimit = Number.isFinite(megaMenuLinkLimit) ? Math.max(1, Math.min(12, megaMenuLinkLimit)) : 4;
   if (!['en', 'az'].includes(site.settings.defaultLang)) site.settings.defaultLang = 'en';
@@ -874,10 +877,39 @@ function sendLeadEmail(sub, site){
   const mail = resendDetails(site);
   const lines = Object.keys(sub.fields).map(k => k + ': ' + sub.fields[k]).join('\n');
   const text = 'New ' + sub.form + ' submission on ' + mail.name + '\n' + sub.at + '\n\n' + lines + '\n\nPage: ' + sub.page + '\nLanguage: ' + sub.lang;
-  return postWithTimeout(mail.url, mail.headers,
-    { from: mail.sender, to: recipients.emails, reply_to: sub.fields.email || undefined,
-      subject: '[' + mail.name + '] New ' + sub.form + ' submission' + (sub.fields.name ? ' from ' + sub.fields.name : ''), text })
+  const payload = { from: mail.sender, to: recipients.emails, reply_to: sub.fields.email || undefined,
+    subject: '[' + mail.name + '] New ' + sub.form + ' submission' + (sub.fields.name ? ' from ' + sub.fields.name : ''), text };
+  const payloadHash = crypto.createHash('sha256').update(JSON.stringify(payload)).digest('hex');
+  if (sub.delivery && sub.delivery.payloadHash && sub.delivery.payloadHash !== payloadHash) return Promise.reject(new Error('Notification settings changed during retry. Review the enquiry.'));
+  deliveryUpdate(sub.id, { payloadHash });
+  return postWithTimeout(mail.url, Object.assign({}, mail.headers, { 'Idempotency-Key': 'lead-' + sub.id }), payload)
     .then(() => ({ ok: true, recipients: recipients.emails, source: recipients.source }));
+}
+function deliveryUpdate(id, patch){
+  const rows = readJson(SUBS_JSON, []), row = rows.find(item => item.id === id);
+  if (!row) return null;
+  row.delivery = Object.assign({}, row.delivery || {}, patch, { updatedAt: new Date().toISOString() });writeJsonAtomic(SUBS_JSON, rows);return row;
+}
+const emailJobs = new Set();
+function deliverLead(sub, site){
+  if (emailJobs.has(sub.id)) return;
+  const current = readJson(SUBS_JSON, []).find(item => item.id === sub.id);
+  if (!current || (current.delivery && current.delivery.email === 'accepted')) return;
+  const attempts = ((current.delivery || {}).attempts || 0) + 1;
+  if(attempts > 3){deliveryUpdate(sub.id, {email:'failed'});return;}
+  emailJobs.add(sub.id);deliveryUpdate(sub.id, {email:'pending',attempts});
+  sendLeadEmail(current,site).then(result => {deliveryUpdate(sub.id,{email:result.ok?'accepted':'not-configured'});}).catch(error => {
+    console.error('[notify] email failed:', error.message);
+    deliveryUpdate(sub.id,{email:attempts<3?'retrying':'failed'});
+    if(attempts<3){const timer=setTimeout(()=>deliverLead(sub,loadSite()),30000);timer.unref();}
+  }).finally(()=>emailJobs.delete(sub.id));
+}
+function resumeLeadEmails(){
+  readJson(SUBS_JSON,[]).filter(item => item.delivery && ['pending','retrying'].includes(item.delivery.email)).forEach(item => {
+    // Provider idempotency windows are finite: old uncertain sends need investigation, not replay.
+    if(Date.now()-Date.parse(item.delivery.updatedAt||item.at)>60*60*1000)deliveryUpdate(item.id,{email:'unconfirmed'});
+    else deliverLead(item,loadSite());
+  });
 }
 function notify(sub, site){
   const cfg = notifyConfig();
@@ -885,15 +917,15 @@ function notify(sub, site){
   const name = mail.name;
   const lines = Object.keys(sub.fields).map(k => k + ': ' + sub.fields[k]).join('\n');
   const text = 'New ' + sub.form + ' submission on ' + name + '\n' + sub.at + '\n\n' + lines + '\n\nPage: ' + sub.page + '\nLanguage: ' + sub.lang;
+  deliveryUpdate(sub.id, {email:cfg.email?'pending':'not-configured',webhook:cfg.webhook?'pending':'not-configured'});
   if (cfg.webhook){
     postWithTimeout(process.env.NOTIFY_WEBHOOK_URL, { 'Content-Type': 'application/json' },
       { text, site: name, form: sub.form, at: sub.at, page: sub.page, lang: sub.lang, fields: sub.fields, id: sub.id,
         consentAt: sub.consentAt, consentSource: sub.consentSource })
-      .catch(e => console.error('[notify] webhook failed:', e.message));
+      .then(()=>deliveryUpdate(sub.id,{webhook:'accepted'})).catch(e => {deliveryUpdate(sub.id,{webhook:'unconfirmed'});console.error('[notify] webhook failed:',e.message);});
   }
   if (cfg.email){
-    sendLeadEmail(sub, site)
-      .catch(e => console.error('[notify] email failed:', e.message));
+    deliverLead(sub, site);
   }
   if (cfg.autoReply && sub.fields.email){
     const firstName = String(sub.fields.name || '').replace(/[\r\n]+/g, ' ').trim().split(/\s+/)[0].slice(0, 80);
@@ -1204,8 +1236,10 @@ async function api(req, res, url){
       sub.consentAt = sub.at;
       sub.consentSource = 'footer-newsletter-form';
     }
+    const delivery = notifyConfig();
+    sub.delivery = { email: delivery.email ? 'pending' : 'not-configured', webhook: delivery.webhook ? 'pending' : 'not-configured', attempts: 0, updatedAt: sub.at };
     subs.push(sub);
-    if (subs.length > 10000) subs.splice(0, subs.length - 10000);
+    // Never delete older enquiries as a side effect of receiving a new one.
     writeJsonAtomic(SUBS_JSON, subs);
     notify(sub, loadSite());
     return json(res, 200, { ok: true });
@@ -1324,10 +1358,13 @@ async function api(req, res, url){
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     /* the on-page editor may hold an unpublished draft; a direct save from the
        advanced dashboard would later be overwritten by it — make that explicit */
+    const live = loadSite();
+    if (!Object.prototype.hasOwnProperty.call(body, 'baseUpdatedAt')) return json(res, 428, { error: 'Reload the site before publishing.', code: 'revision-required' });
+    if (body.baseUpdatedAt !== (live.updatedAt || null)) return json(res, 409, { error: 'The live site has newer changes. Reload and review before publishing.', code: 'site-stale' });
     const pending = readDraft();
     if (pending && body.force !== true) return json(res, 409, { error: 'An unpublished draft exists in the on-page editor.', code: 'draft-exists', savedAt: pending.savedAt });
     let site;
-    try { site = validateSite(body); } catch (e) { return json(res, 400, { error: e.message }); }
+    try { site = validateSite(body); } catch (e) { return json(res, 400, { error: e.message, field: e.field }); }
     saveSite(site, actor(user));
     return json(res, 200, { ok: true, site });
   }
@@ -1342,15 +1379,15 @@ async function api(req, res, url){
     let body;
     try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
     let draft;
-    try { draft = validateSite(body); } catch (e) { return json(res, 400, { error: e.message }); }
+    try { draft = validateSite(body); } catch (e) { return json(res, 400, { error: e.message, field: e.field }); }
     const savedAt = new Date().toISOString();
     /* remember which live version this draft was started from, so publish
        can refuse to silently overwrite a change made elsewhere meanwhile */
     const existing = readDraft();
     const clientRevision = Number.isInteger(body.draftRevision) ? body.draftRevision : 0;
-    if (existing && body.forceDraft !== true && clientRevision !== existing.revision){
-      return json(res, 409, { error: 'Another editor changed this draft.', code: 'draft-stale', revision: existing.revision,
-        savedAt: existing.savedAt, savedBy: existing.savedBy });
+    if (clientRevision !== (existing ? existing.revision : 0)){
+      return json(res, 409, { error: 'Another editor changed this draft.', code: 'draft-stale', revision: existing ? existing.revision : 0,
+        savedAt: existing ? existing.savedAt : null, savedBy: existing ? existing.savedBy : null });
     }
     const before = existing ? existing.draft : loadSite();
     if (!can(user, 'settings') && !editorMaySave(before, draft)) return forbidden(res, 'change site settings');
@@ -1368,9 +1405,9 @@ async function api(req, res, url){
     let body = {};
     try { body = await readBody(req); } catch (e) { body = {}; }
     const existing = readDraft();
-    if (existing && Number.isInteger(body.draftRevision) && body.draftRevision !== existing.revision){
-      return json(res, 409, { error: 'Another editor changed this draft.', code: 'draft-stale', revision: existing.revision,
-        savedAt: existing.savedAt, savedBy: existing.savedBy });
+    if (!Number.isInteger(body.draftRevision) || body.draftRevision !== (existing ? existing.revision : 0)){
+      return json(res, 409, { error: 'Another editor changed this draft.', code: 'draft-stale', revision: existing ? existing.revision : 0,
+        savedAt: existing ? existing.savedAt : null, savedBy: existing ? existing.savedBy : null });
     }
     removeDraft();
     return json(res, 200, { ok: true });
@@ -1381,6 +1418,7 @@ async function api(req, res, url){
     try { body = await readBody(req); } catch (e) { body = {}; }
     const record = readDraft();
     if (!record) return json(res, 409, { error: 'No draft to publish.', code: 'no-draft' });
+    if (!Number.isInteger(body.draftRevision) || body.draftRevision !== record.revision) return json(res, 409, { error: 'The draft changed after your review. Review the latest draft before publishing.', code: 'draft-stale', revision: record.revision, savedBy: record.savedBy });
     const live = loadSite();
     if (body.force !== true && record.baseUpdatedAt && live.updatedAt && record.baseUpdatedAt !== live.updatedAt){
       return json(res, 409, { error: 'The live site changed after this draft was started.', code: 'stale', baseUpdatedAt: record.baseUpdatedAt, liveUpdatedAt: live.updatedAt });
@@ -1402,6 +1440,10 @@ async function api(req, res, url){
   const restore = p.match(/^\/history\/([0-9TZ-]{10,40})\/restore$/);
   if (restore && method === 'POST'){
     if (!can(user, 'content')) return forbidden(res, 'restore content');
+    let body;
+    try { body = await readBody(req); } catch (e) { return json(res, 400, { error: e.message }); }
+    const currentDraft = readDraft();
+    if (!Number.isInteger(body.draftRevision) || body.draftRevision !== (currentDraft ? currentDraft.revision : 0)) return json(res, 409, { error: 'The shared draft changed. Load it before restoring a version.', code: 'draft-stale', revision: currentDraft ? currentDraft.revision : 0 });
     const rec = listHistory().find(h => h.id === restore[1]);
     if (!rec) return json(res, 404, { error: 'No such version.' });
     let draft;
@@ -1564,7 +1606,13 @@ async function api(req, res, url){
   }
   if (p === '/submissions' && method === 'GET'){
     if (!can(user, 'submissions')) return forbidden(res, 'view submissions');
-    return json(res, 200, readJson(SUBS_JSON, []).slice().reverse());
+    const all = readJson(SUBS_JSON, []).slice().reverse();
+    const form = url.searchParams.get('form') || '', query = (url.searchParams.get('q') || '').trim().toLowerCase(), unreadOnly = url.searchParams.get('unread') === '1';
+    const rows = all.filter(item => (!form || item.form === form) && (!unreadOnly || item.read !== true) && (!query || Object.values(item.fields || {}).some(value => String(value).toLowerCase().includes(query))));
+    if (!url.searchParams.has('limit')) return json(res, 200, rows);
+    const limit = Math.max(1, Math.min(100, parseInt(url.searchParams.get('limit'), 10) || 25));
+    const pages = Math.max(1, Math.ceil(rows.length / limit)), page = Math.max(1, Math.min(pages, parseInt(url.searchParams.get('page'), 10) || 1));
+    return json(res, 200, { items: rows.slice((page - 1) * limit, page * limit), total: rows.length, allTotal: all.length, unread: all.filter(item => item.read !== true).length, page, pages });
   }
   const del = p.match(/^\/submissions\/([a-f0-9]{16})$/);
   if (del && method === 'PATCH'){
@@ -1768,6 +1816,7 @@ function main(){
     if (/^\/media(?:\/|$|%)/i.test(rawPath)) return serveMedia(req, res, url, req.url);
     try { serveStatic(req, res, url); } catch (err) { console.error(err); send(res, 500, 'Server error'); }
   });
+  resumeLeadEmails();
   server.listen(PORT, HOST, () => {
     const base = 'http://' + (HOST === '0.0.0.0' ? 'localhost' : HOST) + ':' + PORT;
     console.log('OmniMark site   →  ' + base + '/');

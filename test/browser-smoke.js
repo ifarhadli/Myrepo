@@ -188,7 +188,7 @@ async function main(){
   check('confirmation cancel restores focus to its trigger', !state.open && state.focus === 'resetAll', JSON.stringify(state));
   await evaluate(`document.querySelector('[data-tab="settings"]').click()`); await pause(100);
   state = await evaluate(`({ overflow:document.documentElement.scrollWidth-window.innerWidth, mega:!!document.querySelector('[data-bind="settings.megaMenuLinkLimit"]'), proof:!!document.querySelector('[data-bind="features.showVerifiedProof"]'), article:!!document.querySelector('[data-bind="structured.articleAuthor"]'), job:!!document.querySelector('[data-bind="structured.jobApplyUrl"]') })`);
-  check('admin exposes launch settings without desktop overflow', state.overflow <= 0 && state.mega && state.proof && state.article && state.job, JSON.stringify(state));
+  check('admin settings omit technical fields and fit the desktop', state.overflow <= 0 && !state.mega && !state.proof && !state.article && !state.job, JSON.stringify(state));
   await screenshot('admin-settings-1440');
 
   /* ---- authenticated on-page editor ---- */
@@ -420,7 +420,7 @@ async function main(){
   await evaluate(`fetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({form:'contact',name:'Browser Lead',email:'lead@example.test',company:'Test Co',spend:'$10k',consent:true,message:'Please reply'})}).then(r=>r.json())`);
   await evaluate(`document.querySelector('[data-editor-inbox]').click()`);
   const inboxLoaded = await waitFor(() => evaluate(`document.querySelectorAll('.omni-lead').length===1`), 5000);
-  state = await evaluate(`({ loaded:document.querySelector('#omniPanelTitle')?.textContent, unread:document.querySelector('[data-unread]').textContent, bold:document.querySelector('.omni-lead').classList.contains('is-unread'), export:!![...document.querySelectorAll('.omni-panel button')].find(x=>x.textContent==='Export CSV') })`);
+  state = await evaluate(`({ loaded:document.querySelector('#omniPanelTitle')?.textContent, unread:document.querySelector('[data-unread]').textContent, bold:document.querySelector('.omni-lead').classList.contains('is-unread'), export:!![...document.querySelectorAll('.omni-panel button')].find(x=>x.textContent==='Export all CSV') })`);
   check('Inbox loads newest submissions with unread and export state', !!inboxLoaded && state.loaded === 'Inbox' && state.unread === '(1)' && state.bold && state.export, JSON.stringify(state));
   await evaluate(`document.querySelector('.omni-lead__summary').click()`);
   state = await evaluate(`({ expanded:document.querySelector('.omni-lead__summary').getAttribute('aria-expanded'), details:!document.querySelector('.omni-lead__detail').hidden, reply:document.querySelector('.omni-lead__detail a')?.href })`);
@@ -430,16 +430,22 @@ async function main(){
   state = await evaluate(`fetch('/api/submissions',{credentials:'same-origin'}).then(r=>r.json()).then(x=>x[0].read===true)`);
   check('Inbox mark-read persists and updates the toolbar count', !!readUpdated && state);
   await evaluate(`document.querySelector('[data-editor-settings]').click()`);await pause(100);
-  await waitFor(() => evaluate(`document.querySelector('[data-notify-source]')?.textContent.includes('Source:')`), 3000);
-  state = await evaluate(`({ title:document.querySelector('#omniPanelTitle').textContent, labels:document.querySelectorAll('.omni-field label').length, proof:!!document.querySelector('.omni-switch input'), recovery:!!document.querySelector('#omniRecoveryEmail'), password:!!document.querySelector('#omniPasswordNext'), recipients:!!document.querySelector('#omniNotifyEmail'), socialPicker:[...document.querySelectorAll('.omni-panel button')].some(button=>button.textContent==='Choose from media'), notify:document.querySelector('.omni-notification-settings').textContent })`);
-  check('Settings exposes labelled site, proof, account and notification controls', state.title === 'Settings' && state.labels >= 24 && state.proof && state.recovery && state.password && state.recipients && state.socialPicker && /NOTIFY_EMAIL_TO/.test(state.notify), JSON.stringify(state));
+  state=await evaluate(`({choices:[...document.querySelectorAll('[data-settings-view]')].map(x=>x.getAttribute('data-settings-view')),inputs:document.querySelectorAll('.omni-panel input').length})`);
+  check('Settings starts with three understandable tasks and no wall of fields',state.choices.join(',')==='website,notifications,account'&&state.inputs===0,JSON.stringify(state));
+  await screenshot('editor-settings-menu-1366');
+  await evaluate(`document.querySelector('[data-settings-view="website"]').click()`);
+  state=await evaluate(`({title:document.querySelector('#omniPanelTitle').textContent,email:!!document.querySelector('#omni-setting-settings-email'),technical:!!document.querySelector('#omni-setting-analytics-consentScript,#omni-setting-settings-megaMenuLinkLimit,#omni-setting-settings-phoneHref'),fields:document.querySelectorAll('.omni-panel input,.omni-panel select').length})`);
+  check('Website details keeps contact fields and removes technical settings',state.title==='Website details'&&state.email&&!state.technical&&state.fields<=10,JSON.stringify(state));
+  await screenshot('editor-website-details-1366');
+  await evaluate(`document.querySelector('[data-editor-settings]').click();document.querySelector('[data-settings-view="notifications"]').click()`);
+  await waitFor(()=>evaluate(`document.querySelector('[data-notify-source]')?.textContent.includes('notifications')`),3000);
   state = await evaluate(`(() => { const input=document.querySelector('#omniNotifyEmail');input.value='bad-address';document.querySelector('[data-add-recipient]').click();const described=input.getAttribute('aria-describedby');return{invalid:input.getAttribute('aria-invalid'),focus:document.activeElement.id,described,message:document.getElementById(described)?.textContent};})()`);
   check('notification chip validation is inline, linked and focused', state.invalid === 'true' && state.focus === 'omniNotifyEmail' && state.described === 'omniNotifyMessage' && /valid email/.test(state.message), JSON.stringify(state));
   await evaluate(`document.querySelector('.omni-panel__body').scrollTop=document.querySelector('.omni-panel__body').scrollHeight`);await pause(80);
   await screenshot('editor-settings-account-1366');
-  await evaluate(`(() => { const input=document.querySelector('.omni-switch input');input.checked=true;input.dispatchEvent(new Event('change',{bubbles:true})); })()`);await pause(80);
+  await evaluate(`(() => { document.querySelector('[data-editor-page]').click();const input=document.querySelector('[data-proof-setting]');input.checked=true;input.dispatchEvent(new Event('change',{bubbles:true})); })()`);await pause(80);
   state = await evaluate(`({ draft:window.OmniEditor.getState().draft.features.showVerifiedProof, shown:document.documentElement.classList.contains('show-verified-proof') })`);
-  check('Settings proof switch writes the draft and repaints gated sections', state.draft === true && state.shown, JSON.stringify(state));
+  check('Page content approval writes the draft and repaints gated sections', state.draft === true && state.shown, JSON.stringify(state));
   await evaluate(`document.querySelector('.omni-panel__close').click()`);
   await evaluate(`document.querySelector('[data-editor-history]').click()`);await pause(150);
   await waitFor(() => evaluate(`!!document.querySelector('.omni-history__item, .omni-panel-state')`), 5000);

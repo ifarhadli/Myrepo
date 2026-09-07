@@ -38,6 +38,27 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 ## Component behavior
 
+- Settings opens a three-task menu: Website details, Enquiry emails, Account.
+  Website details exposes seven main fields and collapsed policy/booking links.
+  Related phone, address and email configuration values synchronize from the
+  single owner field. Technical settings remain supported in configuration.
+- Account and Sign out are reachable for every editor role. Signing out saves
+  pending edits first; conflicts keep the user signed in until resolved.
+- Draft save, discard, history restore and publish require the revision the
+  browser actually reviewed. Restored local edits retain their original base
+  and revision. Conflicts offer download and explicit Load latest; they never
+  silently adopt the server revision. Advanced saves require the live base
+  version and retain edits made while a publish request is pending.
+- Enquiries use server search, form filters and pagination. CSV exports all
+  matching rows and neutralizes spreadsheet formula prefixes in headers and
+  values. Individual deletion requires confirmation; all-record deletion is
+  collapsed and explains that hidden records are included.
+- Enquiries are never silently trimmed. Notification email status is stored
+  separately and distinguishes pending, accepted, retrying, failed, unconfirmed
+  and not configured. Internal email retries are bounded to three attempts;
+  accepted does not mean delivered. Configuration export clearly states its
+  exclusions and does not claim to be a complete operational backup.
+
 - Buttons expose hover, focus-visible, disabled, and pending states where a request occurs.
 - Inputs retain values after validation failure; public forms show linked inline errors and focus the first invalid field.
 - Secret inputs are masked by default and provide an explicit Show/Hide control.

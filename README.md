@@ -21,7 +21,7 @@ Requires Node 18+. No `npm install` — there are no dependencies.
 ```
 *.html               15 pages (index, services, work, about, contact, …)
 admin.html           editor sign-in (needs server.js)
-admin-advanced.html  developer dashboard for complete/raw configuration
+admin-advanced.html  structured dashboard for content and enquiries
 css/style.css        design tokens + every site component
 css/admin.css        dashboard styles (independent of the site's tokens)
 css/editor.css       authenticated editor bar, controls, sheets and preview
@@ -43,7 +43,7 @@ data/media.json      private media index (git-ignored)
 data/media/          originals + responsive variants (git-ignored; served at /media/:id)
 data/admin.json      users/roles/recovery + private notification settings (git-ignored)
 data/submissions.json  contact / teardown / newsletter entries (git-ignored)
-sitemap.xml, robots.txt  regenerated on every publish from Settings → Site URL
+sitemap.xml, robots.txt  regenerated on every publish from configured site URL
 DESIGN.md            maintained visual direction and design-token contract
 UX-CONTRACT.md       shared admin/public interaction and resilience decisions
 premium-ui.json      machine-readable UI ownership and verification commands
@@ -109,12 +109,18 @@ Draft records also carry a revision and the last editor’s identity. If another
 person saves first, the stale browser keeps its local copy and must explicitly
 load the latest shared draft instead of overwriting it.
 
-The **Inbox** panel lists submissions newest first, tracks unread state,
-opens a reply in the owner's mail app and exports CSV. **This page** edits the
+The **Inbox** panel searches and paginates enquiries newest first, tracks unread
+state, opens a reply in the owner's mail app and exports all matching rows as
+spreadsheet-safe CSV. **This page** edits the
 current page's search title, description, social image and index visibility,
-with live Google and LinkedIn/WhatsApp previews. **Settings** covers contact
-details, public site settings, scheduler/analytics tools, proof gating,
- private lead recipients and account recovery/password controls.
+with live Google and LinkedIn/WhatsApp previews. **Settings** has three tasks:
+**Website details** (seven main fields and collapsed policy/booking links),
+**Enquiry emails** (private recipients and a test email), and **Account**
+(password, recovery email and sign out). Every role can reach Account from
+More and sign out. Approved proof visibility belongs in **This page**.
+Technical deployment settings, raw layout values, scripts and legacy global
+article/job metadata are not owner-facing controls; existing values remain
+supported in configuration.
 
 Admins also see **Users**, where they can invite up to ten people by email,
 choose Admin or Editor, change roles, disable access, restore it, and resend a
@@ -135,9 +141,10 @@ listing, detail route, metadata, structured data and sitemap together.
 
 ### Advanced dashboard
 
-`/admin-advanced.html` keeps the original structured dashboard for developer
-work: custom CSS and layout tokens, full catalogue records, per-page SEO,
-structured data, account/password, JSON backup/import and reset. The on-page
+`/admin-advanced.html` provides a structured view of content, four brand colours,
+contact details, per-page SEO, enquiries, account/password, and configuration
+export/import. Configuration export excludes accounts, enquiries, media and
+publish history; operational backups must separately preserve `data/`. The on-page
 **This page** panel is now the preferred SEO workflow. The dashboard links
 back to the on-page editor. Both admin routes are excluded from the sitemap
 and disallowed in `robots.txt`.
@@ -179,11 +186,21 @@ forwarded as well, set these in the server's environment — never in
 | `NOTIFY_EMAIL_FROM` | Optional verified sender; otherwise Resend's onboarding sender is used. |
 | `NOTIFY_WEBHOOK_URL` | JSON `POST` of every submission to a Slack incoming webhook, Zapier/Make, or a CRM endpoint. |
 
-In editor *Settings → Lead notifications*, up to ten recipients can be saved
+In editor *Settings → Enquiry emails*, up to ten recipients can be saved
 privately and tested with one click. A non-empty saved list takes precedence
 over `NOTIFY_EMAIL_TO`; the UI and advanced *Overview* identify the active
 source. The server prints the notification status on boot and the dashboard
 warns when neither email nor webhook forwarding is configured.
+
+Each enquiry retains email status separately from the enquiry itself.
+Failed internal email notifications retry up to three total attempts, 30 seconds
+apart, using the same request idempotency key. Pending work resumes after a
+restart only within one hour; older uncertain sends are marked unconfirmed.
+A changed payload is not resent under the original key. Accepted means the
+provider accepted the request, not that the recipient read or received it.
+Webhook failures are recorded as unconfirmed without automatic replay.
+Enquiries are retained until explicitly deleted; there is no automatic
+10,000-record truncation.
 
 Newsletter records include `consentAt` and `consentSource`. There is no bulk
 newsletter sender in this repository yet, so unsubscribe requests go to the

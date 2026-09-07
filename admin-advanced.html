@@ -45,16 +45,17 @@
 <div id="app" class="app" hidden>
   <aside class="side">
     <div class="brand">Omni<span>Mark</span> <em>admin</em></div>
-    <nav aria-label="Admin sections">
+    <button type="button" class="btn side-menu-toggle" aria-expanded="false" aria-controls="adminNavigation">Menu</button>
+    <nav id="adminNavigation" aria-label="Admin sections">
       <button data-tab="overview">Overview</button>
       <button data-tab="design">Design</button>
-      <button data-tab="content">Copy &amp; translations</button>
+      <button data-tab="content">Text &amp; translations</button>
       <button data-tab="services">Services catalogue</button>
       <button data-tab="industries">Industries</button>
       <button data-tab="pages">Pages &amp; SEO</button>
       <button data-tab="settings">Settings</button>
-      <button data-tab="submissions">Submissions <span class="pill" id="subsPill" hidden></span></button>
-      <button data-tab="account">Account &amp; backup</button>
+      <button data-tab="submissions">Enquiries <span class="pill" id="subsPill" hidden></span></button>
+      <button data-tab="account">Account &amp; export</button>
     </nav>
     <div class="side-foot">
       <a href="index.html?edit=1" class="btn ghost block">Open editor →</a>

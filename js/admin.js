@@ -81,7 +81,7 @@
       body: body === undefined ? undefined : JSON.stringify(body)
     }).then(function(r){
       return r.json().catch(function(){ return {}; }).then(function(j){
-        if (!r.ok) { var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; throw e; }
+        if (!r.ok) { var e = new Error(j.error || ('HTTP ' + r.status)); e.status = r.status; e.data = j; throw e; }
         return j;
       });
     });
@@ -200,7 +200,7 @@
   ];
 
   /* ---------- state ---------- */
-  var state = { site: null, saved: null, pages: [], subs: null, tab: 'overview', openEngines: {} };
+  var state = { site: null, saved: null, pages: [], subs: null, tab: 'overview', openEngines: {}, publishing: false };
 
   function normalize(site){
     site = Object.assign(clone(DEFAULT_SITE), site || {});
@@ -223,7 +223,7 @@
   function markDirty(){
     var d = isDirty();
     $('#dirty').textContent = d ? 'Unsaved changes' : '';
-    $('#saveBtn').disabled = !d;
+    $('#saveBtn').disabled = !d || state.publishing;
     $('#discardBtn').hidden = !d;
     previewPush();
   }
@@ -249,6 +249,7 @@
       if (el.type === 'checkbox') el.checked = !!v; else el.value = v == null ? '' : v;
       el.addEventListener('input', function(){
         setPath(state.site, el.getAttribute('data-bind'), el.type === 'checkbox' ? el.checked : el.value);
+        var key=el.getAttribute('data-bind');if(key==='settings.phone')state.site.settings.phoneHref=el.value.replace(/[^+0-9]/g,'');if(key==='settings.email')state.site.settings.geoEmail=el.value;if(key==='settings.addressLine1'||key==='settings.addressLine2')state.site.settings.address=[state.site.settings.addressLine1,state.site.settings.addressLine2].filter(Boolean).join(', ');el.removeAttribute('aria-invalid');
         markDirty();
       });
     });
@@ -291,15 +292,17 @@
     industries: { title: 'Industries', render: renderIndustries },
     pages: { title: 'Pages & SEO', render: renderPages },
     settings: { title: 'Settings', render: renderSettings },
-    submissions: { title: 'Submissions', render: renderSubmissions },
-    account: { title: 'Account & backup', render: renderAccount }
+    submissions: { title: 'Enquiries', render: renderSubmissions },
+    account: { title: 'Account & export', render: renderAccount }
   };
+  function clearPanelListeners(panel){ (panel.omniListeners||[]).forEach(function(x){panel.removeEventListener(x[0],x[1],x[2]);});panel.omniListeners=[]; }
+  function onPanel(panel,type,handler,options){panel.omniListeners=panel.omniListeners||[];panel.omniListeners.push([type,handler,options]);panel.addEventListener(type,handler,options);}
   function showTab(id){
     if (!TABS[id]) id = 'overview';
     state.tab = id;
     $$('.side nav button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-tab') === id); });
     $('#tabTitle').textContent = TABS[id].title;
-    var panel = $('#panel'); panel.innerHTML = '';
+    var panel = $('#panel'); clearPanelListeners(panel); panel.innerHTML = '';
     TABS[id].render(panel);
     labelize(panel);
     if (location.hash !== '#' + id) history.replaceState(null, '', '#' + id);
@@ -308,48 +311,14 @@
 
   /* ---------- overview ---------- */
   function renderOverview(panel){
-    var s = state.site, todo = [];
-    if (!s.settings.siteUrl || /omnimark\.com/.test(s.settings.siteUrl)) todo.push(['settings', 'Set the real public site URL (sitemap + robots use it).']);
-    if (/555-1234/.test(s.settings.phone || '')) todo.push(['settings', 'Replace the placeholder phone number.']);
-    if (s.settings.privacyUrl === '#' || s.settings.termsUrl === '#') todo.push(['settings', 'Link a real Privacy Policy and Terms page.']);
-    if (!s.analytics.gaId && !s.analytics.consentScript) todo.push(['settings', 'Add a Google Analytics ID (optional).']);
-    if (!s.features.showVerifiedProof) todo.push(['settings', 'Verify logos, statistics, testimonials and team profiles, then enable “Show verified proof content”.']);
-    if (!s.structured.articleAuthor || !s.structured.articleDatePublished) todo.push(['settings', 'Add the published article author and date to enable Article structured data.']);
-    var jobKeys = ['jobTitle', 'jobDescription', 'jobDatePosted', 'jobValidThrough', 'jobEmploymentType', 'jobLocation', 'jobApplyUrl'];
-    var anyJob = jobKeys.some(function(k){ return !!s.structured[k]; });
-    if (anyJob && !jobKeys.every(function(k){ return !!s.structured[k]; })) todo.push(['settings', 'Finish every job schema field, or clear the draft fields; partial JobPosting data is not published.']);
-    var overrides = Object.keys(s.i18n.en).length + Object.keys(s.i18n.az).length;
-    panel.innerHTML =
-      '<div class="grid3">' +
-        '<div class="stat"><div class="n" id="ovSubs">…</div><div class="l">Form submissions</div></div>' +
-        '<div class="stat"><div class="n">' + overrides + '</div><div class="l">Copy overrides</div></div>' +
-        '<div class="stat"><div class="n" style="font-size:16px;margin-top:6px">' + esc(fmtDate(s.updatedAt)) + '</div><div class="l">Last published</div></div>' +
-      '</div>' +
-      '<div class="grid2" style="margin-top:18px">' +
-        '<div class="card"><h2>How this works</h2>' +
-          '<p class="muted">Everything you change here is a draft until you press <b>Save &amp; publish</b>. Publishing writes <code>data/site.json</code> and <code>data/site.js</code>; every page loads that file and applies your design, copy and settings on top of the code defaults.</p>' +
-          '<p class="muted">Fields left untouched keep inheriting from the code, so a developer can still change defaults without fighting the dashboard.</p>' +
-          '<ul class="muted small"><li><b>Design</b> — colours, fonts, spacing, motion, custom CSS, with live preview.</li><li><b>Copy &amp; translations</b> — every dictionary string in English and Azerbaijani (a handful of figures, names and logos still live in the page HTML).</li><li><b>Services catalogue</b> — the five engines and their sub-services (mega-menu, drawer, footer and both accordions all follow).</li><li><b>Pages &amp; SEO</b> — titles, descriptions, show/hide sections.</li><li><b>Submissions</b> — contact, teardown and newsletter forms.</li></ul>' +
-        '</div>' +
-        '<div class="card"><h2>Launch checklist</h2>' + (todo.length ?
-          '<ul>' + todo.map(function(t){ return '<li><button type="button" class="link-button" data-goto="' + t[0] + '">' + esc(t[1]) + '</button></li>'; }).join('') + '</ul>' :
-          '<p class="muted">Nothing outstanding.</p>') +
-          '<h2 style="margin-top:18px">Deploy</h2><p class="muted small">Run <code>node server.js</code> on the host to serve the site with this admin. Or copy the folder to any static host — the last published <code>data/site.js</code> ships with it (forms then need the server to be reachable).</p>' +
-          '<h2 style="margin-top:18px">Form notifications</h2><p class="muted small" id="ovNotify">Checking…</p>' +
-        '</div>' +
-      '</div>';
-    api('GET', 'api/submissions').then(function(list){ $('#ovSubs').textContent = list.length; updateSubsPill(list.length); }).catch(function(){ $('#ovSubs').textContent = '—'; });
-    api('GET', 'api/status').then(function(st){
-      var n = st.notifications || {}, el = $('#ovNotify');
-      if (!el) return;
-      if (n.email || n.webhook){
-        var source = n.emailSource === 'settings' ? 'private editor settings' : n.emailSource === 'env' ? '<code>NOTIFY_EMAIL_TO</code>' : 'none';
-        el.innerHTML = 'Every submission is forwarded: <b>email ' + (n.email ? 'on' : 'off') + '</b> (source: ' + source + '), <b>webhook ' + (n.webhook ? 'on' : 'off') + '</b>. Visitor acknowledgements: <b>' + (n.autoReply ? 'on' : 'off') + '</b>. Submissions are also kept in the dashboard.';
-      } else {
-        var emailSetup = n.emailSource === 'settings' ? 'Set <code>RESEND_API_KEY</code> to activate the private recipient list' : 'add recipients in editor Settings or set <code>RESEND_API_KEY</code> + <code>NOTIFY_EMAIL_TO</code>';
-        el.innerHTML = '<span style="color:var(--a-alert);font-weight:600">Not configured</span> — nobody is notified when a form comes in; you must check the Submissions tab. For email, ' + emailSetup + '; for Slack / Zapier / CRM, set <code>NOTIFY_WEBHOOK_URL</code>. Visitor acknowledgements are <b>' + (n.autoReply ? 'on' : 'off') + '</b>.';
-      }
-    }).catch(function(){});
+    var settings=state.site.settings,todo=[];
+    if(!settings.email)todo.push('Add your contact email.');
+    if(/555-1234/.test(settings.phone||''))todo.push('Replace the example phone number.');
+    if(!settings.privacyUrl||settings.privacyUrl==='#'||!settings.termsUrl||settings.termsUrl==='#')todo.push('Add your Privacy Policy and Terms links.');
+    panel.innerHTML='<div class="grid3"><div class="stat"><div class="n" id="ovSubs">…</div><div class="l">Unread enquiries</div></div><div class="stat"><div class="n" id="ovDraft">Checking…</div><div class="l">Website draft</div></div><div class="stat"><div class="n" style="font-size:16px">'+esc(fmtDate(state.site.updatedAt))+'</div><div class="l">Last published</div></div></div><div class="card" style="margin-top:20px"><h2>Manage your website</h2><p class="muted">Edit words and images directly on the page, then review and publish when you are ready.</p><div class="overview-actions"><a class="btn primary" href="index.html?edit=1">Edit website</a><button class="btn" data-goto="submissions">Read enquiries</button><a class="btn" href="index.html" target="_blank" rel="noopener">View live website ↗</a></div></div><div class="card"><h2>Website details</h2>'+(todo.length?'<ul>'+todo.map(function(text){return '<li>'+esc(text)+'</li>';}).join('')+'</ul><button class="btn" data-goto="settings">Update website details</button>':'<p class="muted">Your main contact details and links are in place.</p>')+'</div><div class="card"><h2>Enquiry notifications</h2><p id="ovNotify" class="muted">Checking connection…</p><a class="btn" href="index.html?edit=1&panel=settings">Manage enquiry emails</a></div>';
+    api('GET','api/submissions?limit=1').then(function(data){if(!panel.isConnected||!$('#ovSubs',panel))return;$('#ovSubs',panel).textContent=data.unread;updateSubsPill(data.unread);}).catch(function(){if($('#ovSubs',panel))$('#ovSubs',panel).textContent='Unavailable';});
+    api('GET','api/draft').then(function(data){var el=$('#ovDraft',panel);if(el)el.textContent=data.draft?'Unpublished changes':'Up to date';}).catch(function(){var el=$('#ovDraft',panel);if(el)el.textContent='Unavailable';});
+    api('GET','api/status').then(function(data){var el=$('#ovNotify',panel);if(!el)return;var n=data.notifications||{};el.textContent=n.email||n.webhook?'Notifications are connected. Check each enquiry for its email delivery status.':'Notifications need setup. New enquiries are still stored in your inbox.';}).catch(function(){var el=$('#ovNotify',panel);if(el)el.textContent='Could not check notifications. Try again later.';});
   }
 
   /* ---------- design ---------- */
@@ -366,66 +335,11 @@
       '</div></div>';
   }
   function renderDesign(panel){
-    var fonts = Object.keys((window.OmniSite && window.OmniSite.fontCatalog) || {});
-    function fontSel(bind, label){
-      var cur = getPath(state.site, bind);
-      return '<div class="field"><label>' + label + '</label><select data-bind="' + bind + '">' +
-        fonts.map(function(f){ return '<option' + (f === cur ? ' selected' : '') + '>' + esc(f) + '</option>'; }).join('') + '</select></div>';
-    }
-    panel.innerHTML =
-      '<div class="grid2">' +
-        '<div>' +
-          '<div class="card"><h2>Colours</h2><p class="muted small">Leave a field empty to keep the default. Hex, rgb() or any CSS colour works.</p>' +
-            '<div class="tokens">' + TOKENS.map(function(t){ return tokenCard(t, true); }).join('') + '</div></div>' +
-          '<div class="card"><h2>Layout &amp; timing</h2><div class="tokens">' + LAYOUT_TOKENS.map(function(t){ return tokenCard(t, false); }).join('') + '</div></div>' +
-          '<div class="card"><h2>Fonts</h2><div class="grid3">' +
-            fontSel('design.fontDisplay', 'Headlines') + fontSel('design.fontBody', 'Body') + fontSel('design.fontMono', 'Labels / mono') +
-          '</div><p class="muted small">Loaded from Google Fonts. Default: Bricolage Grotesque / Inter / JetBrains Mono.</p></div>' +
-          '<div class="card"><h2>Motion &amp; effects</h2><div class="switch-list">' +
-            FEATURES.filter(function(f){ return ['customCursor', 'magneticButtons', 'kineticHeadlines', 'marquee', 'countUp', 'reveal'].indexOf(f[0]) >= 0; })
-              .map(function(f){ return '<label class="check"><input type="checkbox" data-bind="features.' + f[0] + '"><span>' + esc(f[1]) + (f[2] ? '<div class="d">' + esc(f[2]) + '</div>' : '') + '</span></label>'; }).join('') +
-          '</div></div>' +
-          '<div class="card"><h2>Custom CSS</h2><p class="muted small">Injected last on every page, so it beats everything in <code>style.css</code>. Use the site\'s class names, e.g. <code>.hero h1{font-size:72px}</code>.</p>' +
-            '<div class="field"><textarea class="code resize-none" data-bind="design.customCss" spellcheck="false" placeholder="/* your CSS */"></textarea></div></div>' +
-        '</div>' +
-        '<div class="preview-wrap">' +
-          '<div class="preview-bar"><select id="previewPage" aria-label="Preview page">' +
-            (state.pages.length ? state.pages : [{ file: 'index.html', title: 'Home' }]).map(function(p){ return '<option value="' + esc(p.file) + '">' + esc(p.title || p.file) + '</option>'; }).join('') +
-          '</select><button class="btn sm" id="previewReload">Reload</button></div>' +
-          '<iframe id="preview" class="preview" src="index.html" title="Live preview"></iframe>' +
-          '<p class="muted small" style="margin-top:8px">Colours, fonts, hidden sections and custom CSS preview instantly. Copy and catalogue changes show after you save and reload.</p>' +
-        '</div>' +
-      '</div>';
-    bindInputs(panel);
-    panel.addEventListener('input', function(e){
-      var el = e.target, k;
-      if ((k = el.getAttribute('data-token-color'))){
-        state.site.design.tokens[k] = el.value;
-        $('[data-token-text="' + k + '"]', panel).value = el.value;
-      } else if ((k = el.getAttribute('data-token-text'))){
-        if (el.value.trim()) state.site.design.tokens[k] = el.value.trim(); else delete state.site.design.tokens[k];
-        var c = $('[data-token-color="' + k + '"]', panel);
-        if (c && isHex(el.value.trim())) c.value = el.value.trim();
-      } else return;
-      $('[data-token-card="' + k + '"]', panel).classList.toggle('changed', !!state.site.design.tokens[k]);
-      markDirty();
-    });
-    panel.addEventListener('click', function(e){
-      var b = e.target.closest('[data-token-reset]');
-      if (!b) return;
-      var k = b.getAttribute('data-token-reset');
-      delete state.site.design.tokens[k];
-      $('[data-token-text="' + k + '"]', panel).value = '';
-      var tk = TOKENS.concat(LAYOUT_TOKENS).filter(function(t){ return t.k === k; })[0];
-      var c = $('[data-token-color="' + k + '"]', panel);
-      if (c && tk && isHex(tk.d)) c.value = tk.d;
-      $('[data-token-card="' + k + '"]', panel).classList.remove('changed');
-      markDirty();
-    });
-    var frame = $('#preview');
-    frame.addEventListener('load', function(){ previewPush(); });
-    $('#previewPage').addEventListener('change', function(){ frame.src = this.value; });
-    $('#previewReload').addEventListener('click', function(){ frame.src = frame.src; });
+    clearPanelListeners(panel);var shown=TOKENS.filter(function(t){return ['--ink','--paper','--signal','--violet'].indexOf(t.k)>=0;});
+    panel.innerHTML='<div class="grid2"><div class="card"><h2>Brand colours</h2><p class="muted">Change your main colours. Use the page editor to preview the full design.</p><div class="tokens">'+shown.map(function(t){return tokenCard(t,true);}).join('')+'</div><a class="btn" href="index.html?edit=1" style="margin-top:18px">Open page editor</a></div><div class="preview-wrap"><div class="preview-bar"><select id="previewPage" aria-label="Preview page">'+state.pages.map(function(p){return '<option value="'+esc(p.file)+'"'+(p.file==='index.html'?' selected':'')+'>'+esc(p.title||p.file)+'</option>';}).join('')+'</select><button class="btn" id="previewReload">Reload</button></div><iframe id="preview" class="preview" src="index.html" title="Website preview"></iframe></div></div>';
+    onPanel(panel,'input',function(e){var el=e.target,key=el.getAttribute('data-token-color')||el.getAttribute('data-token-text');if(!key)return;if(el.value.trim())state.site.design.tokens[key]=el.value.trim();else delete state.site.design.tokens[key];$('[data-token-text="'+key+'"]',panel).value=el.value;var picker=$('[data-token-color="'+key+'"]',panel);if(isHex(el.value))picker.value=el.value;markDirty();});
+    onPanel(panel,'click',function(e){var b=e.target.closest('[data-token-reset]');if(!b)return;delete state.site.design.tokens[b.getAttribute('data-token-reset')];markDirty();renderDesign(panel);});
+    var frame=$('#preview',panel);frame.addEventListener('load',previewPush);$('#previewPage',panel).addEventListener('change',function(){frame.src=this.value;});$('#previewReload',panel).addEventListener('click',function(){frame.src=$('#previewPage',panel).value;});
   }
 
   /* ---------- copy & translations ---------- */
@@ -498,6 +412,7 @@
   /* ---------- services catalogue ---------- */
   var ENGINE_COLORS = ['#4634F0', '#FF5B35', '#C6F24E', '#12D6C4', '#FF3E88', '#999', '#999', '#999'];
   function renderServices(panel){
+    clearPanelListeners(panel);
     var en = engines(), az = enginesAz();
     var html = '<div class="notice">One catalogue feeds the mega-menu, mobile drawer, footer, the home accordion and the services page. <b>Explore page</b> is where the accordion\'s "Explore the engine" link goes; <b>View-all link</b> is used by the mega-menu and footer.</div>';
     en.forEach(function(e, i){
@@ -509,10 +424,6 @@
           '<div class="field"><label>Name (AZ)</label><input data-engaz="' + i + '.name" value="' + esc(a.name || '') + '"></div>' +
           '<div class="field"><label>Promise (EN)</label><textarea class="resize-none" data-eng="' + i + '.promise">' + esc(e.promise) + '</textarea></div>' +
           '<div class="field"><label>Promise (AZ)</label><textarea class="resize-none" data-engaz="' + i + '.promise">' + esc(a.promise || '') + '</textarea></div>' +
-          '<div class="field"><label>Codename</label><input data-eng="' + i + '.codename" value="' + esc(e.codename || '') + '"></div>' +
-          '<div class="field"><label>Number</label><input data-eng="' + i + '.num" value="' + esc(e.num) + '"></div>' +
-          '<div class="field"><label>View-all link</label><input data-eng="' + i + '.href" value="' + esc(e.href) + '"><div class="hint">e.g. services.html#engine-02</div></div>' +
-          '<div class="field"><label>Explore page</label><input data-eng="' + i + '.detail" value="' + esc(e.detail || '') + '"><div class="hint">e.g. sub-service.html</div></div>' +
         '</div>';
       (e.groups || []).forEach(function(g, gi){
         var ag = (a.groups || [])[gi] || {};
@@ -534,18 +445,18 @@
     panel.innerHTML = html;
     labelize(panel);
 
-    panel.addEventListener('toggle', function(e){
+    onPanel(panel,'toggle', function(e){
       var d = e.target.closest && e.target.closest('details.eng');
       if (d) state.openEngines[d.getAttribute('data-eng-idx')] = d.open;
     }, true);
-    panel.addEventListener('input', function(e){
+    onPanel(panel,'input', function(e){
       var el = e.target, p;
       if ((p = el.getAttribute('data-eng'))){ ensureEngines(); setPath(state.site.engines, p, el.value); }
       else if ((p = el.getAttribute('data-engaz'))){ ensureEngines(); setPath(state.site.enginesAz, p, el.value); }
       else return;
       markDirty();
     });
-    panel.addEventListener('click', async function(e){
+    onPanel(panel,'click', async function(e){
       var b = e.target.closest('button'); if (!b) return;
       var v, parts;
       if (b.id === 'resetEngines'){
@@ -584,6 +495,7 @@
 
   /* ---------- industries ---------- */
   function renderIndustries(panel){
+    clearPanelListeners(panel);
     var en = industries(), az = industriesAz();
     panel.innerHTML =
       '<div class="notice">Shown in the header dropdown, the mobile drawer and the industries strip. Every entry links to <code>industry.html</code>.</div>' +
@@ -594,14 +506,14 @@
       '<button class="btn sm" id="addInd" style="margin-top:8px">+ Add industry</button></div>' +
       '<div class="card tight" style="display:flex;justify-content:space-between;align-items:center"><span class="muted small">' + (state.site.industries ? 'List is customised.' : 'List is inheriting the code defaults.') + '</span><button class="btn danger sm" id="resetInd"' + (state.site.industries ? '' : ' disabled') + '>Reset to defaults</button></div>';
     labelize(panel);
-    panel.addEventListener('input', function(e){
+    onPanel(panel,'input', function(e){
       var el = e.target, i;
       if ((i = el.getAttribute('data-ind')) != null){ ensureIndustries(); state.site.industries[+i] = el.value; }
       else if ((i = el.getAttribute('data-indaz')) != null){ ensureIndustries(); state.site.industriesAz[+i] = el.value; }
       else return;
       markDirty();
     });
-    panel.addEventListener('click', async function(e){
+    onPanel(panel,'click', async function(e){
       var b = e.target.closest('button'); if (!b) return;
       var v;
       if (b.id === 'addInd'){ ensureIndustries(); state.site.industries.push('New industry'); state.site.industriesAz.push('Yeni sahə'); }
@@ -617,6 +529,7 @@
 
   /* ---------- pages & SEO ---------- */
   function renderPages(panel){
+    clearPanelListeners(panel);
     if (!state.pages.length){ panel.innerHTML = '<div class="empty">Could not load the page list from the server.</div>'; return; }
     panel.innerHTML = '<div class="notice">Titles and descriptions are injected server-side (and by JS on static hosts). Untick a section to hide it — the markup stays in the file, so it is one click to bring back.</div>' +
       state.pages.map(function(p){
@@ -632,7 +545,7 @@
           }).join('') + '</div>' : '') +
         '</div>';
       }).join('');
-    panel.addEventListener('input', function(e){
+    onPanel(panel,'input', function(e){
       var el = e.target, p = el.getAttribute('data-page');
       if (!p) return;
       var i = p.indexOf('.'), key = p.slice(0, i), field = p.slice(i + 1);
@@ -641,7 +554,7 @@
       if (!Object.keys(state.site.pages[key]).length) delete state.site.pages[key];
       markDirty();
     });
-    panel.addEventListener('change', function(e){
+    onPanel(panel,'change', function(e){
       var el = e.target, s = el.getAttribute('data-section');
       if (!s) return;
       var list = state.site.hiddenSections, i = list.indexOf(s);
@@ -653,84 +566,33 @@
 
   /* ---------- settings ---------- */
   function renderSettings(panel){
-    panel.innerHTML =
-      '<div class="grid2">' +
-        '<div><div class="card"><h2>Contact &amp; links</h2>' +
-          SETTINGS_FIELDS.map(function(f){ return '<div class="field"><label>' + esc(f[1]) + '</label><input type="' + f[2] + '" data-bind="settings.' + f[0] + '"' + (f[4] || '') + '>' + (f[3] ? '<div class="hint">' + esc(f[3]) + '</div>' : '') + '</div>'; }).join('') +
-          '<div class="field"><label>Default language</label><select data-bind="settings.defaultLang"><option value="en">English</option><option value="az">Azərbaycan</option></select><div class="hint">What first-time visitors see. Their own choice is remembered after that.</div></div>' +
-        '</div>' +
-        '<div class="card"><h2>Organization &amp; article schema</h2><p class="muted small">Organization data is generated on every page from Site name, URL and contact settings. These fields add optional legal and publishing details.</p>' +
-          '<div class="field"><label>Legal organization name</label><input type="text" data-bind="structured.orgLegalName"></div>' +
-          '<div class="field"><label>Organization logo URL</label><input type="url" data-bind="structured.orgLogoUrl" placeholder="https://example.com/logo.png"><div class="hint">Use an absolute http(s) image URL.</div></div>' +
-          '<div class="field"><label>Article author</label><input type="text" data-bind="structured.articleAuthor"><div class="hint">Must match the visible byline on article.html.</div></div>' +
-          '<div class="field"><label>Article published date</label><input type="text" inputmode="numeric" data-bind="structured.articleDatePublished" placeholder="YYYY-MM-DD"></div>' +
-          '<div class="field"><label>Article modified date</label><input type="text" inputmode="numeric" data-bind="structured.articleDateModified" placeholder="YYYY-MM-DD"><div class="hint">Optional. Leave blank unless the article was materially updated.</div></div>' +
-        '</div></div>' +
-        '<div>' +
-          '<div class="card"><h2>Site features</h2><div class="switch-list">' +
-            FEATURES.filter(function(f){ return ['langSwitch', 'newsletter', 'cookieBanner', 'careersButton', 'showVerifiedProof'].indexOf(f[0]) >= 0; })
-              .map(function(f){ return '<label class="check"><input type="checkbox" data-bind="features.' + f[0] + '"><span>' + esc(f[1]) + (f[2] ? '<div class="d">' + esc(f[2]) + '</div>' : '') + '</span></label>'; }).join('') +
-          '</div></div>' +
-          '<div class="card"><h2>JobPosting schema</h2><p class="muted small">Published only when every required field is complete. Keep this empty until it exactly matches the visible role page.</p>' +
-            '<div class="field"><label>Job title</label><input type="text" data-bind="structured.jobTitle"></div>' +
-            '<div class="field"><label>Job description</label><textarea class="resize-none" data-bind="structured.jobDescription"></textarea></div>' +
-            '<div class="grid2"><div class="field"><label>Date posted</label><input type="text" inputmode="numeric" data-bind="structured.jobDatePosted" placeholder="YYYY-MM-DD"></div><div class="field"><label>Valid through</label><input type="text" inputmode="numeric" data-bind="structured.jobValidThrough" placeholder="YYYY-MM-DD"></div></div>' +
-            '<div class="field"><label>Employment type</label><select data-bind="structured.jobEmploymentType"><option value="">Select…</option><option value="FULL_TIME">Full time</option><option value="PART_TIME">Part time</option><option value="CONTRACTOR">Contractor</option><option value="TEMPORARY">Temporary</option><option value="INTERN">Intern</option><option value="OTHER">Other</option></select></div>' +
-            '<div class="field"><label>Location</label><input type="text" data-bind="structured.jobLocation" placeholder="Austin, TX, US"></div>' +
-            '<label class="check"><input type="checkbox" data-bind="structured.jobRemote"><span>Remote or hybrid role<div class="d">Adds TELECOMMUTE while retaining the stated location.</div></span></label>' +
-            '<div class="field" style="margin-top:14px"><label>Application URL</label><input type="url" data-bind="structured.jobApplyUrl" placeholder="https://example.com/apply"></div>' +
-          '</div>' +
-          '<div class="card"><h2>Analytics</h2><p class="muted small">Loaded only after a visitor accepts cookies (or always, if the banner is off).</p>' +
-            '<div class="field"><label>Google Analytics measurement ID</label><input type="text" data-bind="analytics.gaId" placeholder="G-XXXXXXXXXX"></div>' +
-            '<div class="field"><label>Other tag snippets (GTM, Meta pixel, …)</label><textarea class="code resize-none" data-bind="analytics.consentScript" spellcheck="false" placeholder="<script>…</script>"></textarea><div class="hint">Paste the full snippet including &lt;script&gt; tags.</div></div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
+    var main=['siteName','email','phone','addressLine1','addressLine2','linkedin'];
+    var links=['privacyUrl','termsUrl','schedulerUrl'];
+    function fields(keys){return SETTINGS_FIELDS.filter(function(f){return keys.indexOf(f[0])>=0;}).map(function(f){return '<div class="field"><label>'+esc(f[1].replace('Phone (display)','Phone').replace('Address line 1','Street address').replace('Address line 2','City and country'))+'</label><input type="'+f[2]+'" data-bind="settings.'+f[0]+'"></div>';}).join('');}
+    panel.innerHTML='<div class="settings-simple"><div class="notice">These are the details visitors see on your website. Publish to make changes live.</div><div class="card"><h2>Website details</h2>'+fields(main)+'<div class="field"><label>Website language</label><select data-bind="settings.defaultLang"><option value="en">English</option><option value="az">Azərbaycanca</option></select></div></div><details class="card"><summary>Website links</summary><p class="muted">Privacy policy, terms and appointment booking.</p>'+fields(links)+'</details><div class="card"><h2>Enquiry emails and your account</h2><p class="muted">Manage notification recipients, your password and your team in the page editor.</p><a class="btn" href="index.html?edit=1&panel=settings">Open settings in editor</a></div></div>';
     bindInputs(panel);
   }
 
   /* ---------- submissions ---------- */
+  function csvText(value){var text=String(value==null?'':value);return /^[\s]*[=+@-]|^[\t\r\n]/.test(text)?"'"+text:text;}
   function updateSubsPill(n){ var p = $('#subsPill'); p.textContent = n; p.hidden = !n; }
   function renderSubmissions(panel){
-    panel.innerHTML = '<div class="toolbar"><select id="subForm" aria-label="Form type"><option value="">All forms</option><option>contact</option><option>teardown</option><option>newsletter</option></select><span class="muted small" id="subCount"></span><span style="flex:1"></span><button class="btn sm" id="subCsv">Export CSV</button><button class="btn sm danger" id="subClear">Delete all</button></div><div id="subList" class="tw"><div class="empty">Loading…</div></div>';
-    function draw(){
-      var f = $('#subForm').value;
-      var rows = (state.subs || []).filter(function(s){ return !f || s.form === f; });
-      $('#subCount').textContent = rows.length + ' submission' + (rows.length === 1 ? '' : 's');
-      if (!rows.length){ $('#subList').innerHTML = '<div class="empty">Nothing here yet. Submissions from the contact form, the funnel-teardown form and the newsletter box appear here.</div>'; return; }
-      $('#subList').innerHTML = '<table><thead><tr><th>When</th><th>Form</th><th>Details</th><th>Lang</th><th></th></tr></thead><tbody>' +
-        rows.map(function(s){
-          var kv = Object.keys(s.fields).map(function(k){ return '<div class="kv"><b>' + esc(k) + '</b>: ' + esc(s.fields[k]) + '</div>'; }).join('');
-          return '<tr><td style="white-space:nowrap">' + esc(fmtDate(s.at)) + '</td><td><span class="tag">' + esc(s.form) + '</span></td><td>' + kv + '</td><td>' + esc(s.lang || '') + '</td><td><button class="btn icon danger" data-del-sub="' + esc(s.id) + '">✕</button></td></tr>';
-        }).join('') + '</tbody></table>';
-    }
-    function load(){
-      api('GET', 'api/submissions').then(function(list){ state.subs = list; updateSubsPill(list.length); draw(); })
-        .catch(function(e){ $('#subList').innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; });
-    }
-    load();
-    $('#subForm').addEventListener('change', draw);
-    $('#subCsv').addEventListener('click', function(){
-      var rows = state.subs || [], keys = {};
-      rows.forEach(function(s){ Object.keys(s.fields).forEach(function(k){ keys[k] = 1; }); });
-      var cols = ['at', 'form', 'lang', 'page'].concat(Object.keys(keys));
-      var csv = cols.join(',') + '\n' + rows.map(function(s){
-        return cols.map(function(c){ var v = c in s ? s[c] : s.fields[c]; return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }).join(',');
-      }).join('\n');
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-      a.download = 'submissions-' + new Date().toISOString().slice(0, 10) + '.csv';
-      document.body.appendChild(a); a.click(); a.remove();
-    });
-    $('#subClear').addEventListener('click', async function(){
-      if (!await confirmAction('Delete every submission? This cannot be undone.', 'Delete all')) return;
-      api('DELETE', 'api/submissions').then(load).catch(function(e){ toast(e.message, 'err'); });
-    });
-    panel.addEventListener('click', function(e){
-      var b = e.target.closest('[data-del-sub]'); if (!b) return;
-      api('DELETE', 'api/submissions/' + b.getAttribute('data-del-sub')).then(load).catch(function(err){ toast(err.message, 'err'); });
-    });
+    clearPanelListeners(panel);var page=1,request=0,data=null,query=state.enquiryQuery||'',form=state.enquiryForm||'';
+    panel.innerHTML='<div class="toolbar"><input id="subSearch" type="search" aria-label="Search enquiries" placeholder="Search name, email or company"><button type="button" class="btn" id="subSearchClear" aria-label="Clear enquiry search">Clear</button><select id="subForm" aria-label="Form type"><option value="">All forms</option><option value="contact">Contact</option><option value="teardown">Teardown</option><option value="newsletter">Newsletter</option></select><button class="btn" id="subRefresh">Refresh</button><button class="btn" id="subCsv" disabled>Export CSV</button></div><p id="subCount" role="status">Loading enquiries…</p><div id="subList" class="tw"></div><div class="toolbar"><button class="btn" id="subPrev">Previous</button><span id="subPage"></span><button class="btn" id="subNext">Next</button></div><details class="card"><summary>Manage all enquiries</summary><p class="muted">Export a copy before removing records. Deleting is permanent.</p><button class="btn danger" id="subClear" disabled>Delete all enquiries</button></details>';
+    $('#subSearch').value=query;$('#subForm').value=form;
+    function queryString(){return 'form='+encodeURIComponent(form)+'&q='+encodeURIComponent(query);}
+    function load(){var id=++request;$('#subSearchClear').hidden=!query;return api('GET','api/submissions?limit=25&page='+page+'&'+queryString()).then(function(result){if(id!==request||state.tab!=='submissions')return;data=result;page=result.page;state.subs=result.items;updateSubsPill(result.unread);$('#subCount').textContent=result.total+' matching enquiries · '+result.unread+' unread overall';$('#subCsv').textContent=form||query?'Export matching CSV':'Export all CSV';$('#subCsv').disabled=!result.total;$('#subClear').disabled=!result.allTotal;$('#subPrev').disabled=page<=1;$('#subNext').disabled=page>=result.pages;$('#subPage').textContent='Page '+page+' of '+result.pages;
+      $('#subList').innerHTML=result.items.length?'<table><thead><tr><th>Received</th><th>Enquiry</th><th>Details</th><th>Email notification</th><th>Action</th></tr></thead><tbody>'+result.items.map(function(item){return '<tr><td>'+esc(fmtDate(item.at))+'</td><td>'+esc(item.form)+'<br>'+(item.read===true?'Read':'Unread')+'</td><td>'+Object.keys(item.fields).map(function(k){return '<div class="kv"><b>'+esc(k)+':</b> '+esc(item.fields[k])+'</div>';}).join('')+'</td><td>'+esc(deliveryLabel(item))+'</td><td><button class="btn danger" data-del-sub="'+esc(item.id)+'" aria-label="Delete enquiry from '+esc(item.fields.name||item.fields.email||'visitor')+'">Delete</button></td></tr>';}).join('')+'</tbody></table>':'<div class="empty">'+(form||query?'No enquiries match. Clear the search or choose All forms.':'No enquiries yet. New enquiries will appear here.')+'</div>';
+    }).catch(function(error){if(id===request&&state.tab==='submissions')$('#subList').innerHTML='<div class="empty">'+esc(error.message)+' — use Refresh to try again.</div>';});}
+    var runSearch=debounce(function(){query=$('#subSearch').value.trim();state.enquiryQuery=query;page=1;load();},300);
+    $('#subSearch').addEventListener('input',function(e){if(!e.isComposing)runSearch();});$('#subSearch').addEventListener('compositionend',runSearch);
+    $('#subSearchClear').addEventListener('click',function(){query='';state.enquiryQuery='';$('#subSearch').value='';page=1;load();$('#subSearch').focus();});
+    $('#subForm').addEventListener('change',function(){form=this.value;state.enquiryForm=form;page=1;load();});$('#subRefresh').addEventListener('click',load);$('#subPrev').addEventListener('click',function(){page--;load();});$('#subNext').addEventListener('click',function(){page++;load();});
+    $('#subCsv').addEventListener('click',function(){var button=this;button.disabled=true;api('GET','api/submissions?'+queryString()).then(function(rows){var keys={};rows.forEach(function(item){Object.keys(item.fields).forEach(function(k){keys[k]=true;});});var cols=['at','form','lang','page'].concat(Object.keys(keys));var csv=[cols.map(function(x){return '"'+csvText(x).replace(/"/g,'""')+'"';}).join(',')].concat(rows.map(function(item){return cols.map(function(k){return '"'+csvText(k in item?item[k]:item.fields[k]).replace(/"/g,'""')+'"';}).join(',');})).join('\r\n');var url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='enquiries.csv';a.click();setTimeout(function(){URL.revokeObjectURL(url);},1000);}).catch(function(error){toast(error.message,'err');}).finally(function(){button.disabled=!data||!data.total;});});
+    $('#subClear').addEventListener('click',async function(){var button=this;if(!await confirmAction('Delete all '+data.allTotal+' enquiries, including records hidden by filters? This cannot be undone.','Delete all enquiries'))return;button.disabled=true;api('DELETE','api/submissions').then(function(){page=1;load();toast('All enquiries deleted.','ok');}).catch(function(error){button.disabled=false;toast(error.message,'err');});});
+    onPanel(panel,'click',async function(e){var button=e.target.closest('[data-del-sub]');if(!button||button.disabled)return;var item=data.items.find(function(x){return x.id===button.getAttribute('data-del-sub');});if(!await confirmAction('Permanently delete the enquiry from '+(item.fields.name||item.fields.email)+'?','Delete enquiry'))return;button.disabled=true;api('DELETE','api/submissions/'+item.id).then(function(){load();$('#subForm').focus();toast('Enquiry deleted.','ok');}).catch(function(error){button.disabled=false;toast(error.message,'err');});});load();
   }
+  function deliveryLabel(item){var status=item.delivery&&item.delivery.email;return ({accepted:'Email accepted for delivery',pending:'Sending email',retrying:'Retrying email',failed:'Email failed — check delivery setup',unconfirmed:'Delivery unconfirmed','not-configured':'Email not connected'})[status]||'Not recorded';}
 
   /* ---------- account & backup ---------- */
   function renderAccount(panel){
@@ -743,8 +605,8 @@
           '<p class="err" id="pwErr" role="alert" hidden></p>' +
           '<button class="btn primary" type="submit">Update password</button></form></div>' +
         '<div>' +
-          '<div class="card"><h2>Backup &amp; restore</h2><p class="muted small">The whole configuration is one JSON file. Export before big changes; import to restore or to move settings to another install.</p>' +
-            '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="exportBtn">Export JSON</button><label class="btn">Import JSON <input type="file" id="importFile" accept="application/json" hidden></label></div></div>' +
+          '<div class="card"><h2>Site configuration</h2><p class="muted small">Export website settings and content as JSON. This does not include image files, enquiries, accounts or history. A complete backup must include the entire data folder.</p>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="exportBtn">Export JSON</button><button type="button" class="btn" id="importBtn">Import configuration</button><input type="file" id="importFile" accept="application/json" hidden></div></div>' +
           '<div class="card"><h2>Reset</h2><p class="muted small">Puts every setting, colour, string and catalogue back to the code defaults. Submissions and your password are kept. You still need to Save &amp; publish.</p><button class="btn danger" id="resetAll">Reset everything to defaults</button></div>' +
         '</div>' +
       '</div>';
@@ -774,6 +636,7 @@
       a.download = 'omnimark-site-' + new Date().toISOString().slice(0, 10) + '.json';
       document.body.appendChild(a); a.click(); a.remove();
     });
+    $('#importBtn').addEventListener('click', function(){ $('#importFile').click(); });
     $('#importFile').addEventListener('change', function(){
       var f = this.files[0]; if (!f) return;
       var r = new FileReader();
@@ -794,11 +657,12 @@
 
   /* ---------- save / discard ---------- */
   function save(){
-    if (!isDirty()) return;
+    if (!isDirty() || state.publishing) return;
+    var submitted=clone(state.site);state.publishing=true;
     var btn = $('#saveBtn'); btn.disabled = true; btn.textContent = 'Publishing…';
     /* the on-page editor may hold an unpublished draft — the server says so
        with 409; make the owner choose rather than overwrite silently */
-    var put = function(force){ return api('PUT', 'api/site', force ? Object.assign({}, state.site, { force: true }) : state.site); };
+    var put = function(force){ return api('PUT', 'api/site', Object.assign({}, submitted, { baseUpdatedAt:state.saved.updatedAt||null, force:!!force })); };
     put(false).catch(function(e){
       if (e.status === 409 && /draft/i.test(e.message || '')){
         return confirmAction('The on-page editor has an unpublished draft. Saving here works, but publishing that draft later will overwrite what you save now.', 'Save anyway')
@@ -806,14 +670,15 @@
       }
       throw e;
     }).then(function(r){
-      state.saved = normalize(r.site); state.site = normalize(r.site);
+      var unchanged=same(state.site,submitted);state.saved = normalize(r.site); if(unchanged)state.site = normalize(r.site);else state.site.updatedAt=r.site.updatedAt;
       markDirty(); toast('Published. The live site is updated.', 'ok');
       var f = $('#preview'); if (f) f.src = f.src;
       if (state.tab === 'overview') showTab('overview');
     }).catch(function(e){
-      toast('Save failed: ' + e.message, 'err');
+      toast('Not published: ' + e.message, 'err');
+      if(e.data&&e.data.field){var input=$('[data-bind="'+e.data.field+'"]');if(input){input.setAttribute('aria-invalid','true');var message=document.createElement('p');message.className='err';message.id='saveFieldError';var previous=$('#saveFieldError');if(previous)previous.remove();message.textContent=e.message;input.insertAdjacentElement('afterend',message);input.setAttribute('aria-describedby',message.id);input.focus();}}
       if (e.status === 401){ $('#app').hidden = true; $('#login').hidden = false; }
-    }).then(function(){ btn.textContent = 'Save & publish'; btn.disabled = !isDirty(); });
+    }).then(function(){ state.publishing=false;btn.textContent = 'Save & publish'; btn.disabled = !isDirty(); });
   }
   async function discard(){
     if (!isDirty() || !await confirmAction('Throw away unsaved changes?', 'Discard changes')) return;
@@ -822,10 +687,11 @@
 
   /* ---------- boot ---------- */
   function load(){
-    return Promise.all([api('GET', 'api/site'), api('GET', 'api/pages'), api('GET', 'api/submissions').catch(function(){ return []; })])
+    var retainEdits=state.site&&isDirty();
+    return Promise.all([api('GET', 'api/site'), api('GET', 'api/pages'), api('GET', 'api/submissions?limit=1').catch(function(){ return {items:[],unread:0}; })])
       .then(function(res){
-        state.site = normalize(res[0]); state.saved = clone(state.site); state.pages = res[1]; state.subs = res[2];
-        updateSubsPill(res[2].length);
+        if(!retainEdits){state.site = normalize(res[0]); state.saved = clone(state.site);} state.pages = res[1]; state.subs = res[2].items;
+        updateSubsPill(res[2].unread);
         $('#login').hidden = true; $('#noServer').hidden = true; $('#app').hidden = false;
         markDirty();
         showTab((location.hash || '#overview').slice(1));
@@ -866,6 +732,9 @@
   });
   window.addEventListener('beforeunload', function(e){ if (isDirty()){ e.preventDefault(); e.returnValue = ''; } });
   window.addEventListener('hashchange', function(){ var id = location.hash.slice(1); if (id && id !== state.tab && state.site) showTab(id); });
+  var navToggle=$('.side-menu-toggle'),nav=$('#adminNavigation');
+  function updateNavigation(){var narrow=window.matchMedia('(max-width:820px)').matches;nav.hidden=narrow&&navToggle.getAttribute('aria-expanded')!=='true';}
+  navToggle.addEventListener('click',function(){navToggle.setAttribute('aria-expanded',String(navToggle.getAttribute('aria-expanded')!=='true'));updateNavigation();});window.addEventListener('resize',updateNavigation);updateNavigation();
   bindPasswordToggles(document);
   boot();
 })();
