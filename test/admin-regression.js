@@ -33,6 +33,23 @@ async function main(){
  await send('Network.setBlockedURLs',{urls:['https://fonts.googleapis.com/*','https://fonts.gstatic.com/*']});
  await view();await go('/admin.html');await shot('01-sign-in');
  await fill('#loginPw',PW);await click('#loginForm button[type="submit"]');await until(()=>ev('!!window.OmniEditor'));await snap('latest');
+ // Small item controls must remain readable and usable at both viewport sizes.
+ for(const width of [1390,390]){
+  await view(width,900);
+  await ev(`document.querySelector('[data-list="industry.strip"]>[data-item]:nth-child(3)').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))`);
+  const layout=await ev(`(()=>{const list=document.querySelector('[data-list="industry.strip"]');list.scrollIntoView({block:'center',behavior:'instant'});return [...list.querySelectorAll(':scope>[data-item]')].every(item=>{const button=item.querySelector('.omni-touch-menu'),b=button.getBoundingClientRect(),r=item.getBoundingClientRect();return b.width>=44&&b.height>=44&&b.right<=r.right&&b.left>=r.left&&b.top>=r.top&&b.bottom<=r.bottom&&[...item.querySelectorAll(':scope>[data-i18n],:scope>small')].every(label=>label.getBoundingClientRect().right<=b.left)&&(!item.querySelector('small')||item.querySelector('small').getBoundingClientRect().top>=item.querySelector('span[data-i18n]').getBoundingClientRect().bottom)&&getComputedStyle(item.querySelector('.omni-item-tools')).display==='none';});})()`);
+  check(width+'px industry actions stay beside every label, including the selected chip',layout);
+  await shot('industry-controls-'+width);
+  await click('[data-list="industry.strip"]>[data-item]:nth-child(3)>.omni-touch-menu');
+  check(width+'px chip menu offers clearly labelled actions',await ev(`document.querySelector('.omni-action-sheet').open&&['Move up','Move down','Remove item'].every(label=>[...document.querySelectorAll('.omni-action-sheet__body button')].some(b=>b.textContent===label))`));
+  await send('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape'});await send('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape'});await pause(100);
+  check(width+'px Escape returns focus to the chip menu',await ev(`!document.querySelector('.omni-action-sheet')&&document.activeElement.matches('[data-list="industry.strip"] .omni-touch-menu')`));
+  check(width+'px logo buttons sit below readable logos without clipping',await ev(`(()=>{document.querySelector('.marquee').scrollIntoView({block:'center',behavior:'instant'});return [...document.querySelectorAll('.logo-chip[data-image-shell]')].every(shell=>{const button=shell.querySelector('.omni-image-action'),label=shell.querySelector('[data-i18n]'),b=button.getBoundingClientRect(),r=label.getBoundingClientRect();return b.top>=r.bottom&&b.left>=0&&b.right<=innerWidth&&b.height>=44&&getComputedStyle(button).fontSize!=='0px'&&getComputedStyle(button,'::before').content==='none';})&&document.documentElement.scrollWidth<=innerWidth;})()`));
+  await shot('logo-controls-'+width);
+ }
+ await click('.logo-chip[data-image-shell]:first-child>.omni-image-action');
+ check('logo image action opens the correct image slot',await ev(`window.OmniEditor.getState().mediaContext.key==='index.logos.l1'&&!!document.querySelector('[data-media-panel]')`));
+ await click('.omni-panel__close');await view();
  await api('POST','login',{password:PW});
  await go('/admin-advanced.html',`!document.querySelector('#app').hidden`);
 

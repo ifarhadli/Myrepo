@@ -238,9 +238,9 @@ html.omni-dragging .omni-drop-before,html.omni-dragging .omni-drop-after{positio
    placeholder it refers to. Small slots show a camera badge in the corner and
    expand to the labelled pill on hover or keyboard focus. */
 .omni-image-shell--compact>.omni-image-action{left:auto;right:6px;top:6px;transform:none;min-height:26px;width:26px;padding:0;border-radius:8px;font-size:0;opacity:.82}
-.omni-image-shell--compact>.omni-image-action::before{content:"F4F7";font-size:13px;line-height:1}
+.omni-image-shell--compact>.omni-image-action::before{content:"📷";font-size:13px;line-height:1}
 .omni-image-shell--compact:hover>.omni-image-action,.omni-image-shell--compact>.omni-image-action:focus-visible{width:auto;min-height:30px;padding:0 11px;font-size:11px;opacity:1}
-.omni-image-shell--compact:hover>.omni-image-action::before,.omni-image-shell--compact>.omni-image-action:focus-visible::before{content:"F4F7  ";font-size:12px}
+.omni-image-shell--compact:hover>.omni-image-action::before,.omni-image-shell--compact>.omni-image-action:focus-visible::before{content:"📷  ";font-size:12px}
 /* Owner settings: choose one task before opening its fields. */
 .omni-settings-menu{display:grid;gap:12px;margin-top:18px}
 .omni-settings-menu button{display:grid;gap:7px;width:100%;padding:20px;text-align:left;background:#fff;color:var(--oe-ink);border:1px solid var(--oe-line);border-radius:10px;cursor:pointer}
@@ -252,6 +252,19 @@ html.omni-dragging .omni-drop-before,html.omni-dragging .omni-drop-after{positio
 .omni-inbox-filters{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:12px}.omni-inbox-filters input,.omni-inbox-filters select{min-width:0;min-height:40px;padding:8px;border:1px solid var(--oe-line);border-radius:7px;background:#fff;color:var(--oe-ink)}
 .omni-inbox-pages{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0}
 @media(max-width:700px){.omni-inbox-filters input,.omni-inbox-filters select{font-size:16px}}
+
+/* Small editable items reserve space for controls instead of covering content. */
+html.omni-editing [data-list="industry.strip"]>.chip{display:grid;grid-template-columns:minmax(0,1fr) 44px;column-gap:12px;row-gap:2px;align-items:center;max-width:100%;padding:8px 10px 8px 16px}
+html.omni-editing [data-list="industry.strip"]>.chip>span[data-i18n]{grid-column:1;grid-row:1;overflow-wrap:anywhere}
+html.omni-editing [data-list="industry.strip"]>.chip:not(.is-coming)>span[data-i18n]{grid-row:1 / span 2}
+html.omni-editing [data-list="industry.strip"]>.chip>small{grid-column:1;grid-row:2}
+html.omni-editing [data-list="industry.strip"]>.chip>.omni-item-tools{display:none!important}
+html.omni-editing [data-list="industry.strip"]>.chip>.omni-touch-menu{position:static;grid-column:2;grid-row:1 / span 2;width:44px;height:44px;align-self:center}
+html.omni-editing .marquee:has(.logo-chip){overflow:visible;mask-image:none;-webkit-mask-image:none}
+html.omni-editing .marquee-track:has(.logo-chip){width:auto;flex-wrap:wrap;justify-content:center;gap:24px 36px;margin-bottom:24px;animation:none;transform:none}
+html.omni-editing .logo-chip[data-image-shell]{display:flex;flex-direction:column;align-items:center;gap:10px;opacity:1}
+html.omni-editing .logo-chip[data-image-shell]>.omni-image-action{position:static;transform:none;width:auto;height:auto;min-height:44px;padding:0 12px;font-size:12px;opacity:1;visibility:visible}
+html.omni-editing .logo-chip[data-image-shell]>.omni-image-action::before{content:none}
 
 /* Owner editing: one selected object and one primary image action. */
 .omni-field-help{display:block;margin:7px 0 0;color:var(--oe-muted);font:400 12px/1.55 Inter,sans-serif;max-width:100%;white-space:normal}

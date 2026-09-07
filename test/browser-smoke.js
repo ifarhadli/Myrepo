@@ -215,10 +215,10 @@ async function main(){
   await evaluate(`document.querySelector('[data-section="index.s1"]').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}))`);await pause(150);
   check('selecting a section exposes its actions without exposing every section toolbar',await evaluate(`getComputedStyle(document.querySelector('[data-section="index.s1"]>.omni-section-tools')).visibility==='visible'&&getComputedStyle(document.querySelector('[data-section="index.s2"]>.omni-section-tools')).visibility==='hidden'`));
   state = await evaluate(`(() => { const shells=[...document.querySelectorAll('[data-image-shell]')];
-    const small=shells.find(s=>s.offsetWidth&&s.offsetWidth<220), big=shells.find(s=>s.offsetWidth>=220);
+    const small=shells.find(s=>s.offsetWidth&&s.offsetWidth<220&&!s.matches('.logo-chip')), big=shells.find(s=>s.offsetWidth>=220);
     const label=s=>s?getComputedStyle(s.querySelector('.omni-image-action')).fontSize:null;
-    return { smallCompact:!!small&&small.classList.contains('omni-image-shell--compact'), smallLabel:label(small), bigCompact:big?big.classList.contains('omni-image-shell--compact'):false, bigLabel:label(big) }; })()`);
-  check('small image slots use a compact badge instead of covering the slot', state.smallCompact && state.smallLabel === '0px' && !state.bigCompact && state.bigLabel !== '0px', JSON.stringify(state));
+    return { hasSmall:!!small, smallCompact:!!small&&small.classList.contains('omni-image-shell--compact'), smallLabel:label(small), bigCompact:big?big.classList.contains('omni-image-shell--compact'):false, bigLabel:label(big) }; })()`);
+  check('image slots size their controls appropriately', (!state.hasSmall || state.smallCompact && state.smallLabel === '0px') && !state.bigCompact && state.bigLabel !== '0px', JSON.stringify(state));
   state = await evaluate(`(() => { const bar=document.querySelector('.omni-bar'); const visible=[...bar.querySelectorAll('.omni-bar__desktop button,.omni-bar__desktop select')].filter(el=>getComputedStyle(el).display!=='none'); return {
     overflow:bar.scrollWidth-bar.clientWidth, inside:visible.every(el=>el.getBoundingClientRect().right<=window.innerWidth+0.5),
     more:getComputedStyle(bar.querySelector('.omni-bar__desktop [data-editor-more]')).display!=='none', historyHidden:getComputedStyle(bar.querySelector('[data-editor-history]')).display==='none' }; })()`);

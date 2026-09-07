@@ -186,6 +186,10 @@ link to an item without a resolvable published route.
 
 The on-page editor is the everyday workspace. Selecting content reveals its
 section/card actions; a compact actions button remains keyboard-accessible.
+Small industry chips reserve a separate column for their actions menu and use
+that menu for moving/removing items. Logo slots wrap into a stationary list in
+edit mode, with a labelled image button below each logo. Controls never cover
+the chip text or logo; the public marquee keeps its original layout.
 Movement actions use written Move up/down labels. The desktop toolbar keeps
 page, language, undo/redo, preview, enquiries, settings and review visible;
 occasional actions live in More, and maintenance is disclosed in Account.
