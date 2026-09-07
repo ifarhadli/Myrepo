@@ -223,3 +223,21 @@ html.omni-phone .omni-page-frame .side-nav{position:static}html.omni-phone .omni
   .omni-mobile-menu__actions button{min-height:40px}
   .omni-mobile-menu__status{font-size:12px;opacity:.72}
 }
+
+/* ---------- keep a drag source visible while it is being dragged ----------
+   The handles live in toolbars that are only visible on hover. Dragging moves
+   the pointer off the source, which hid the toolbar mid-drag and made the
+   browser cancel the drag. While html.omni-dragging is set, the source stays. */
+html.omni-dragging [data-section].omni-drag-source>.omni-section-tools,
+html.omni-dragging [data-item].omni-drag-source>.omni-item-tools,
+html.omni-dragging .omni-drag-source>.omni-collection-tools{opacity:1;visibility:visible}
+html.omni-dragging .omni-drop-before,html.omni-dragging .omni-drop-after{position:relative}
+
+/* ---------- compact image badge for small slots (logo chips, portraits) ----------
+   The full "Add image" pill covers a small slot entirely, hiding the very
+   placeholder it refers to. Small slots show a camera badge in the corner and
+   expand to the labelled pill on hover or keyboard focus. */
+.omni-image-shell--compact>.omni-image-action{left:auto;right:6px;top:6px;transform:none;min-height:26px;width:26px;padding:0;border-radius:8px;font-size:0;opacity:.82}
+.omni-image-shell--compact>.omni-image-action::before{content:"F4F7";font-size:13px;line-height:1}
+.omni-image-shell--compact:hover>.omni-image-action,.omni-image-shell--compact>.omni-image-action:focus-visible{width:auto;min-height:30px;padding:0 11px;font-size:11px;opacity:1}
+.omni-image-shell--compact:hover>.omni-image-action::before,.omni-image-shell--compact>.omni-image-action:focus-visible::before{content:"F4F7  ";font-size:12px}
