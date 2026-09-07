@@ -59,15 +59,15 @@ Script order on every page: `data/site.js` + `js/site-config.js` in `<head>`
 
 Sign in at `/admin`. After login you land on the real homepage with a thin
 editor bar. Click visible text to edit it, switch between EN and AZ in the
-bar, and use each section's hover toolbar to hide, recolour or reorder it.
+bar, and select a section to hide, recolour or reorder it.
 Reorder or remove supported cards in place; service and industry catalogue
-items can also be added. **Design** changes the curated colours, font pairing
-and motion level while the page is visible. **Phone** previews the current
+items can also be added. **Design** offers Original, Calm and Editorial presets, plus Reset design.
+Individual colour and font controls stay outside everyday editing. **Phone** previews the current
 page in a contained 390 px layout.
 
 On screens up to 700 px, edit mode becomes a thumb-reachable bottom dock with
-**Undo**, **Publish**, and **More**. More opens the page switcher, EN/AZ,
-Design, This page, Media, History, Preview, Inbox, role-appropriate Settings
+**Undo**, **Review changes**, and **More**. More opens the page switcher, EN/AZ,
+Design, This page, Image library, History, Preview, Inbox, role-appropriate Settings
 and Users, and Discard in one full-screen sheet. Section and card **⋯** buttons replace hover controls with
 Hide/Show, Accent, Move, status, image, and delete actions. Image slots keep a
 visible camera button, and every text edit has a **Done** action docked above
@@ -81,8 +81,8 @@ publishing or discarding the draft revokes it automatically.
 
 Image positions are fixed by the design. Hover a hero, case, team, logo,
 article, case-study or mega-menu image slot and choose **Add image** / **Change
-image**, or drop an image directly on the slot. The **Media** panel also opens
-from the bar and from social-image settings. It accepts PNG, JPEG and WebP
+image**, or drop an image directly on the slot. **Image library** opens
+from More; page-sharing settings open the image chooser. It accepts PNG, JPEG and WebP
 (not SVG), creates 480/960/1600 px responsive versions in the browser, and
 stores a reusable private library. Alt text is required before a slotted image
 can be published. Click the preview or use its two keyboard-accessible sliders
@@ -90,9 +90,23 @@ to set the focal point that every crop keeps visible. Removing a slot keeps the
 library item; permanent library deletion is blocked while any live, draft or
 retained-history version still uses it.
 
+Select text to edit it. Section and card actions appear for the selected
+content; each also has a keyboard-accessible actions menu. Move up/down is
+explicit and dragging remains optional. **More** holds image-library, design,
+history and other occasional tasks; Account contains the maintenance link.
+
+Image changes follow **Choose/upload → Adjust crop → Apply image**. Uploading
+alone adds a library file; applying changes the draft and returns to the page.
+Library management is separate from image placement. Settings, page metadata,
+item details and account fields include linked explanations of what they
+change, including timing and empty-value behavior where relevant.
+
+**Review changes** lists only changed areas and offers a private preview
+before **Publish changes** updates the live site.
+
 Changes autosave to the private `data/draft.json` file and a local browser
-backup. Undo/redo covers the current session. **Publish** first shows a
-category summary, then writes `data/site.json` and regenerates `data/site.js`,
+backup. Undo/redo covers the current session. **Review changes** shows the
+changed areas; **Publish changes** then writes `data/site.json` and regenerates `data/site.js`,
 `sitemap.xml` and `robots.txt`. **Discard** removes the unpublished draft.
 Closing the browser does not publish anything.
 

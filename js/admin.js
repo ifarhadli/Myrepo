@@ -260,6 +260,7 @@
      language and context so screen readers get more than a placeholder ---------- */
   var uid = 0;
   function labelize(root){
+    if(window.OmniFieldHelp)window.OmniFieldHelp.enhance(root);
     $$('input,select,textarea', root).forEach(function(el){
       if (el.type === 'hidden' || el.type === 'file') return;
       if (el.getAttribute('aria-label') || el.getAttribute('aria-labelledby') || el.closest('label')) return;

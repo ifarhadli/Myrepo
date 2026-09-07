@@ -75,6 +75,7 @@ async function main(){
  await pause(1700);check('stale local recovery does not overwrite shared content',(await api('GET','draft')).data.draft.i18n.en['home.hero.h1']==='Colleague shared draft');
  await click('[data-dialog-confirm]');await until(()=>ev(`!document.querySelector('dialog[open]')`));check('load latest resolves conflict explicitly',await ev(`!window.OmniEditor.getState().recoveryConflict&&window.OmniEditor.getState().draft.i18n.en['home.hero.h1']==='Colleague shared draft'`));
  await click('[data-editor-settings]');await shot('settings-menu');await click('[data-settings-view="website"]');
+ check('all website settings have linked plain-language explanations',await ev(`Array.from(document.querySelectorAll('.omni-settings input,.omni-settings select')).every(input=>input.hasAttribute('data-field-explained')&&input.getAttribute('aria-describedby').split(' ').some(id=>document.getElementById(id)?.classList.contains('omni-field-help')))`));
  await fill('#omni-setting-settings-email','bad-email','change');check('owner email validation is inline',await ev(`document.querySelector('#omni-setting-settings-email').getAttribute('aria-invalid')==='true'&&!document.querySelector('#omni-setting-settings-email-error').hidden`));
  await fill('#omni-setting-settings-email','owner@example.test','change');await pause(1900);await shot('website-details');
  await view(390,844);await shot('website-details-mobile');check('mobile website details fits without horizontal scrolling',await ev('document.documentElement.scrollWidth<=innerWidth'));

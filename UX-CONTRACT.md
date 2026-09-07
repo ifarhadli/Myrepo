@@ -38,6 +38,25 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 ## Component behavior
 
+- On-page editing is the primary owner workspace. Selecting content reveals
+  its relevant actions; visible action-menu buttons support keyboard and touch.
+  Move up/down and Undo remain available. More holds occasional tools and
+  Account discloses the maintenance dashboard.
+- `js/admin-fields.js` owns shared field explanations in the editor and
+  maintenance dashboard. Descriptions are visible and linked through
+  `aria-describedby`, preserving links to validation errors. Explain what a
+  field changes, default/blank behavior, and publication or immediate timing
+  where relevant. Dates do not imply automatic publishing/unpublishing.
+- Design exposes three complete colour/font presets and an undoable Reset.
+  Individual styling controls are removed from that everyday panel.
+- Image placement requires explicit Apply after choosing/uploading and
+  adjusting its crop/description. Upload completion alone does not assign a
+  slot. Apply updates the draft and returns to the page. Library file deletion
+  and metadata maintenance remain in the separate Image library view.
+- Review changes lists only affected areas and offers a private draft preview.
+  Publish changes remains an explicit final action. The toolbar distinguishes
+  draft saving from a live website that is up to date.
+
 - Settings opens a three-task menu: Website details, Enquiry emails, Account.
   Website details exposes seven main fields and collapsed policy/booking links.
   Related phone, address and email configuration values synchronize from the
@@ -60,6 +79,14 @@ Table selection and date-picker ownership are omitted because the editor has nei
   exclusions and does not claim to be a complete operational backup.
 
 - Buttons expose hover, focus-visible, disabled, and pending states where a request occurs.
+- Section and card dragging retains the source handle while crossing targets;
+  Move up/down remains the keyboard and touch alternative. Image drop areas
+  intercept files only, allowing section/card drags to pass through.
+- An upload, retry or pending Use here action retains the image destination
+  chosen when it started. Switching positions must not redirect that operation
+  or replace the new panel selection. A single image position accepts one
+  dropped file; batch uploads belong in the Media library. Permanent media
+  deletion stops when the required draft save fails.
 - Inputs retain values after validation failure; public forms show linked inline errors and focus the first invalid field.
 - Secret inputs are masked by default and provide an explicit Show/Hide control.
 - Password recovery never confirms whether a private address exists. Reset
@@ -137,7 +164,7 @@ Table selection and date-picker ownership are omitted because the editor has nei
 | Send notification test | Send a test email | pessimistic, duplicate blocked | open Settings | exact delivered recipients | no automatic retry; inline failure | trigger remains available | `js/editor.js` |
 | Edit page SEO | This page fields | local commit + normal draft autosave | open This page sheet | live search/share previews | invalid URL retained with linked correction | invalid field | `js/editor.js` |
 | Upload media | picker or slot drop | per-file preparation, progress and stage label | open Media sheet | Ready row + thumbnail + toast | failed row retains file + Retry | upload row / picker | `js/editor.js`, `server.js` |
-| Assign image slot | Use here / direct drop | metadata save when needed | current page | image and focal crop repaint live | draft unchanged if metadata save fails | Media sheet | `js/editor.js` |
+| Assign image slot | Choose/upload → crop/description → Apply image | metadata save when needed | returns to current page | image and focal crop repaint in draft | draft unchanged if metadata save fails | original image position | `js/editor.js` |
 | Delete media | Delete from library + confirm | pessimistic request, confirm disabled | open Media sheet | item removed + toast | item retained + error; blocked uses named | invoking item / sheet | `js/editor.js`, `server.js` |
 | Create collection item | + New on a listing | draft save before navigation | clean item URL in edit mode | Draft badge + editable page | item remains in draft if navigation fails | new item page | `js/editor.js` |
 | Edit collection item | direct text / Item details / Media | normal draft autosave | current item page | live repaint + saved timestamp | local draft retained | edited field or sheet | `js/editor.js`, `js/site-config.js` |
@@ -255,9 +282,9 @@ Table selection and date-picker ownership are omitted because the editor has nei
 ## Verification
 
 - Static: `npm run check` and the premium strict audit.
-- Integration: `npm test` covers 189 configuration, validation, persistence,
+- Integration: `npm test` covers 206 configuration, validation, persistence,
   notification, migration, role, conflict and preview checks.
-- Browser: `npm run test:browser` covers 97 phone/laptop containment,
+- Browser: `npm run test:browser` covers 132 phone/laptop containment,
   navigation/focus, validation, content, preview, invitation/role, admin, and
   complete 390 px mobile edit/publish checks.
 - Owner gates still required: native Azerbaijani review, approved privacy/retention terms, and written approval for every proof item before enabling it.

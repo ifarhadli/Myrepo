@@ -1789,7 +1789,7 @@ function serveStatic(req, res, url){
     if (wantsPreview && !['admin', 'admin-advanced', '404'].includes(key)) html = injectPreview(forceNoindex(html), pageSite, rawPreviewToken);
     if (wantsEditor && !['admin', 'admin-advanced', '404'].includes(key)){
       html = html.replace(/<\/body>/i,
-        '<link rel="stylesheet" href="css/editor.css">\n<script src="js/editor.js" defer></script>\n</body>');
+        '<link rel="stylesheet" href="css/editor.css">\n<script src="js/admin-fields.js" defer></script>\n<script src="js/editor.js" defer></script>\n</body>');
     }
     return send(res, 200, html, { 'Content-Type': type, 'Cache-Control': wantsPreview ? 'no-store' : 'no-cache', 'Referrer-Policy': wantsPreview ? 'no-referrer' : 'strict-origin-when-cross-origin' });
   }

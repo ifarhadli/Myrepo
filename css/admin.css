@@ -205,3 +205,4 @@ td .kv b{color:var(--a-text);font-weight:600}
 .overview-actions{display:flex;gap:10px;flex-wrap:wrap;margin:18px 0}.overview-actions .btn{min-height:40px}
 .side-menu-toggle{display:none}
 @media(max-width:820px){.side{height:auto;gap:12px}.side-foot{margin-top:10px}.side-menu-toggle{display:inline-flex}.side nav[hidden]{display:none}.side nav{padding:8px 0}.side .brand{margin-bottom:0}}
+.omni-field-help{display:block;margin:7px 0 0;color:var(--muted,#5b616e);font-size:12px;line-height:1.55;white-space:normal}

@@ -252,3 +252,29 @@ html.omni-dragging .omni-drop-before,html.omni-dragging .omni-drop-after{positio
 .omni-inbox-filters{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-bottom:12px}.omni-inbox-filters input,.omni-inbox-filters select{min-width:0;min-height:40px;padding:8px;border:1px solid var(--oe-line);border-radius:7px;background:#fff;color:var(--oe-ink)}
 .omni-inbox-pages{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:14px 0}
 @media(max-width:700px){.omni-inbox-filters input,.omni-inbox-filters select{font-size:16px}}
+
+/* Owner editing: one selected object and one primary image action. */
+.omni-field-help{display:block;margin:7px 0 0;color:var(--oe-muted);font:400 12px/1.55 Inter,sans-serif;max-width:100%;white-space:normal}
+.omni-selected{outline:2px solid var(--oe-violet);outline-offset:3px}
+.omni-design-presets{display:grid;gap:12px;margin:18px 0}
+.omni-design-preset{display:grid;gap:9px;padding:18px;text-align:left;border:1px solid var(--oe-line);border-radius:10px;background:#fff;color:var(--oe-ink);cursor:pointer;font:400 13px/1.5 Inter,sans-serif}
+.omni-design-preset strong{font-size:18px}.omni-design-preset>span:last-child{color:var(--oe-muted)}
+.omni-design-preset[aria-pressed="true"]{outline:2px solid var(--oe-violet);outline-offset:1px}
+.omni-preset-colours{display:flex;gap:5px}.omni-preset-colours i{display:block;width:38px;height:20px;border-radius:4px}
+.omni-image-flow{margin-bottom:15px}.omni-image-flow p{font:400 13px/1.6 Inter,sans-serif;color:var(--oe-muted)}
+.omni-image-flow button{min-height:40px;padding:8px 12px;border:1px solid var(--oe-line);border-radius:7px;background:#fff;color:var(--oe-ink);cursor:pointer}
+.omni-image-edit .omni-dropzone,.omni-image-edit .omni-media-search,.omni-image-edit .omni-media-grid{display:none}
+.omni-image-edit .omni-media-detail-preview,.omni-image-edit .omni-upload-list{display:none}
+.omni-image-edit .omni-upload-list:empty{display:none}
+.omni-primary-action{background:var(--oe-violet)!important;color:#fff!important;border-color:var(--oe-violet)!important;min-height:44px!important;padding:10px 20px!important}
+.omni-image-edit .omni-inline-actions{position:sticky;bottom:0;padding:12px 0;background:var(--oe-surface,#faf9f6);border-top:1px solid var(--oe-line)}
+.omni-dialog__body>[data-review-preview]{min-height:44px;padding:10px 16px;border:1px solid var(--oe-line);border-radius:8px;background:#fff;color:var(--oe-ink);cursor:pointer}
+@media(min-width:701px){
+  [data-section]:hover>.omni-section-tools,[data-section]:focus-within>.omni-section-tools,[data-item]:hover>.omni-item-tools,[data-item]:focus-within>.omni-item-tools,[data-collection-id]:hover>.omni-collection-tools,[data-collection-id]:focus-within>.omni-collection-tools{opacity:0;visibility:hidden}
+  html.omni-editing .omni-selected>.omni-section-tools,html.omni-editing .omni-selected>.omni-item-tools,html.omni-editing .omni-selected>.omni-collection-tools,.omni-section-tools:focus-within,.omni-item-tools:focus-within,.omni-collection-tools:focus-within,html.omni-dragging .omni-drag-source>.omni-section-tools,html.omni-dragging .omni-drag-source>.omni-item-tools{opacity:1;visibility:visible}
+  .omni-touch-menu{position:absolute;right:8px;top:8px;z-index:16;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--oe-line);border-radius:8px;background:var(--oe-ink);color:#fff;cursor:pointer}
+  .omni-selected>.omni-touch-menu{top:48px}.omni-item-toolbar>.omni-touch-menu{display:none}
+  .omni-section-tools button[data-section-up],.omni-section-tools button[data-section-down],.omni-item-tools button[data-item-up],.omni-item-tools button[data-item-down]{width:auto;padding:0 8px;font-size:11px}
+  .omni-bar__desktop [data-editor-design],.omni-bar__desktop [data-editor-media],.omni-bar__desktop [data-editor-users],.omni-bar__desktop [data-editor-phone],.omni-bar__desktop [data-editor-history],.omni-bar__desktop [data-editor-discard]{display:none}
+  .omni-bar__desktop [data-editor-preview],.omni-bar__desktop .omni-bar__more{display:inline-flex}
+}

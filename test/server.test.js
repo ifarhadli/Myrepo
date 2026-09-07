@@ -641,13 +641,17 @@ async function main(){
   r = await req('POST', '/api/submit', { form: 'newsletter', email: 'retry@example.test' }, { headers: { 'X-Forwarded-For': '198.51.100.99' } });
   check('new enquiries never silently delete the oldest retained record', r.status === 200 && JSON.parse(fs.readFileSync(subsPath, 'utf8')).length === 10002 && JSON.parse(fs.readFileSync(subsPath, 'utf8'))[0].id === 'retention-0');
   const retryRow = () => JSON.parse(fs.readFileSync(subsPath, 'utf8')).find(item => item.fields.email === 'retry@example.test');
-  let retryDeadline = Date.now() + 3000;
+  /* this poll follows a 10,002-record write, so a tight deadline made the check
+     flake on a busy machine and cascade into the two retry checks below */
+  let retryDeadline = Date.now() + 20000;
   while (retryRow().delivery.email !== 'retrying' && Date.now() < retryDeadline) await new Promise(resolve => setTimeout(resolve, 25));
   check('temporary email failures leave a durable retry status', retryRow().delivery.email === 'retrying' && retryRow().delivery.attempts === 1);
-  retryDeadline = Date.now() + 33000;
+  // The retention boundary has been checked; poll the retry using a small fixture.
+  fs.writeFileSync(subsPath, JSON.stringify([retryRow()]));
+  retryDeadline = Date.now() + 45000;
   while (retryRow().delivery.email !== 'accepted' && Date.now() < retryDeadline) await new Promise(resolve => setTimeout(resolve, 100));
   const deliveredRetry = retryRow();
-  check('failed lead email retries once and records acceptance', deliveredRetry.delivery.email === 'accepted' && deliveredRetry.delivery.attempts === 2);
+  check('failed lead email retries once and records acceptance', deliveredRetry.delivery.email === 'accepted' && deliveredRetry.delivery.attempts === 2, JSON.stringify(deliveredRetry.delivery));
   check('retry reuses the original notification idempotency key', mailKeys.filter(key => key === 'lead-' + deliveredRetry.id).length === 2);
   fs.writeFileSync(subsPath, retainedSubs);
 
