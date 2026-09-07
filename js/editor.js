@@ -392,13 +392,19 @@
   }
 
   /* ---------- Collections: cases, articles, jobs, team, testimonials ---------- */
-  function ensureCollections(draft){draft=draft||state.draft;if(!draft.collections)draft.collections=clone((state.defaults&&state.defaults.collections)||window.OMNI_COLLECTIONS||{cases:[],articles:[],jobs:[],team:[],testimonials:[]});return draft.collections;}
-  function collectionItem(type,id,draft){var list=(ensureCollections(draft||state.draft)[type]||[]);return list.find(function(item){return item.id===id;});}
+  function defaultCollections(){return(state.defaults&&state.defaults.collections)||window.OMNI_COLLECTIONS||{cases:[],articles:[],jobs:[],team:[],testimonials:[]};}
+  /* write path — only inside commit(): materialises the defaults into the draft */
+  function ensureCollections(draft){draft=draft||state.draft;if(!draft.collections)draft.collections=clone(defaultCollections());return draft.collections;}
+  /* read path — never mutates, so simply opening a page cannot invent changes */
+  function viewCollections(draft){draft=draft||state.draft;return draft.collections||defaultCollections();}
+  /* pass a draft (always from inside commit()) to get a writable item; omit it to
+     read for display, which must never materialise defaults into the draft */
+  function collectionItem(type,id,draft){var list=((draft?ensureCollections(draft):viewCollections(state.draft))[type]||[]);return list.find(function(item){return item.id===id;});}
   function currentCollectionItem(draft){var context=window.OMNI_ITEM;return context&&context.item?collectionItem(context.type,context.item.id,draft):null;}
-  function writeCollectionValue(active,value){var item=collectionItem(active.type,active.id);if(!item)return;if(active.plain)item[active.field]=value;else{item.fields=item.fields||{};item.fields[active.field]=item.fields[active.field]||{en:'',az:''};item.fields[active.field][state.lang]=value;}item.updatedAt=new Date().toISOString();}
+  function writeCollectionValue(active,value){var item=collectionItem(active.type,active.id,state.draft);if(!item)return;if(active.plain)item[active.field]=value;else{item.fields=item.fields||{};item.fields[active.field]=item.fields[active.field]||{en:'',az:''};item.fields[active.field][state.lang]=value;}item.updatedAt=new Date().toISOString();}
   function randomCollectionId(){var bytes=new Uint8Array(8);crypto.getRandomValues(bytes);return Array.prototype.map.call(bytes,function(value){return value.toString(16).padStart(2,'0');}).join('');}
   function slugify(value){return String(value||'untitled').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,55)||'untitled';}
-  function uniqueSlug(type,value,exceptId,draft){var base=slugify(value),slug=base,n=2,list=(ensureCollections(draft||state.draft)[type]||[]);while(list.some(function(item){return item.id!==exceptId&&item.slug===slug;}))slug=(base.slice(0,55-String(n).length)+'-'+n++);return slug;}
+  function uniqueSlug(type,value,exceptId,draft){var base=slugify(value),slug=base,n=2,list=(viewCollections(draft||state.draft)[type]||[]);while(list.some(function(item){return item.id!==exceptId&&item.slug===slug;}))slug=(base.slice(0,55-String(n).length)+'-'+n++);return slug;}
   function collectionLabel(type){return{cases:'case',articles:'article',jobs:'job',team:'team member',testimonials:'testimonial'}[type]||'item';}
   function collectionHref(type,slug){return({cases:'/work/',articles:'/insights/',jobs:'/careers/'}[type]||'/')+slug+'?edit=1';}
   function blankCollectionItem(type,draft){var now=new Date().toISOString(),label=collectionLabel(type),item={id:randomCollectionId(),slug:uniqueSlug(type,'untitled-'+label,null,draft),published:false,order:(ensureCollections(draft)[type]||[]).length,createdAt:now,updatedAt:now,fields:{}};
@@ -417,7 +423,7 @@
   function clearCollectionDrop(){if(state.draggedCollection&&state.draggedCollection.node)state.draggedCollection.node.classList.remove('omni-item-dragging');$$('.omni-collection-drop-before,.omni-collection-drop-after').forEach(function(node){node.classList.remove('omni-collection-drop-before','omni-collection-drop-after');});state.draggedCollection=null;}
   function reorderCollectionItem(type,sourceId,targetId,before){commit(function(draft){var list=ensureCollections(draft)[type].slice().sort(function(a,b){return(a.order||0)-(b.order||0);}),from=list.findIndex(function(item){return item.id===sourceId;}),target=list.findIndex(function(item){return item.id===targetId;});if(from<0||target<0||from===target)return;var moved=list.splice(from,1)[0];target=list.findIndex(function(item){return item.id===targetId;});list.splice(target+(before?0:1),0,moved);list.forEach(function(item,index){item.order=index;});draft.collections[type]=list;},'Reorder '+collectionLabel(type));}
   function openCollectionActions(node,trigger){
-    var type=node.getAttribute('data-collection-type'),id=node.getAttribute('data-collection-id'),item=collectionItem(type,id),ordered=(ensureCollections()[type]||[]).slice().sort(function(a,b){return(a.order||0)-(b.order||0);}),index=ordered.findIndex(function(entry){return entry.id===id;});if(!item)return;
+    var type=node.getAttribute('data-collection-type'),id=node.getAttribute('data-collection-id'),item=collectionItem(type,id),ordered=(viewCollections()[type]||[]).slice().sort(function(a,b){return(a.order||0)-(b.order||0);}),index=ordered.findIndex(function(entry){return entry.id===id;});if(!item)return;
     var actions=[];if(['cases','articles','jobs'].includes(type))actions.push({label:'Open '+collectionLabel(type),run:function(){var link=$('.omni-collection-open',node);if(link)link.click();}});if(type==='team')actions.push({label:'Edit details',run:function(){openPanel('Team member details','right',function(root){renderListingItemDetails(root,type,id);});}});
     actions=actions.concat([
       {label:'Move up',disabled:index<=0,run:function(){moveCollectionItem(type,id,-1);}},

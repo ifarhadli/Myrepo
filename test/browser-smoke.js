@@ -196,6 +196,8 @@ async function main(){
   const editorReady = await waitFor(() => evaluate(`!!document.querySelector('.omni-bar') && document.documentElement.classList.contains('omni-editing')`), 10000);
   state = await evaluate(`({ bar:!!document.querySelector('.omni-bar'), editing:document.documentElement.classList.contains('omni-editing'), kinetic:document.querySelectorAll('.kinetic .kw').length, controls:document.querySelectorAll('.omni-bar button,.omni-bar select').length })`);
   check('authenticated edit mode renders the bar before motion starts', !!editorReady && state.bar && state.editing && state.kinetic === 0 && state.controls >= 11, JSON.stringify(state));
+  state = await evaluate(`({ publish:document.querySelector('[data-editor-publish]').textContent.trim(), disabled:document.querySelector('[data-editor-publish]').disabled, drafted:!!window.OmniEditor.getState().draft.collections })`);
+  check('opening a page invents no changes', state.publish === 'Publish (0)' && state.disabled && !state.drafted, JSON.stringify(state));
   state = await evaluate(`(() => { const bar=document.querySelector('.omni-bar'); const visible=[...bar.querySelectorAll('.omni-bar__desktop button,.omni-bar__desktop select')].filter(el=>getComputedStyle(el).display!=='none'); return {
     overflow:bar.scrollWidth-bar.clientWidth, inside:visible.every(el=>el.getBoundingClientRect().right<=window.innerWidth+0.5),
     more:getComputedStyle(bar.querySelector('.omni-bar__desktop [data-editor-more]')).display!=='none', historyHidden:getComputedStyle(bar.querySelector('[data-editor-history]')).display==='none' }; })()`);
@@ -488,8 +490,8 @@ async function main(){
   check('legacy Admin invitation stays disabled until the owner email is set',state.cards===1&&/admin/.test(state.role)&&state.inviteDisabled,JSON.stringify(state));
   await evaluate(`fetch('/api/account/recovery-email',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-Requested-With':'OmniAdmin'},body:JSON.stringify({current:${JSON.stringify(TEST_PASSWORD)},email:'owner@example.test'})}).then(r=>r.json())`);
   await evaluate(`document.querySelector('.omni-panel__close').click();document.querySelector('[data-editor-users]').click()`);await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Users and roles'&&!document.querySelector('.omni-user-invite [type="submit"]').disabled`),5000);
-  state=await evaluate(`({cards:document.querySelectorAll('.omni-user-card').length,role:document.querySelector('.omni-user-card__head span').textContent,inviteDisabled:document.querySelector('.omni-user-invite [type="submit"]').disabled})`);
-  check('Admin user panel enables invitations after the owner email is set',state.cards===1&&/admin/.test(state.role)&&!state.inviteDisabled,JSON.stringify(state));
+  state=await evaluate(`({title:document.querySelector('#omniPanelTitle')?.textContent,cards:document.querySelectorAll('.omni-user-card').length,role:document.querySelector('.omni-user-card__head span')?.textContent,inviteDisabled:document.querySelector('.omni-user-invite [type="submit"]')?.disabled})`);
+  check('Admin user panel enables invitations after the owner email is set',state.cards===1&&/admin/.test(state.role||'')&&state.inviteDisabled===false,JSON.stringify(state));
   const inviteMailStart=sentMail.length;
   await evaluate(`(() => {document.querySelector('#omniInviteName').value='Browser Editor';document.querySelector('#omniInviteEmail').value='browser-editor@example.test';document.querySelector('#omniInviteRole').value='editor';document.querySelector('.omni-user-invite').requestSubmit();})()`);
   const invitationArrived=await waitFor(()=>sentMail.length===inviteMailStart+1,8000);
