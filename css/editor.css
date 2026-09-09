@@ -321,5 +321,8 @@ html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-remov
 .omni-element-dropzone.is-container::before{display:none}
 .omni-element-dropzone.is-over{background:#c6f24e66;outline:2px solid var(--oe-ink)}
 .omni-element-dropzone.is-over::before{background:var(--oe-ink)}
+/* side-by-side siblings (button rows, stat rows, card grids): the slot is a
+   vertical strip at the neighbour's edge, so the indicator line is vertical */
+.omni-element-dropzone.is-vertical::before{left:8px;right:auto;top:0;bottom:0;width:3px;height:auto}
 [data-element-drag]{cursor:grab!important;touch-action:none}
 html.omni-dragging .omni-element-tools{opacity:1;visibility:visible}

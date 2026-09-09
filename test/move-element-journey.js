@@ -23,6 +23,22 @@ module.exports=async function({evaluate:ev,go,viewport,check,screenshot,pause},w
   if(width>700){
     await ev(`document.querySelector('[data-element-drag]').dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer:new DataTransfer()}))`);
     check('element dragging uses the existing lifecycle and offers container ends',await ev(`document.documentElement.classList.contains('omni-dragging')&&document.querySelector('[data-i18n="home.hero.ctaSecondary"]').classList.contains('omni-drag-source')&&!!document.querySelector('.omni-element-dropzone.is-container')`));
+    /* siblings in a button row sit side by side: their slots must be vertical
+       strips at distinct x positions, otherwise left/right drops never reorder */
+    /* The secondary button already sits after the primary, so only the
+       "before primary" slot is offered (the "after" one would be a no-op). */
+    const rowZones=await ev(`(() => { const b=document.querySelector('.omni-element-dropzone[data-element-drop-anchor="index:home.hero.ctaPrimary"][data-element-drop-position="before"]');
+      const btn=document.querySelector('.hero .btn-row').firstElementChild.getBoundingClientRect();
+      return b?{ flow:b.getAttribute('data-element-drop-flow'), vertical:b.classList.contains('is-vertical'), narrow:parseFloat(b.style.width)<=24, tall:parseFloat(b.style.height)>=24, atLeftEdge:Math.abs(parseFloat(b.style.left)+10-btn.left)<3 }:{missing:true}; })()`);
+    check('button-row slot is a vertical strip at the neighbour\'s left edge',rowZones.flow==='row'&&rowZones.vertical&&rowZones.narrow&&rowZones.tall&&rowZones.atLeftEdge,JSON.stringify(rowZones));
+    await ev(`document.querySelector('.omni-element-dropzone[data-element-drop-anchor="index:home.hero.ctaPrimary"][data-element-drop-position="before"]').dispatchEvent(new DragEvent('drop',{bubbles:true,dataTransfer:new DataTransfer()}))`);await pause(400);
+    const first=`document.querySelector('.hero .btn-row').firstElementChild`;
+    check('dropping left of the primary button reorders the row',await ev(`${first}.matches('[data-i18n="home.hero.ctaSecondary"]')&&!document.documentElement.classList.contains('omni-dragging')`));
+    await click('[data-editor-undo]');await pause(900);
+    check('Undo restores the original left-to-right order',await ev(`!!${first}.querySelector('[data-i18n="home.hero.ctaPrimary"]')`));
+    await ev(`document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`);await pause(150);
+    await click(button);await until(()=>ev(`!!document.querySelector('[data-element-drag]')`));
+    await ev(`document.querySelector('[data-element-drag]').dispatchEvent(new DragEvent('dragstart',{bubbles:true,dataTransfer:new DataTransfer()}))`);
     await screenshot('element-dropzones-'+width);
     await ev(`document.dispatchEvent(new DragEvent('dragover',{bubbles:true,dataTransfer:new DataTransfer(),clientY:innerHeight-2}))`);await pause(240);
     check('element drag auto-scrolls near the viewport edge',await ev(`scrollY>0`));

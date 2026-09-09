@@ -879,7 +879,7 @@
       while(id&&dependency){var match=dependency.match(/:added\.(ae-[0-9a-f]{8})(?:\.|$)/);if(!match)break;if(match[1]===id)return;if(seen.indexOf(match[1])>=0)return;seen.push(match[1]);var record=(state.draft.addedElements||[]).find(function(row){return row.id===match[1];});dependency=record&&record.anchor;}
       if(container===source.parentElement&&(position==='before'&&anchor===source.nextElementSibling||position==='after'&&anchor===source.previousElementSibling||position==='into'&&source===container.lastElementChild))return;
       var section=container.closest('[data-section]');if(!section)return;
-      slots.push({anchor:address.id,position:position,container:container,reference:anchor,section:section,label:position==='into'?'Bottom of '+(container.matches('.btn-row')?'button row':container.matches('ul,ol')?'list':container.matches('.wrap')?'section':container.matches('.cta-grid > div,.split > div')?'text column':'content'):position==='before'?'Top — above: '+moveLabel(anchor):'Under: '+moveLabel(anchor)});
+      slots.push({anchor:address.id,position:position,container:container,reference:anchor,section:section,horizontal:isRowFlow(container),label:position==='into'?'Bottom of '+(container.matches('.btn-row')?'button row':container.matches('ul,ol')?'list':container.matches('.wrap')?'section':container.matches('.cta-grid > div,.split > div')?'text column':'content'):position==='before'?'Top — above: '+moveLabel(anchor):'Under: '+moveLabel(anchor)});
     }
     $$(site.ALLOWED_DROPS[kind]||'').forEach(function(container){
       if(!site.allowedContainer(kind,container)||container===source||source.contains(container)||container.closest('[data-omni-placement-row],[data-omni-added-row]'))return;
@@ -931,9 +931,31 @@
   function clearElementDrag(){
     cancelAnimationFrame(elementScrollFrame);elementScrollFrame=0;elementDrag=null;var layer=$('.omni-element-dropzones');if(layer)layer.remove();endDrag();
   }
+  /* Children of a row-flow container (button rows, stat rows, card grids)
+     sit side by side, so their before/after slots must be vertical strips
+     at each child's left/right edge — a horizontal strip at top/bottom
+     would be the same band for every sibling and left/right drops could
+     never change the order. */
+  function isRowFlow(container){
+    if(!container)return false;
+    if(container.matches('.btn-row,.stat-row,.grid-2,.grid-3,.claim-cards,.eng-cols'))return true;
+    var cs=getComputedStyle(container),display=cs.display;
+    if(/flex/.test(display))return !/column/.test(cs.flexDirection)&&cs.flexWrap!=='wrap'||Array.prototype.some.call(container.children,function(a){var b=a.nextElementSibling;return b&&Math.abs(a.getBoundingClientRect().top-b.getBoundingClientRect().top)<4;});
+    if(/grid/.test(display))return cs.gridTemplateColumns.split(' ').filter(Boolean).length>1;
+    return false;
+  }
   function positionElementZones(){
-    if(!elementDrag)return;elementDrag.zones.forEach(function(zone){var slot=zone.slot,rect=slot.reference.getBoundingClientRect(),into=slot.position==='into',y=slot.position==='before'?rect.top:rect.bottom;
-      zone.node.style.left=Math.max(4,rect.left)+'px';zone.node.style.top=(into?Math.max(rect.top,y-26):y-10)+'px';zone.node.style.width=Math.max(24,Math.min(rect.width,innerWidth-rect.left-8))+'px';zone.node.style.height=(into?26:20)+'px';zone.node.hidden=rect.width===0||(!into&&rect.height===0)||y<48||rect.top>innerHeight;
+    if(!elementDrag)return;elementDrag.zones.forEach(function(zone){var slot=zone.slot,rect=slot.reference.getBoundingClientRect(),into=slot.position==='into',node=zone.node;
+      if(!into&&slot.horizontal){
+        var x=slot.position==='before'?rect.left:rect.right;
+        node.classList.add('is-vertical');
+        node.style.left=(x-10)+'px';node.style.top=rect.top+'px';node.style.width='20px';node.style.height=Math.max(24,rect.height)+'px';
+        node.hidden=rect.width===0||rect.height===0||rect.bottom<48||rect.top>innerHeight;
+        return;
+      }
+      var y=slot.position==='before'?rect.top:rect.bottom;
+      node.classList.remove('is-vertical');
+      node.style.left=Math.max(4,rect.left)+'px';node.style.top=(into?Math.max(rect.top,y-26):y-10)+'px';node.style.width=Math.max(24,Math.min(rect.width,innerWidth-rect.left-8))+'px';node.style.height=(into?26:20)+'px';node.hidden=rect.width===0||(!into&&rect.height===0)||y<48||rect.top>innerHeight;
     });
   }
   function startElementDrag(info,event){
@@ -941,7 +963,7 @@
     if(!window.OmniSite.canMoveElement(info.target)){event.preventDefault();return;}clearElementDrag();
     var layer=document.createElement('div');layer.className='omni-element-dropzones';layer.setAttribute('aria-hidden','true');document.body.appendChild(layer);
     elementDrag={info:info,zones:[],y:innerHeight/2};beginDrag(info.target);event.dataTransfer.effectAllowed='move';event.dataTransfer.setData('text/plain',info.id);
-    moveSlots(info).forEach(function(slot){var zone=document.createElement('div');zone.className='omni-element-dropzone'+(slot.position==='into'?' is-container':'');zone.setAttribute('data-element-drop-anchor',slot.anchor);zone.setAttribute('data-element-drop-position',slot.position);zone.title=slot.label;layer.appendChild(zone);elementDrag.zones.push({node:zone,slot:slot});
+    moveSlots(info).forEach(function(slot){var zone=document.createElement('div');zone.className='omni-element-dropzone'+(slot.position==='into'?' is-container':'');zone.setAttribute('data-element-drop-anchor',slot.anchor);zone.setAttribute('data-element-drop-position',slot.position);zone.setAttribute('data-element-drop-flow',slot.horizontal?'row':'column');zone.title=slot.label;layer.appendChild(zone);elementDrag.zones.push({node:zone,slot:slot});
       zone.addEventListener('dragover',function(e){if(!elementDrag)return;e.preventDefault();e.stopPropagation();e.dataTransfer.dropEffect='move';elementDrag.y=e.clientY;$$('.omni-element-dropzone.is-over').forEach(function(node){node.classList.remove('is-over');});zone.classList.add('is-over');});
       zone.addEventListener('dragleave',function(){zone.classList.remove('is-over');});zone.addEventListener('drop',function(e){if(!elementDrag)return;e.preventDefault();e.stopPropagation();var source=elementDrag.info;clearElementDrag();moveElement(source,slot);});
     });positionElementZones();
