@@ -2,6 +2,8 @@
 (function(){
   'use strict';
   var help = {
+    'Remove':'Hide this element for visitors after publishing. Restore or Undo brings it back without losing its content.',
+    'Restore':'Show this element again. Publish when you are ready for visitors to see it.',
     'Website name':'The business name shown in the website header and other shared contact areas.',
     'Contact email':'The public address visitors can contact. New-enquiry notification recipients are managed separately in Enquiry emails.',
     'Phone':'The number visitors see and call when they tap a phone link. Include the country code.',

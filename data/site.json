@@ -64,5 +64,6 @@
   "engines": null,
   "enginesAz": null,
   "industries": null,
-  "industriesAz": null
+  "industriesAz": null,
+  "hiddenElements": []
 }

@@ -119,9 +119,78 @@
     styleTag('omni-custom-css').textContent = design.customCss || '';
   }
 
+  var sharedElements = '#site-header, #site-footer, #cookieBanner, .mega, .drawer';
+  var editorChrome = '.omni-bar,.omni-panel,.omni-dialog,.omni-action-sheet,.omni-mini-tools,.omni-element-tools,.omni-section-tools,.omni-item-tools,.omni-collection-tools,.omni-touch-menu,.omni-image-action,.omni-item-toolbar';
+  function hideTargetFor(el){
+    if (!el || el.matches('main') || el.closest(editorChrome)) return null;
+    var field = el.closest('.field,.checkfield');
+    if (field) return field;
+    var link = el.closest('a');
+    if (link && link.parentElement.matches('li')) return link.parentElement;
+    if (el.closest('.faq-q')) return el.closest('.faq-item') || el.closest('.faq-q');
+    if (el.closest('.dropdown-static')) return el.closest('.dropdown-static');
+    if (el.matches('.stat-fig,.stat-lab')) return el.closest('.stat') || el.parentElement;
+    var target = el.closest('.btn,button,a,li,.stat,.card,.chip,figure,.pstep,dt,dd,.faq-item,p,h1,h2,h3,h4,h5,h6,.eyebrow,.label,.footnote,.micro,.breadcrumb,[data-image-shell]') || el;
+    // Containers with independent copy must not swallow their other contents.
+    if (target !== el && target.matches('.card,.pstep,.faq-item,p,.breadcrumb') &&
+        Array.prototype.some.call(target.querySelectorAll('[data-i18n],[data-hide-key]'), function(other){return other !== el && !el.contains(other);})) return el;
+    return target;
+  }
+  function removalProtection(el){
+    if (!el) return 'This element is part of the editor';
+    function includes(selector){return el.matches(selector) || !!el.closest(selector) || !!el.querySelector(selector);}
+    if (includes('.mark')) return 'The site name links home';
+    if (includes('h1')) return 'Every page needs a headline — edit it instead';
+    if (includes('.lang-switch,[data-lang]')) return 'Visitors need it to change language';
+    if (includes('#cookieBanner button,#cookiePrefsLink,[data-cookie-prefs]')) return 'Required by the consent setting';
+    if (includes('form input[name="name"],form input[name="email"],form input[name="consent"],form button[type="submit"]')) return 'Required to receive enquiries';
+    return '';
+  }
+  function elementRemovalInfo(el){
+    if (!el || el.closest(editorChrome)) return null;
+    var source = el.closest('[data-i18n],[data-hide-key]');
+    if (!source || source.matches('input,select,option,textarea,main')) return null;
+    var field = source.closest('.field');
+    if (field) source = field.querySelector('label [data-i18n],label[data-i18n]') || source;
+    var chip = source.closest('.chip,.dropdown-static');
+    if (chip && source.getAttribute('data-i18n') === 'availability.pageSoon') source = chip.querySelector('[data-i18n^="industries."]') || source;
+    var key = source.getAttribute('data-hide-key') || source.getAttribute('data-i18n');
+    var shared = !!source.closest(sharedElements) || /^(engines\.|industries\.)/.test(key);
+    var target = hideTargetFor(source);
+    return target ? {source:source,target:target,id:(shared?'*':pageKey())+':'+key,reason:removalProtection(target)} : null;
+  }
+  function applyHiddenElements(cfg){
+    cfg = cfg || site;
+    if (!document.body) return;
+    // Collection fields are rendered from data, so assign their stable keys here.
+    document.querySelectorAll('[data-field],[data-field-plain],[data-collection-field],[data-collection-plain],[data-item-image],[data-item-meta]').forEach(function(el){
+      var item=el.closest('[data-collection-id]'),context=window.OMNI_ITEM;
+      var id=item?item.getAttribute('data-collection-id'):context&&context.item.id;
+      var type=item?item.getAttribute('data-collection-type'):context&&context.type;
+      if(!id||!type)return;
+      var field=el.getAttribute('data-field')||el.getAttribute('data-field-plain')||el.getAttribute('data-collection-field')||el.getAttribute('data-collection-plain')||(el.hasAttribute('data-item-image')?'image':'meta');
+      var target=el.hasAttribute('data-item-image')?(el.closest('[data-image-shell]')||el):el;
+      target.setAttribute('data-hide-key','collection.'+type+'.'+id+'.'+field);
+    });
+    document.querySelectorAll('[data-omni-hidden-element]').forEach(function(el){el.removeAttribute('data-omni-hidden-element');el.removeAttribute('data-omni-removed-label');});
+    var hidden = cfg.hiddenElements || [];
+    document.querySelectorAll('[data-i18n],[data-hide-key]').forEach(function(el){
+      var info = elementRemovalInfo(el);
+      if (!info || info.reason || hidden.indexOf(info.id)<0) return;
+      var target = info.target;
+      if (!target.hasAttribute('data-omni-hidden-element')) {
+        var display = getComputedStyle(target).display;
+        target.style.setProperty('--omni-element-display', display === 'none' ? 'block' : display);
+      }
+      target.setAttribute('data-omni-hidden-element',info.id);
+      target.setAttribute('data-omni-removed-label','Removed · click ↺ to restore'+(info.id.charAt(0)==='*'?' · on every page':''));
+    });
+  }
+
   function applyLayout(cfg){
     cfg = cfg || site;
     if (!document.body) return;
+    applyHiddenElements(cfg);
     var page = pageKey();
     var sectionOrder = (cfg.sectionOrder && cfg.sectionOrder[page]) || [];
     var main = document.querySelector('main');
@@ -353,6 +422,9 @@
     flags: function(){ return flags(site); },
     applyDesign: applyDesign,
     applyLayout: applyLayout,
+    applyHiddenElements: applyHiddenElements,
+    hideTargetFor: hideTargetFor,
+    elementRemovalInfo: elementRemovalInfo,
     applyImages: applyImages,
     applyCollections: applyCollections,
     applyItem: applyItem,
@@ -372,7 +444,7 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ applyDesign(site); applyPageMeta(); applyCollections(site); applyLayout(site); applyImages(site); });
     else { applyDesign(site); applyPageMeta(); applyCollections(site); applyLayout(site); applyImages(site); }
     document.addEventListener('omni:partials-ready', function(){ applyCollections(site);applyLayout(site);applyImages(site); });
-    document.addEventListener('omni:i18n-applied', function(){ applyCollections(site);applyImages(site); });
+    document.addEventListener('omni:i18n-applied', function(){ applyCollections(site);applyImages(site);applyHiddenElements(site); });
   }
 
   /* live preview from the admin dashboard (same origin only) */

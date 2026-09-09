@@ -267,6 +267,7 @@ async function main(){
     structured: { orgLegalName: 'OmniMark LLC', orgLogoUrl: 'javascript:bad', articleAuthor: 'Priya Anand',
       articleDatePublished: '2026-09-01', articleDateModified: 'not-a-date', jobTitle: 'Draft role' },
     hiddenSections: ['index.s3'],
+    hiddenElements: ['index:home.hero.micro', '*:unknown.future-key', 'index:home.hero.micro'],
     sectionOrder: { index: ['index.s2', 'index.s1'], about: Array.from({ length: 70 }, (_, i) => 'about.s' + i) },
     sectionAccent: { 'index.s1': 3, low: 0, high: 6, text: 'x' },
     itemOrder: { 'index.cases': ['c2', 'BAD', 'c1', 'c2'], 'bad/list': ['c1'] },
@@ -288,6 +289,11 @@ async function main(){
   r = await req('PUT', '/api/site', cfg, { admin: true });
   check('PUT site ok', r.status === 200 && r.json && r.json.ok, r.text);
   const saved = r.json && r.json.site;
+  check('element keys deduplicate and preserve keys from unknown pages', saved.hiddenElements.join(',') === 'index:home.hero.micro,*:unknown.future-key');
+  for (const hiddenElements of ['index:bad', ['bad'], ['INDEX:key'], ['index:<script>'], Array(401).fill('index:key')]){
+    const invalid = await req('PUT','/api/site',{...cfg,hiddenElements},{admin:true});
+    check('invalid hiddenElements rejected: '+(Array.isArray(hiddenElements)?hiddenElements.length+' entries':typeof hiddenElements),invalid.status===400&&invalid.json.field==='hiddenElements',invalid.text);
+  }
   check('validation: bad token key dropped, CSS-breaking value kept as opaque string', saved && !('bad key' in saved.design.tokens) && saved.design.tokens['--signal'] === '#ff0000');
   check('validation: features merged with defaults', saved && saved.features.customCursor === false && saved.features.reveal === true);
   check('validation: font and motion presets map to runtime fields', saved && saved.design.fontPreset === 'sora-dmsans' && saved.design.fontDisplay === 'Sora' &&
@@ -357,13 +363,14 @@ async function main(){
   const draftCfg = JSON.parse(JSON.stringify(r.json));
   draftCfg.i18n.en['home.hero.h1'] = 'Draft headline';
   draftCfg.hiddenSections = ['index.s3', 'index.s4'];
+  draftCfg.hiddenElements.push('*:nav.insights');
   r = await req('PUT', '/api/draft', draftCfg, { admin: true });
   check('PUT draft validates and saves atomically', r.status === 200 && r.json.ok && !!r.json.savedAt && fs.existsSync(path.join(TMP, 'data', 'draft.json')), r.text);
   r = await req('GET', '/api/draft');
   check('GET draft returns draft and live', r.status === 200 && r.json.draft.i18n.en['home.hero.h1'] === 'Draft headline' && r.json.live.i18n.en['home.hero.h1'] !== 'Draft headline');
   r = await req('POST', '/api/publish', undefined, { admin: true });
   check('publish promotes draft and returns categorized summary', r.status === 200 && r.json.site.i18n.en['home.hero.h1'] === 'Draft headline' &&
-    r.json.summary.texts === 1 && r.json.summary.sections >= 1 && typeof r.json.summary.design === 'number', r.text);
+    r.json.summary.elements === 1 && r.json.summary.texts === 1 && r.json.summary.sections >= 1 && typeof r.json.summary.design === 'number', r.text);
   r = await req('GET', '/api/draft');
   check('publish removes the draft', r.status === 200 && r.json.draft === null && !fs.existsSync(path.join(TMP, 'data', 'draft.json')));
   r = await req('POST', '/api/publish', undefined, { admin: true });
@@ -435,8 +442,16 @@ async function main(){
   const formMailStart = sentMail.length;
   r = await req('POST', '/api/submit', { form: 'contact', email: 'a@b.co' });
   check('submit contact enforces server-side required fields', r.status === 400 && r.json.fields.name && r.json.fields.company && r.json.fields.spend && r.json.fields.consent, r.text);
-  r = await req('POST', '/api/submit', { form: 'contact', name: 'A', email: 'a@b.co', company: 'C', spend: '$10k', consent: true, message: 'hi' });
-  check('submit contact ok', r.status === 200 && r.json.ok, r.text);
+  const formSitePath = path.join(TMP,'data','site.json'), formSiteBefore = fs.readFileSync(formSitePath,'utf8');
+  const formSite = JSON.parse(formSiteBefore);
+  formSite.hiddenElements = ['contact:home.cta.labelCompany','index:home.cta.labelSpend','contact:home.cta.labelName','contact:home.cta.labelEmail','contact:contactPage.consent','*:home.cta.labelSpend'];
+  fs.writeFileSync(formSitePath,JSON.stringify(formSite));
+  r = await req('POST','/api/submit',{form:'contact'});
+  check('protected enquiry fields stay required even with forged hidden keys',r.status===400&&r.json.fields.name&&r.json.fields.email&&r.json.fields.consent,r.text);
+  check('only the matching live page field becomes optional',!r.json.fields.company&&r.json.fields.spend,r.text);
+  r = await req('POST', '/api/submit', { form: 'contact', name: 'A', email: 'a@b.co', spend: '$10k', consent: true, message: 'hi' });
+  check('submit contact accepts an omitted field hidden in live configuration', r.status === 200 && r.json.ok, r.text);
+  fs.writeFileSync(formSitePath,formSiteBefore);
   r = await req('POST', '/api/submit', { form: 'newsletter', email: 'NEWS@EXAMPLE.TEST' });
   check('submit newsletter ok', r.status === 200 && r.json.ok, r.text);
   r = await req('POST', '/api/submit', { form: 'newsletter', email: 'not-an-email' });

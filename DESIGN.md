@@ -190,6 +190,11 @@ Small industry chips reserve a separate column for their actions menu and use
 that menu for moving/removing items. Logo slots wrap into a stationary list in
 edit mode, with a labelled image button below each logo. Controls never cover
 the chip text or logo; the public marquee keeps its original layout.
+Element selection uses the same neutral toolbar language and existing action
+sheet on phones. Remove/Restore extends the faded hidden-section appearance
+with a dashed outline and written badge. The selection toolbar sits above the
+target on desktop and above the bottom dock on phones; it does not cover small
+item labels. A first click selects; Edit text or a second click edits.
 Movement actions use written Move up/down labels. The desktop toolbar keeps
 page, language, undo/redo, preview, enquiries, settings and review visible;
 occasional actions live in More, and maintenance is disclosed in Account.

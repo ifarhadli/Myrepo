@@ -51,6 +51,42 @@ async function main(){
  check('logo image action opens the correct image slot',await ev(`window.OmniEditor.getState().mediaContext.key==='index.logos.l1'&&!!document.querySelector('[data-media-panel]')`));
  await click('.omni-panel__close');await view();
  await api('POST','login',{password:PW});
+ // Publish the mobile removal journey, then restore its previous version.
+ await view(390,844);
+ await click('[data-i18n="home.hero.micro"]');
+ await click('.omni-element-tools [data-element-actions]');
+ check('mobile element sheet offers Remove',await ev(`document.querySelector('.omni-action-sheet__body button').textContent==='Remove'`));
+ await click('.omni-action-sheet__body button');
+ await click('.omni-element-tools [data-element-actions]');
+ check('mobile element sheet offers Restore after removal',await ev(`document.querySelector('.omni-action-sheet__body button').textContent==='Restore'`));
+ await click('[data-action-sheet-close]');
+ await ev(`document.querySelector('[data-i18n="home.hero.micro"]').scrollIntoView({block:'center',behavior:'instant'})`);await shot('element-removed-mobile');
+ check('mobile removed state and toolbar fit the viewport',await ev(`document.documentElement.scrollWidth<=innerWidth&&document.querySelector('.omni-element-tools').getBoundingClientRect().right<=innerWidth`));
+ for(const key of ['home.hero.ctaPrimary','home.hero.ctaSecondary']){await click('[data-i18n="'+key+'"]');await click('.omni-element-tools [data-element-remove]');}
+ check('removing button text hides the entire button',await ev(`[...document.querySelectorAll('.hero .btn-row .btn')].every(el=>el.hasAttribute('data-omni-hidden-element'))`));
+ await click('#site-header .topnav [data-i18n="nav.insights"]');await click('.omni-element-tools [data-element-remove]');
+ check('shared menu removal marks all copies in the editor',await ev(`[...document.querySelectorAll('[data-i18n="nav.insights"],[data-hide-key="nav.insights"]')].every(el=>el.closest('[data-omni-hidden-element]'))`));
+ await click('[data-editor-mobile-publish]');await click('[data-dialog-confirm]');await until(()=>ev(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-mobile-publish]').disabled`));
+ const removalVersion=(await api('GET','history')).data[0].id;
+ await go('/index.html');
+ check('published removal hides copy, both buttons, empty button row and shared nav',await ev(`document.querySelector('[data-i18n="home.hero.micro"]').offsetParent===null&&document.querySelector('.hero .btn-row').offsetParent===null&&[...document.querySelectorAll('[data-i18n="nav.insights"],[data-hide-key="nav.insights"]')].every(el=>el.offsetParent===null)&&document.documentElement.scrollWidth<=innerWidth`));
+ await go('/contact.html?edit=1','!!window.OmniEditor');
+ await click('[data-i18n="home.cta.labelEmail"]');
+ check('email field removal is disabled with its enquiry reason',await ev(`document.querySelector('[data-element-remove]').disabled&&document.querySelector('[data-element-remove]').title==='Required to receive enquiries'`));
+ await click('[data-i18n="home.cta.labelCompany"]');await click('.omni-element-tools [data-element-remove]');
+ check('unpublished company removal does not weaken server validation',(await api('POST','submit',{form:'contact',name:'Visitor',email:'test@example.test',spend:'1000',consent:true})).status===400);
+ await click('[data-editor-mobile-publish]');await click('[data-dialog-confirm]');await until(()=>ev(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-mobile-publish]').disabled`));
+ await go('/contact.html');
+ check('published company removal hides the complete field',await ev(`document.querySelector('#c-company').closest('.field').offsetParent===null`));
+ await fill('#c-name','Removal test');await fill('#c-email','removal@example.test');await ev(`document.querySelector('#c-spend').selectedIndex=1;document.querySelector('[name="consent"]').checked=true;`);await click('form[data-form="contact"] button[type="submit"]');
+ await until(()=>ev(`document.querySelector('#contactSuccess').classList.contains('show')`));
+ check('public enquiry submits without the hidden Company field',(await api('GET','submissions')).data.some(item=>item.fields.name==='Removal test'&&!item.fields.company));
+ const submissions=(await api('GET','submissions')).data;for(const item of submissions)await api('DELETE','submissions/'+item.id);
+ const historyRestore=await api('POST','history/'+removalVersion+'/restore',{draftRevision:0});check('history restore request succeeds',historyRestore.status===200,historyRestore);
+ await go('/index.html?edit=1','!!window.OmniEditor');
+ check('History restores removed elements into the existing draft',await ev(`!(window.OmniEditor.getState().draft.hiddenElements||[]).length&&!document.querySelector('[data-i18n="home.hero.micro"]').hasAttribute('data-omni-hidden-element')`),await ev(`({draft:window.OmniEditor.getState().draft.hiddenElements,local:window.OmniEditor.getState().recoveryConflict,mark:document.querySelector('[data-i18n="home.hero.micro"]').getAttribute('data-omni-hidden-element')})`));
+ await click('[data-editor-mobile-publish]');await click('[data-dialog-confirm]');await until(()=>ev(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-mobile-publish]').disabled`));
+ await view();
  await go('/admin-advanced.html',`!document.querySelector('#app').hidden`);
 
  const baseline=(await api('GET','site')).data;

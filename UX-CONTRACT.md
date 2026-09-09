@@ -15,6 +15,41 @@ No external business policy is maintained in this repository yet. `README.md` do
 
 ## Visual contract
 
+### Removing elements
+
+`hiddenElements` extends the existing hidden-section draft/layout pattern; it
+uses the same commit, Undo/Redo, save, Publish and History operations. No separate
+storage or removal endpoint exists. The `elements` summary counts changed keys.
+Removal is reversible visibility, including catalogue items; content is retained.
+
+`OmniSite.hideTargetFor` owns target resolution for both runtime and editor:
+whole fields, buttons, bullet links and image shells go together; independent
+paragraphs/headings stay independent. Multi-copy containers fall back to the
+keyed child when removing them would swallow unrelated copy. FAQ question
+controls own their FAQ item, and stat values/labels own their stat unit.
+Empty public button rows collapse. Hidden fields are omitted from client
+validation/payloads; the server uses published configuration to make only
+Company/Spend optional, with exact form/page scope. Other optional fields
+already require no server value.
+
+Page content uses `<page>:<key>`; partials and shared catalogue keys use `*`.
+Catalogue keys are shared even in the home/services accordions. Footer links
+retain their translation keys but alias matching `nav.*` removal keys. Reordering
+catalogue items remaps removal indices so the removed content stays removed.
+Both languages share the same visibility. Unknown valid keys are retained.
+
+Protected targets include the wordmark, language switch, cookie buttons and
+Cookie Preferences, page H1, and form name/email/consent/submit controls, including
+containers that would remove those controls. Remove is disabled with a reason.
+Editor chrome and the main container cannot be selected for removal.
+
+Click selects; Edit text or a second click enters text editing. Selected elements
+expose Remove/Restore in the existing toolbar/action-sheet style. Outside text
+entry, Delete/Backspace removes and Escape deselects; IME and form inputs retain
+their normal keys. Removed elements remain faded with an explanatory badge in
+edit mode. Actions announce results through the existing live region. A
+dismissible explanation uses `omni-hint-remove` in localStorage.
+
 - `DESIGN.md` records the visual system and accepted brand direction.
 - `css/style.css` owns public runtime tokens; `css/editor.css` and
   `css/admin.css` own deliberately independent authenticated control systems.

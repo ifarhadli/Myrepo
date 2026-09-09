@@ -10,6 +10,7 @@ The findings below were verified against the source and screenshots, then addres
 
 | Finding | Status | Where |
 |---|---|---|
+| Single elements not removable | **Fixed** — reversible Remove/Restore for keyed content, whole controls, shared menu/catalogue copies and optional form fields; protected controls explain why; existing draft, Undo, Publish and History retained | `js/site-config.js`, `js/editor.js`, `server.js`, browser/server regressions |
 | P0-1 Desktop mega-menu off-screen | **Fixed** — panel now positions from the header (`.nav-item.has-mega{position:static}`); measures 253–1173 px at 1440 | `css/style.css`, `js/partials.js` |
 | P0-2 Consent UI only on homepage | **Fixed** — banner rendered by `partials.js` on every page; analytics gating now site-wide | `js/partials.js`, `index.html` |
 | P0-3 Mobile header overflow | **Fixed** — Contact drops out of the bar ≤600 px (kept in drawer); 390 px, no overflow | `css/style.css` |

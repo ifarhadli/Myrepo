@@ -266,6 +266,16 @@ html.omni-editing .logo-chip[data-image-shell]{display:flex;flex-direction:colum
 html.omni-editing .logo-chip[data-image-shell]>.omni-image-action{position:static;transform:none;width:auto;height:auto;min-height:44px;padding:0 12px;font-size:12px;opacity:1;visibility:visible}
 html.omni-editing .logo-chip[data-image-shell]>.omni-image-action::before{content:none}
 
+/* Element removal extends the faded, restorable section state. */
+html.omni-editing [data-omni-hidden-element]{display:var(--omni-element-display,block)!important;opacity:.4!important;outline:1px dashed var(--oe-violet);outline-offset:3px;position:relative}
+html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-removed-label);display:block;width:fit-content;max-width:100%;margin-top:6px;padding:3px 6px;border:1px dashed var(--oe-violet);border-radius:4px;background:var(--oe-surface,#faf9f6);color:var(--oe-ink);font:500 11px/1.4 Inter,sans-serif;white-space:normal}
+.omni-element-tools{position:fixed;z-index:calc(var(--oe-sheet) - 10);display:flex;flex-wrap:wrap;gap:6px;max-width:min(420px,calc(100vw - 16px));padding:7px;border:1px solid var(--oe-line);border-radius:8px;background:var(--oe-ink);color:#fff;box-shadow:0 8px 24px #0003;font:400 12px/1.5 Inter,sans-serif}
+.omni-element-tools button{min-height:36px;padding:6px 10px;border:1px solid #ffffff40;border-radius:5px;background:transparent;color:inherit;cursor:pointer;font:600 12px/1.4 Inter,sans-serif}
+.omni-element-tools button:hover:not(:disabled){background:#ffffff20}.omni-element-tools button:disabled{opacity:.5;cursor:not-allowed}
+.omni-element-tools button:focus-visible{outline:2px solid var(--oe-signal);outline-offset:2px}
+.omni-remove-hint{display:flex;align-items:center;gap:8px;width:100%;padding-top:5px;border-top:1px solid #ffffff30}.omni-remove-hint span{flex:1}.omni-remove-hint button{flex:none}
+@media(max-width:700px){.omni-element-tools button{min-height:44px}.omni-element-tools{max-width:none}.omni-mini-tools{flex-wrap:wrap}}
+
 /* Owner editing: one selected object and one primary image action. */
 .omni-field-help{display:block;margin:7px 0 0;color:var(--oe-muted);font:400 12px/1.55 Inter,sans-serif;max-width:100%;white-space:normal}
 .omni-selected{outline:2px solid var(--oe-violet);outline-offset:3px}
@@ -291,3 +301,5 @@ html.omni-editing .logo-chip[data-image-shell]>.omni-image-action::before{conten
   .omni-bar__desktop [data-editor-design],.omni-bar__desktop [data-editor-media],.omni-bar__desktop [data-editor-users],.omni-bar__desktop [data-editor-phone],.omni-bar__desktop [data-editor-history],.omni-bar__desktop [data-editor-discard]{display:none}
   .omni-bar__desktop [data-editor-preview],.omni-bar__desktop .omni-bar__more{display:inline-flex}
 }
+
+@media(max-width:700px){body:has(.omni-element-tools)>.omni-toast{bottom:calc(82px + var(--omni-element-toolbar-height,120px))}}

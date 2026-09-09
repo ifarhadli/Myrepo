@@ -66,8 +66,8 @@
     }).join('');
     return '<div class="mega" role="group" aria-label="Services">'+
       '<div class="mega-grid">'+cols+'</div>'+
-      '<div class="mega-rail">'+
-        '<div class="thumb" data-image-shell><img class="slot-image" data-image="mega.featured" data-sizes="120px" alt="" hidden></div>'+
+      '<div class="mega-rail" data-hide-key="mega.featuredCaseBlock">'+
+        '<div class="thumb" data-image-shell data-hide-key="mega.featured"><img class="slot-image" data-image="mega.featured" data-sizes="120px" alt="" hidden></div>'+
         '<div class="txt"><span class="tag" data-i18n="mega.featuredCase">Featured case</span><h6 data-i18n="mega.featuredHeadline" data-i18n-html>3.4&times; qualified pipeline in two quarters</h6><p><span data-i18n="mega.featuredSub">B2B SaaS · Series B</span> &middot; <a href="case-study.html" style="color:inherit;text-decoration:underline" data-i18n="mega.readCase" data-i18n-html>Read the case &rarr;</a></p></div>'+
         '<a class="btn btn-ghost all-services" href="services.html" data-i18n="mega.allServices" data-i18n-html>All services &rarr;</a>'+
       '</div>'+
@@ -139,7 +139,7 @@
 
   function langSwitch(long){
     if (features.langSwitch === false) return '';
-    return '<div class="lang-switch" role="group" aria-label="Language">'+
+    return '<div class="lang-switch" data-hide-key="shared.language" role="group" aria-label="Language">'+
       '<button data-lang="en" aria-pressed="true">'+(long?'English':'EN')+'</button>'+
       '<button data-lang="az" aria-pressed="false">'+(long?'Azərbaycan':'AZE')+'</button>'+
     '</div>';
@@ -150,7 +150,7 @@
   '<div class="drawer-scrim" id="drawerScrim"></div>'+
   '<nav class="topnav" aria-label="Primary">'+
     '<div class="inner">'+
-      '<a href="index.html" class="mark">'+markInner()+'</a>'+
+      '<a href="index.html" class="mark" data-hide-key="shared.wordmark">'+markInner()+'</a>'+
       '<ul class="primary-nav">'+
         '<li class="nav-item has-mega"><a href="services.html"'+isOn('services')+' aria-haspopup="true" aria-expanded="false"><span data-i18n="nav.services">Services</span> '+CARET+'</a>'+megaMenu()+'</li>'+
         '<li class="nav-item"><a href="work.html"'+isOn('work')+' data-i18n="nav.work">Work</a></li>'+
@@ -167,7 +167,7 @@
     '</div>'+
   '</nav>'+
   '<aside class="drawer" id="mobileDrawer" role="dialog" aria-modal="true" aria-label="Menu" aria-hidden="true" inert>'+
-    '<div class="drawer-top"><span class="mark">'+markInner()+'</span><button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button></div>'+
+    '<div class="drawer-top"><span class="mark" data-hide-key="shared.wordmark">'+markInner()+'</span><button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button></div>'+
     '<nav>'+
       '<ul>'+
         '<li><button class="d-link" data-toggle="d-services" aria-expanded="false" aria-controls="d-services"><span data-i18n="nav.services">Services</span> '+CARET+'</button>'+
@@ -212,7 +212,7 @@
   '<div class="wrap">'+
     '<div class="footer-top">'+
       '<div class="newsletter-block">'+
-        '<div class="mark" style="color:#fff;margin-bottom:14px">'+markInner()+'</div>'+
+        '<div class="mark" data-hide-key="shared.wordmark" style="color:#fff;margin-bottom:14px">'+markInner()+'</div>'+
         '<p style="max-width:32ch;font-size:14px" data-i18n="footer.blurb">One accountable team across the whole path to purchase — brand, media, platforms and sales.</p>'+
         newsletter+
       '</div>'+
@@ -220,22 +220,22 @@
         engines.map(function(e, idx){ return '<li><a href="'+esc(e.href)+'" data-i18n="'+engineKey(e, idx)+'.name">'+esc(e.name)+'</a></li>'; }).join('')+
       '</ul></div>'+
       '<div><h6 data-i18n="footer.colCompany">Company</h6><ul>'+
-        '<li><a href="about.html" data-i18n="footer.about">About</a></li>'+
-        '<li><a href="work.html" data-i18n="footer.work">Work</a></li>'+
-        '<li><a href="careers.html" data-i18n="footer.careers">Careers</a></li>'+
-        '<li><a href="contact.html" data-i18n="footer.contact">Contact</a></li>'+
+        '<li><a href="about.html" data-i18n="footer.about" data-hide-key="nav.about">About</a></li>'+
+        '<li><a href="work.html" data-i18n="footer.work" data-hide-key="nav.work">Work</a></li>'+
+        '<li><a href="careers.html" data-i18n="footer.careers" data-hide-key="nav.careers">Careers</a></li>'+
+        '<li><a href="contact.html" data-i18n="footer.contact" data-hide-key="nav.contact">Contact</a></li>'+
       '</ul></div>'+
       '<div><h6 data-i18n="footer.colResources">Resources</h6><ul>'+
-        '<li><a href="insights.html" data-i18n="footer.insights">Insights</a></li>'+
-        '<li><a href="index.html#industries" data-i18n="footer.industries">Industries</a></li>'+
+        '<li><a href="insights.html" data-i18n="footer.insights" data-hide-key="nav.insights">Insights</a></li>'+
+        '<li><a href="index.html#industries" data-i18n="footer.industries" data-hide-key="nav.industries">Industries</a></li>'+
         '<li><a href="geo.html" data-i18n="footer.markets">Markets</a></li>'+
         '<li><a href="services.html" data-i18n="footer.allServices">All services</a></li>'+
       '</ul></div>'+
       '<div><h6 data-i18n="footer.colConnect">Connect</h6><ul>'+
-        '<li><a href="mailto:'+esc(email)+'" data-site="email">'+esc(email)+'</a></li>'+
-        '<li><a href="tel:'+esc(phoneHref)+'" data-site="phone">'+esc(phone)+'</a></li>'+
-        '<li><a href="'+esc(linkedin)+'" target="_blank" rel="noopener">LinkedIn</a></li>'+
-        '<li style="color:var(--panel-muted)" data-site="address">'+esc(address)+'</li>'+
+        '<li><a href="mailto:'+esc(email)+'" data-site="email" data-hide-key="shared.email">'+esc(email)+'</a></li>'+
+        '<li><a href="tel:'+esc(phoneHref)+'" data-site="phone" data-hide-key="shared.phone">'+esc(phone)+'</a></li>'+
+        '<li><a href="'+esc(linkedin)+'" target="_blank" rel="noopener" data-hide-key="shared.linkedin">LinkedIn</a></li>'+
+        '<li style="color:var(--panel-muted)" data-site="address" data-hide-key="shared.address">'+esc(address)+'</li>'+
       '</ul></div>'+
     '</div>'+
     '<div class="footer-legal">'+
@@ -246,7 +246,7 @@
         (features.cookieBanner === false ? '' : '<button type="button" id="cookiePrefsLink" data-i18n="footer.cookiePrefs">Cookie Preferences</button>')+
       '</div>'+
     '</div>'+
-    '<div class="footer-word" aria-hidden="true">'+esc(settings.siteName || 'OmniMark')+'</div>'+
+    '<div class="footer-word" data-hide-key="shared.footerWord" aria-hidden="true">'+esc(settings.siteName || 'OmniMark')+'</div>'+
   '</div>';
 
   /* In-page contact details: <a data-site="email">, <span data-site="phone">,

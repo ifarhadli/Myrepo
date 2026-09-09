@@ -63,9 +63,13 @@ window.OMNI_SITE = {
   },
   "hiddenSections": [],
   "pages": {},
-  "i18n": { "en": {}, "az": {} },
+  "i18n": {
+    "en": {},
+    "az": {}
+  },
   "engines": null,
   "enginesAz": null,
   "industries": null,
-  "industriesAz": null
+  "industriesAz": null,
+  "hiddenElements": []
 };

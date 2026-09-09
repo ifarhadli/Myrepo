@@ -90,7 +90,7 @@ const DEFAULT_SITE = {
   analytics: { gaId: '', consentScript: '' },
   structured: { orgLegalName: '', orgLogoUrl: '', articleAuthor: '', articleDatePublished: '', articleDateModified: '',
     jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
-  hiddenSections: [], sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
+  hiddenSections: [], hiddenElements: [], sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
   pages: {}, i18n: { en: {}, az: {} },
   engines: null, enginesAz: null, industries: null, industriesAz: null,
   collections: null
@@ -471,6 +471,13 @@ function validateSite(input){
     site.structured.jobEmploymentType = ['FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER'].includes(employment) ? employment : '';
   }
   site.hiddenSections = cleanStrArray(input.hiddenSections, 500) || [];
+  if (input.hiddenElements !== undefined){
+    if (!Array.isArray(input.hiddenElements) || input.hiddenElements.length > 400 ||
+        input.hiddenElements.some(key => typeof key !== 'string' || !/^(\*|[a-z0-9-]{1,40}):[a-zA-Z0-9._-]{1,120}$/.test(key))){
+      const error = new Error('Hidden elements must contain at most 400 valid element keys.'); error.field = 'hiddenElements'; throw error;
+    }
+    site.hiddenElements = Array.from(new Set(input.hiddenElements));
+  }
   if (isPlain(input.sectionOrder)) for (const page of Object.keys(input.sectionOrder)){
     if (!/^[a-z0-9-]{1,60}$/i.test(page) || !Array.isArray(input.sectionOrder[page])) continue;
     site.sectionOrder[page] = Array.from(new Set(input.sectionOrder[page]
@@ -543,6 +550,8 @@ function diffCount(before, after){
 function publishSummary(before, after){
   return {
     texts: diffCount(before.i18n || {}, after.i18n || {}),
+    elements: (before.hiddenElements || []).filter(key => !(after.hiddenElements || []).includes(key)).length +
+      (after.hiddenElements || []).filter(key => !(before.hiddenElements || []).includes(key)).length,
     sections: diffCount({ order: before.sectionOrder || {}, hidden: before.hiddenSections || [], accent: before.sectionAccent || {} },
       { order: after.sectionOrder || {}, hidden: after.hiddenSections || [], accent: after.sectionAccent || {} }),
     items: diffCount({ order: before.itemOrder || {}, hidden: before.hiddenItems || [], collections: before.collections },
@@ -956,7 +965,11 @@ function submissionErrors(form, fields){
   };
   if (!rules[form]) return null;
   const errors = {};
+  const hidden = loadSite().hiddenElements || [];
+  const scope = form === 'contact' ? 'contact' : form === 'teardown' ? 'index' : '*';
+  const optionalKeys = { company: 'home.cta.labelCompany', spend: 'home.cta.labelSpend' };
   for (const field of rules[form]){
+    if (optionalKeys[field] && hidden.includes(scope + ':' + optionalKeys[field])) continue;
     if (field === 'consent'){
       if (fields[field] !== 'true') errors[field] = 'consent required';
     } else if (!String(fields[field] || '').trim()) errors[field] = 'required';

@@ -227,6 +227,7 @@
         var valid = true, firstBad = null;
         form.querySelectorAll('[required]').forEach(function(input){
           var field = input.closest('.field') || input.parentElement;
+          if (field.closest('[data-omni-hidden-element]')) {field.classList.remove('error');input.removeAttribute('aria-invalid');return;}
           var ok = input.type === 'checkbox' ? input.checked : input.value.trim().length > 0;
           if(input.type === 'email' && ok){ ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value); }
           field.classList.toggle('error', !ok);
@@ -252,7 +253,7 @@
           page: location.pathname
         };
         Array.prototype.forEach.call(form.elements, function(el){
-          if(!el.name || el.disabled) return;
+          if(!el.name || el.disabled || el.closest('[data-omni-hidden-element]')) return;
           payload[el.name] = el.type === 'checkbox' ? el.checked : el.value;
         });
         if(btn){ btn.classList.add('btn-loading'); btn.disabled = true; }

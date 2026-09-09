@@ -58,12 +58,24 @@ Script order on every page: `data/site.js` + `js/site-config.js` in `<head>`
 ## Editing the site
 
 Sign in at `/admin`. After login you land on the real homepage with a thin
-editor bar. Click visible text to edit it, switch between EN and AZ in the
+editor bar. Click an element to select it, then choose **Edit text** (or click
+the selected text again) to edit it. Switch between EN and AZ in the
 bar, and select a section to hide, recolour or reorder it.
 Reorder or remove supported cards in place; service and industry catalogue
 items can also be added. **Design** offers Original, Calm and Editorial presets, plus Reset design.
 Individual colour and font controls stay outside everyday editing. **Phone** previews the current
 page in a contained 390 px layout.
+
+**Removing elements:** select text, a button, bullet, image, stat or other
+content and choose **Remove**. This hides it for visitors after **Publish**;
+it stays faded and labelled in the editor. **Restore**, **Undo**, and published
+**History** bring it back without losing content. Button text removes the whole
+button, and a form label removes its whole field. Name, email, consent and
+submit controls, the site wordmark, language switch, cookie controls and page
+headline are protected; the disabled Remove button explains why. Shared menu
+links and catalogue entries are removed wherever they appear, in both languages.
+Delete/Backspace removes the selected element outside text entry; Escape clears
+selection. On phones, **Actions** offers the same Remove/Restore choices.
 
 On screens up to 700 px, edit mode becomes a thumb-reachable bottom dock with
 **Undo**, **Review changes**, and **More**. More opens the page switcher, EN/AZ,
