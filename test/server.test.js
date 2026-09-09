@@ -667,6 +667,8 @@ async function main(){
   r = await req('GET', '/api/history', undefined, { cookie: editorCookie, captureCookie: false });
   check('published history records the responsible user', r.status === 200 && r.json[0].by && r.json[0].by.id === editorId && r.json[0].by.role === 'editor', r.text.slice(0, 240));
 
+  await require('./owner-controls-server')({req,check,adminCookie,editorCookie});
+
   r = await req('PATCH', '/api/users/' + ownerId, { role: 'editor' }, { admin: true, cookie: adminCookie, captureCookie: false });
   check('an Admin cannot change their own role or remove the last-admin guard', r.status === 409);
   r = await req('PATCH', '/api/users/' + editorId, { role: 'admin' }, { admin: true, cookie: adminCookie, captureCookie: false });

@@ -431,6 +431,24 @@ Table selection and date-picker ownership are omitted because the editor has nei
 
 ## Verification
 
+### Owner website controls
+
+- Services is a direct link on desktop and mobile. Its catalogue remains editable
+  on the Services page; navigation does not expose a Services dropdown.
+- Settings → Website details owns public English availability, logo and
+  under-construction mode, with linked explanations and the existing draft,
+  Undo and Publish flow. English availability is independent of editing language:
+  disabling it forces public Azerbaijani and hides the public switch without
+  deleting English content. Admin can re-enable it later.
+- The website logo reuses `images['shared.logo']` and the image library's upload,
+  metadata, assignment and reference protection. Header, mobile menu, footer and
+  construction page contain the complete logo without cropping. Removing its
+  assignment restores the business name. Selecting the brand offers Change logo.
+- Published under-construction mode returns a temporary Azerbaijani page for
+  public document routes. Login, authenticated editing and signed private previews
+  remain available. Draft changes alone never close the live site. Publish with
+  the toggle off to reopen. English and availability settings require Admin.
+
 - Static: `npm run check` and the premium strict audit.
 - Integration: `npm test` covers configuration, validation, persistence,
   notification, migration, role, conflict and preview checks.

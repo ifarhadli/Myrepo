@@ -302,6 +302,10 @@ html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-remov
 .omni-image-flow button{min-height:40px;padding:8px 12px;border:1px solid var(--oe-line);border-radius:7px;background:#fff;color:var(--oe-ink);cursor:pointer}
 .omni-image-edit .omni-dropzone,.omni-image-edit .omni-media-search,.omni-image-edit .omni-media-grid{display:none}
 .omni-image-edit .omni-media-detail-preview,.omni-image-edit .omni-upload-list{display:none}
+.omni-logo-detail .omni-focal-field{display:none}
+.omni-image-edit .omni-logo-detail .omni-media-detail-preview{display:block}
+.omni-logo-detail .omni-media-detail-preview img{object-fit:contain;padding:20px}
+.omni-owner-languages{display:grid;gap:12px}
 .omni-image-edit .omni-upload-list:empty{display:none}
 .omni-primary-action{background:var(--oe-violet)!important;color:#fff!important;border-color:var(--oe-violet)!important;min-height:44px!important;padding:10px 20px!important}
 .omni-image-edit .omni-inline-actions{position:sticky;bottom:0;padding:12px 0;background:var(--oe-surface,#faf9f6);border-top:1px solid var(--oe-line)}
@@ -340,3 +344,5 @@ html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-remov
 .omni-element-dropzone.is-vertical::before{left:8px;right:auto;top:0;bottom:0;width:3px;height:auto}
 [data-element-drag]{cursor:grab!important;touch-action:none}
 html.omni-dragging .omni-element-tools{opacity:1;visibility:visible}
+
+.omni-settings .omni-switch small{color:var(--oe-muted)}

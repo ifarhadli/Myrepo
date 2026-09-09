@@ -256,6 +256,14 @@ moving a button there must preserve readable contrast.
 
 ### Iconography
 
+Website details includes owner controls for logo, public English availability
+and under-construction mode. Use the existing settings sheet and image library;
+each control explains its public effect and the need to publish. The logo uses
+contain sizing, with no crop controls or destructive brand actions. Public
+Services navigation links directly to its page on desktop and phone. A temporary
+Azerbaijani construction screen uses the existing paper, ink and simple card
+styling, retaining a brand and contact email without adding configuration fields.
+
 Icons are simple inline line symbols at the point of use. Unfamiliar and destructive actions retain visible text or a specific accessible name; icons never replace essential meaning.
 
 ### Motion

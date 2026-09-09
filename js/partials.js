@@ -138,8 +138,7 @@
   }
 
   function langSwitch(long){
-    if (features.langSwitch === false) return '';
-    return '<div class="lang-switch" data-hide-key="shared.language" role="group" aria-label="Language">'+
+    return '<div class="lang-switch"'+(features.langSwitch === false || features.englishVersion === false?' hidden':'')+' data-hide-key="shared.language" role="group" aria-label="Language">'+
       '<button data-lang="en" aria-pressed="true">'+(long?'English':'EN')+'</button>'+
       '<button data-lang="az" aria-pressed="false">'+(long?'Azərbaycan':'AZE')+'</button>'+
     '</div>';
@@ -152,7 +151,7 @@
     '<div class="inner">'+
       '<a href="index.html" class="mark" data-hide-key="shared.wordmark">'+markInner()+'</a>'+
       '<ul class="primary-nav">'+
-        '<li class="nav-item has-mega"><a href="services.html"'+isOn('services')+' aria-haspopup="true" aria-expanded="false"><span data-i18n="nav.services">Services</span> '+CARET+'</a>'+megaMenu()+'</li>'+
+        '<li class="nav-item"><a href="services.html"'+isOn('services')+' data-i18n="nav.services">Services</a></li>'+
         '<li class="nav-item"><a href="work.html"'+isOn('work')+' data-i18n="nav.work">Work</a></li>'+
         '<li class="nav-item"><a href="index.html#industries"'+isOn('industries')+' aria-haspopup="true" aria-expanded="false"><span data-i18n="nav.industries">Industries</span> '+CARET+'</a>'+industryDropdown()+'</li>'+
         '<li class="nav-item"><a href="about.html"'+isOn('about')+' data-i18n="nav.about">About</a></li>'+
@@ -170,9 +169,7 @@
     '<div class="drawer-top"><span class="mark" data-hide-key="shared.wordmark">'+markInner()+'</span><button class="drawer-close" id="drawerClose" aria-label="Close menu">&times;</button></div>'+
     '<nav>'+
       '<ul>'+
-        '<li><button class="d-link" data-toggle="d-services" aria-expanded="false" aria-controls="d-services"><span data-i18n="nav.services">Services</span> '+CARET+'</button>'+
-          '<div class="d-sub" id="d-services" inert>'+drawerServices()+'</div>'+
-        '</li>'+
+        '<li><a class="d-link" href="services.html" data-i18n="nav.services">Services</a></li>'+
         '<li><a class="d-link" href="work.html" data-i18n="nav.work">Work</a></li>'+
         '<li><a class="d-link" href="index.html#industries" data-i18n="nav.industries">Industries</a></li>'+
         '<li><a class="d-link" href="about.html" data-i18n="nav.about">About</a></li>'+

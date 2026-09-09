@@ -43,7 +43,7 @@
     'Space Mono': 'Space+Mono:wght@400;700'
   };
   var DEFAULT_FLAGS = {
-    langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false,
+    langSwitch: true, englishVersion: true, underConstruction: false, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false,
     customCursor: true, magneticButtons: true, kineticHeadlines: true,
     marquee: true, countUp: true, reveal: true
   };
@@ -363,9 +363,21 @@
     });
   }
 
+  function applyBrand(cfg){
+    cfg=cfg||site;var name=(cfg.settings&&cfg.settings.siteName)||'OmniMark',logo=(cfg.images||{})['shared.logo'],hasLogo=logo&&/^[a-f0-9]{16}$/.test(logo.id||'');
+    document.querySelectorAll('.mark').forEach(function(mark){
+      var text=mark.querySelector('[data-brand-text]'),img=mark.querySelector('[data-brand-logo]');
+      if(!text||!img){mark.textContent='';text=document.createElement('span');text.setAttribute('data-brand-text','');img=document.createElement('img');img.setAttribute('data-brand-logo','');img.className='brand-logo';mark.append(text,img);}
+      if(name==='OmniMark')text.innerHTML='Omni<span>Mark</span>';else text.textContent=name;
+      text.hidden=!!hasLogo;img.hidden=!hasLogo;
+      img.onerror=function(){img.hidden=true;text.hidden=false;};
+      if(hasLogo){img.src='/media/'+logo.id+'-480.webp';img.alt=logo.alt||name;}else{img.removeAttribute('src');img.alt='';}
+    });
+  }
   function applyImages(cfg){
     cfg = cfg || site;
     if (!document.body) return;
+    applyBrand(cfg);
     var images = cfg.images || {};
     document.querySelectorAll('[data-image]').forEach(function(el){
       var key = el.getAttribute('data-image'), value = images[key], shell = el.closest('[data-image-shell]') || el.parentElement;
@@ -562,6 +574,7 @@
     hideTargetFor: hideTargetFor,
     elementRemovalInfo: elementRemovalInfo,
     applyImages: applyImages,
+    applyBrand: applyBrand,
     applyCollections: applyCollections,
     applyItem: applyItem,
     applyData: applyData,

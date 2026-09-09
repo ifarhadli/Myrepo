@@ -85,7 +85,7 @@ const DEFAULT_SITE = {
     geoEmail: 'austin@omnimark.com', linkedin: 'https://www.linkedin.com', privacyUrl: '', termsUrl: '',
     schedulerUrl: '', ogImage: '', megaMenuLinkLimit: 4
   },
-  features: { langSwitch: true, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false, customCursor: true,
+  features: { langSwitch: true, englishVersion: true, underConstruction: false, newsletter: true, cookieBanner: true, careersButton: true, showVerifiedProof: false, customCursor: true,
     magneticButtons: true, kineticHeadlines: true, marquee: true, countUp: true, reveal: true },
   design: { tokens: {}, fontDisplay: 'Bricolage Grotesque', fontBody: 'Inter', fontMono: 'JetBrains Mono', customCss: '' },
   analytics: { gaId: '', consentScript: '' },
@@ -439,6 +439,7 @@ function validateSite(input){
   site.settings.ogImage = safeMediaValue(site.settings.ogImage);
   site.settings.schedulerUrl = /^https:\/\//i.test(site.settings.schedulerUrl || '') ? site.settings.schedulerUrl.trim() : '';
   if (isPlain(input.features)) for (const k of Object.keys(site.features)) if (k in input.features) site.features[k] = !!input.features[k];
+  if(site.features.englishVersion===false)site.settings.defaultLang='az';
   if (isPlain(input.design)){
     site.design.tokens = strMap(input.design.tokens, 200);
     for (const k of Object.keys(site.design.tokens)) if (!/^--[a-z0-9-]{1,40}$/i.test(k)) delete site.design.tokens[k];
@@ -1756,12 +1757,19 @@ function injectItemContext(html, context, cleanRoute){
 
 function unavailablePage(title, message){
   return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<meta name="robots" content="noindex,nofollow"><title>' + escapeHtml(title) + '</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f1ea;color:#0b0c10;font:16px/1.55 Inter,system-ui,sans-serif}main{width:min(520px,calc(100% - 40px));padding:32px;border:1px solid #cbc7bd;border-radius:16px;background:#fff}h1{margin:0 0 12px;font-size:28px}p{margin:0;color:#555b66}</style></head><body><main><h1>' +
+    '<meta name="robots" content="noindex,nofollow"><title>' + escapeHtml(title) + '</title><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f4f1ea;color:#0b0c10;font:16px/1.55 Inter,system-ui,sans-serif}main{width:min(520px,calc(100% - 40px));padding:32px;border:1px solid #cbc7bd;border-radius:16px;background:#fff}h1{margin:0 0 12px;font-size:28px}p{margin:0;color:#555b66}</style></head><body><main><h1>' +
     escapeHtml(title) + '</h1><p>' + escapeHtml(message) + '</p></main></body></html>';
 }
 function forceNoindex(html){
   const tag = '<meta name="robots" content="noindex,nofollow">';
   return /<meta\s+name="robots"[^>]*>/i.test(html) ? html.replace(/<meta\s+name="robots"[^>]*>/i, tag) : html.replace(/<\/head>/i, tag + '\n</head>');
+}
+function constructionPage(site){
+  const settings=site.settings||{},name=settings.siteName||'OmniMark',logo=site.images&&site.images['shared.logo'];
+  let html=unavailablePage('Saytımız yenilənir','Daha yaxşı xidmət göstərmək üçün saytımızı yeniləyirik. Tezliklə yenidən görüşəcəyik.');
+  const brand=logo&&/^[a-f0-9]{16}$/.test(logo.id)?'<img src="/media/'+logo.id+'-480.webp" alt="'+escapeHtml(name)+'" style="max-width:220px;max-height:80px;width:auto;height:auto;object-fit:contain;margin-bottom:24px">':'<p style="font-weight:700;margin-bottom:24px">'+escapeHtml(name)+'</p>';
+  const contact=settings.email?'<p style="margin-top:24px"><a href="mailto:'+escapeHtml(settings.email)+'">'+escapeHtml(settings.email)+'</a></p>':'';
+  return html.replace('lang="en"','lang="az"').replace('<main>','<main>'+brand).replace('</main>',contact+'</main>');
 }
 function injectPreview(html, draft, token){
   const draftScript = '<script>document.documentElement.classList.add("omni-preview");\n' + siteToJs(draft).replace(/^\/\*[\s\S]*?\*\/\s*/, '') + '</script>\n';
@@ -1783,9 +1791,15 @@ function serveStatic(req, res, url){
   const previewPayload = rawPreviewToken ? verifyPreviewToken(rawPreviewToken) : null;
   if (rawPreviewToken && !previewPayload) return send(res, 403, unavailablePage('Preview unavailable', 'This preview link is invalid, expired or has been revoked.'), { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
   const wantsPreview = !!previewPayload;
+  const liveSite=loadSite();
+  const publicDocument=/\.html$/i.test(pathname)||!path.extname(pathname);
+  const adminDocument=['/admin','/admin.html','/admin-advanced','/admin-advanced.html'].includes(pathname);
+  if(liveSite.features&&liveSite.features.underConstruction&&publicDocument&&!adminDocument&&!wantsEditor&&!wantsPreview){
+    return send(res,503,req.method==='HEAD'?'':constructionPage(liveSite),{'Content-Type':MIME['.html'],'Cache-Control':'no-store','Retry-After':'3600'});
+  }
   const draftRecord = (wantsEditor || wantsPreview) ? readDraft() : null;
   if (wantsPreview && !draftRecord) return send(res, 410, unavailablePage('Preview unavailable', 'This draft no longer exists. Ask the site team for a new preview link.'), { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
-  let pageSite = draftRecord ? draftRecord.draft : loadSite();
+  let pageSite = draftRecord ? draftRecord.draft : liveSite;
   let itemContext = collectionRoute(pathname);
   const cleanItemRoute = !!itemContext;
   if (itemContext){

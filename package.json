@@ -6,7 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "check": "node --check server.js && node --check js/element-rules.js && node --check js/data.js && node --check js/i18n-data.js && node --check js/i18n.js && node --check js/site-config.js && node --check js/partials.js && node --check js/main.js && node --check js/admin-fields.js && node --check js/admin.js && node --check js/login.js && node --check js/editor.js && node --check js/preview.js && node --check test/server.test.js && node --check test/browser-smoke.js && node --check test/add-element-journey.js && node --check test/move-element-journey.js",
+    "check": "node --check server.js && node --check js/element-rules.js && node --check js/data.js && node --check js/i18n-data.js && node --check js/i18n.js && node --check js/site-config.js && node --check js/partials.js && node --check js/main.js && node --check js/admin-fields.js && node --check js/admin.js && node --check js/login.js && node --check js/editor.js && node --check js/preview.js && node --check test/server.test.js && node --check test/browser-smoke.js && node --check test/add-element-journey.js && node --check test/move-element-journey.js && node --check test/owner-controls-journey.js && node --check test/owner-controls-server.js",
     "test": "npm run check && node test/server.test.js",
     "test:browser": "node test/browser-smoke.js && node test/admin-regression.js"
   },

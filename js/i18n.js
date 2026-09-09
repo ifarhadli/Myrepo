@@ -9,6 +9,8 @@
   var SUPPORTED = ['en', 'az'];
 
   function getLang(){
+    var cfg=window.OMNI_SITE||{};
+    if(cfg.features&&cfg.features.englishVersion===false&&!document.documentElement.classList.contains('omni-editing'))return 'az';
     try{
       var v = localStorage.getItem(LS_KEY);
       if (v && SUPPORTED.indexOf(v) !== -1) return v;
@@ -71,6 +73,7 @@
     if (SUPPORTED.indexOf(lang) === -1) return;
     try{ localStorage.setItem(LS_KEY, lang); }catch(e){}
     applyI18n();
+    lang=getLang();
     document.dispatchEvent(new CustomEvent('omni:lang-changed', { detail: { lang: lang } }));
   }
 
