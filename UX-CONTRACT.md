@@ -38,6 +38,28 @@ retain their translation keys but alias matching `nav.*` removal keys. Reorderin
 catalogue items remaps removal indices so the removed content stays removed.
 Both languages share the same visibility. Unknown valid keys are retained.
 
+The editor and advanced catalogue share `OmniElementRules.remapRemovedItems` /
+`remapRemovalOrder`. Deleting items or groups removes their obsolete visibility
+keys and shifts surviving keys. Resetting a catalogue matches surviving default
+labels (and group titles) so their removal is preserved; custom entries disappear
+with their removal keys. This uses the same `hiddenElements` storage.
+
+Advanced brand colours accept six-digit hex values or blank for the default.
+`OmniElementRules.brandColor` validates the four exposed tokens in the UI and API.
+Invalid input retains the last valid draft/preview value and is explained inline;
+publishing returns to and focuses the invalid field, including after tab changes.
+The advanced editable configuration and published snapshot own independent
+nested data, so a later edit or reset remains dirty after publishing.
+Translation search renders synchronously on input so navigation and result focus
+cannot be interrupted by a delayed redraw.
+
+Move to uses authored section labels or visible content, and explains both hidden
+sections and unapproved proof in the destination list and confirmation. Moving
+does not change either visibility setting. Cancelling a pending invitation uses
+the existing disabled-account transition, which invalidates its recovery token;
+resending issues a fresh invitation. Preview Copy/Open controls remain hidden
+and inactive until a usable URL exists, and are cleared on revocation.
+
 Protected targets include the wordmark, language switch, cookie buttons and
 Cookie Preferences, page H1, and form name/email/consent/submit controls, including
 containers that would remove those controls. Remove is disabled with a reason.

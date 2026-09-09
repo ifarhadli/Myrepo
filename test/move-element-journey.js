@@ -7,6 +7,19 @@ module.exports=async function({evaluate:ev,go,viewport,check,screenshot,pause},w
   async function publish(){await click(width<=700?'[data-editor-mobile-publish]':'[data-editor-publish]');await until(()=>ev(`!!document.querySelector('[data-dialog-confirm]')`));await click('[data-dialog-confirm]');await until(()=>ev(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-publish]').disabled`));}
   const button='[data-i18n="home.hero.ctaSecondary"]',lede='[data-i18n="home.hero.lede"]';
   await viewport(width,900);await editor();
+  for(const hidden of [false,true]){
+    const undoBefore=await ev(`window.OmniEditor.getState().undo.length`);
+    await ev(`window.OmniEditor.commit(d=>{d.features.showVerifiedProof=false;d.hiddenSections=(d.hiddenSections||[]).filter(k=>k!=='index.s1');if(${hidden})d.hiddenSections.push('index.s1');},'Check hidden destination')`);
+    await ev(`document.body.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}))`);await pause(100);
+    await click('[data-i18n="home.hero.micro"]');await click('[data-element-move]');
+    check(width+'px Move to names and explains '+(hidden?'hidden':'unapproved')+' client proof',await ev(`document.querySelector('[data-action-label="Client proof"]').textContent.includes(${JSON.stringify(hidden?'while the section is hidden':'until approved client results')})`));
+    await click('[data-action-label="Client proof"]');await click('[data-action-label="Bottom of section"]');
+    check(width+'px move confirmation repeats the visibility warning',await ev(`document.querySelector('[data-dialog-content]').textContent.includes(${JSON.stringify(hidden?'while the section is hidden':'until approved client results')})`));
+    await screenshot('move-visibility-'+width+'-'+(hidden?'hidden':'unapproved'));
+    await click('[data-dialog-confirm]');
+    check(width+'px moving content preserves destination visibility',await ev(`!!document.querySelector('[data-i18n="home.hero.micro"]').closest('[data-section="index.s1"]')&&!window.OmniEditor.getState().draft.features.showVerifiedProof&&window.OmniEditor.getState().draft.hiddenSections.includes('index.s1')===${hidden}`));
+    while(await ev(`window.OmniEditor.getState().undo.length`)>undoBefore)await click('[data-editor-undo]');
+  }
   await click('[data-i18n="home.hero.h1"]');check(width+'px headline has no movement controls',await ev(`!document.querySelector('[data-element-drag],[data-element-move]')`));
   await click('[data-i18n="home.cta.labelCompany"]');check(width+'px optional form fields cannot move',await ev(`!document.querySelector('[data-element-drag],[data-element-move]')`));
   await ev(`window.OmniEditor.commit(d=>{d.placements=[{key:'index:home.hero.h1',anchor:'index:home.hero.micro',position:'after'},{key:'index:home.cta.labelCompany',anchor:'index:home.hero.lede',position:'before'},{key:'index:home.hero.ctaSecondary',anchor:window.OmniSite.elementRemovalInfo(document.querySelector('.stat-row')).id,position:'into'},{key:'index:home.hero.lede',anchor:'index:missing.future',position:'after'}];},'Check placement guards')`);await pause(130);

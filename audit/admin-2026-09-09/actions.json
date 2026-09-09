@@ -1,0 +1,2966 @@
+[
+  {
+    "at": "2026-09-09T09:43:05.774Z",
+    "op": "go",
+    "route": "/admin.html"
+  },
+  {
+    "at": "2026-09-09T09:43:06.183Z",
+    "op": "shot",
+    "name": "01-login"
+  },
+  {
+    "at": "2026-09-09T09:43:31.772Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"loginPw\"]"
+  },
+  {
+    "at": "2026-09-09T09:43:32.455Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"loginPw\"]"
+  },
+  {
+    "at": "2026-09-09T09:43:33.295Z",
+    "op": "click",
+    "selector": "#loginForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:43:34.065Z",
+    "op": "click",
+    "selector": "#forgotPassword"
+  },
+  {
+    "at": "2026-09-09T09:43:35.165Z",
+    "op": "click",
+    "selector": "#recoverView [data-back-login]"
+  },
+  {
+    "at": "2026-09-09T09:43:35.829Z",
+    "op": "fill",
+    "selector": "#loginPw"
+  },
+  {
+    "at": "2026-09-09T09:43:36.280Z",
+    "op": "click",
+    "selector": "#loginForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:43:36.739Z",
+    "op": "shot",
+    "name": "02-login-error"
+  },
+  {
+    "at": "2026-09-09T09:43:37.513Z",
+    "op": "fill",
+    "selector": "#loginPw"
+  },
+  {
+    "at": "2026-09-09T09:43:38.138Z",
+    "op": "click",
+    "selector": "#loginForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:43:39.291Z",
+    "op": "shot",
+    "name": "03-editor"
+  },
+  {
+    "at": "2026-09-09T09:43:48.013Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:43:49.072Z",
+    "op": "shot",
+    "name": "03-editor"
+  },
+  {
+    "at": "2026-09-09T09:44:00.823Z",
+    "op": "click",
+    "selector": "[data-editor-settings]"
+  },
+  {
+    "at": "2026-09-09T09:44:01.630Z",
+    "op": "shot",
+    "name": "04-settings-menu"
+  },
+  {
+    "at": "2026-09-09T09:44:02.581Z",
+    "op": "click",
+    "selector": "[data-settings-view=\"website\"]"
+  },
+  {
+    "at": "2026-09-09T09:44:03.744Z",
+    "op": "shot",
+    "name": "05-website-settings"
+  },
+  {
+    "at": "2026-09-09T09:44:22.337Z",
+    "op": "fill",
+    "selector": "#omni-setting-settings-email"
+  },
+  {
+    "at": "2026-09-09T09:44:23.503Z",
+    "op": "fill",
+    "selector": "#omni-setting-settings-email"
+  },
+  {
+    "at": "2026-09-09T09:44:24.551Z",
+    "op": "fill",
+    "selector": "#omni-setting-settings-siteName"
+  },
+  {
+    "at": "2026-09-09T09:44:25.254Z",
+    "op": "click",
+    "selector": ".omni-settings details summary"
+  },
+  {
+    "at": "2026-09-09T09:44:25.929Z",
+    "op": "shot",
+    "name": "06-website-links"
+  },
+  {
+    "at": "2026-09-09T09:44:26.415Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:44:43.165Z",
+    "op": "fill",
+    "selector": "#omni-setting-settings-privacyUrl"
+  },
+  {
+    "at": "2026-09-09T09:44:44.157Z",
+    "op": "fill",
+    "selector": "#omni-setting-settings-privacyUrl"
+  },
+  {
+    "at": "2026-09-09T09:44:44.791Z",
+    "op": "click",
+    "selector": ".omni-panel-action"
+  },
+  {
+    "at": "2026-09-09T09:44:45.440Z",
+    "op": "click",
+    "selector": "[data-settings-view=\"notifications\"]"
+  },
+  {
+    "at": "2026-09-09T09:44:45.835Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:44:46.664Z",
+    "op": "shot",
+    "name": "07-enquiry-settings"
+  },
+  {
+    "at": "2026-09-09T09:45:00.707Z",
+    "op": "click",
+    "selector": "[data-add-recipient]"
+  },
+  {
+    "at": "2026-09-09T09:45:01.547Z",
+    "op": "fill",
+    "selector": "#omniNotifyEmail"
+  },
+  {
+    "at": "2026-09-09T09:45:02.335Z",
+    "op": "click",
+    "selector": "[data-add-recipient]"
+  },
+  {
+    "at": "2026-09-09T09:45:03.293Z",
+    "op": "fill",
+    "selector": "#omniNotifyEmail"
+  },
+  {
+    "at": "2026-09-09T09:45:03.974Z",
+    "op": "click",
+    "selector": "[data-add-recipient]"
+  },
+  {
+    "at": "2026-09-09T09:45:04.690Z",
+    "op": "click",
+    "selector": "[data-save-recipients]"
+  },
+  {
+    "at": "2026-09-09T09:45:05.519Z",
+    "op": "click",
+    "selector": "[data-test-notify]"
+  },
+  {
+    "at": "2026-09-09T09:45:06.357Z",
+    "op": "shot",
+    "name": "08-test-email"
+  },
+  {
+    "at": "2026-09-09T09:45:07.193Z",
+    "op": "click",
+    "selector": ".omni-panel-action"
+  },
+  {
+    "at": "2026-09-09T09:45:07.957Z",
+    "op": "click",
+    "selector": "[data-settings-view=\"account\"]"
+  },
+  {
+    "at": "2026-09-09T09:45:08.364Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:45:09.029Z",
+    "op": "shot",
+    "name": "09-account"
+  },
+  {
+    "at": "2026-09-09T09:45:21.050Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:45:21.431Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:45:46.091Z",
+    "op": "click",
+    "selector": ".omni-account-form:has(#omniRecoveryEmail) [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:45:46.966Z",
+    "op": "fill",
+    "selector": "#omniRecoveryCurrent"
+  },
+  {
+    "at": "2026-09-09T09:45:47.823Z",
+    "op": "fill",
+    "selector": "#omniRecoveryEmail"
+  },
+  {
+    "at": "2026-09-09T09:45:48.548Z",
+    "op": "click",
+    "selector": ".omni-account-form:has(#omniRecoveryEmail) [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:45:49.237Z",
+    "op": "click",
+    "selector": ".omni-account-form:has(#omniPasswordNext) [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:45:49.878Z",
+    "op": "click",
+    "selector": "button[aria-label=\"Show new password (8+ characters)\"]"
+  },
+  {
+    "at": "2026-09-09T09:45:50.525Z",
+    "op": "click",
+    "selector": "button[aria-label=\"Hide new password (8+ characters)\"]"
+  },
+  {
+    "at": "2026-09-09T09:45:51.229Z",
+    "op": "click",
+    "selector": ".omni-panel details summary"
+  },
+  {
+    "at": "2026-09-09T09:45:51.707Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:45:52.484Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:45:53.621Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:46:01.310Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:46:02.099Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T09:46:02.511Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:46:03.069Z",
+    "op": "errors"
+  },
+  {
+    "at": "2026-09-09T09:46:11.208Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"design\"]"
+  },
+  {
+    "at": "2026-09-09T09:46:11.921Z",
+    "op": "shot",
+    "name": "10-design"
+  },
+  {
+    "at": "2026-09-09T09:46:12.354Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:46:26.094Z",
+    "op": "click",
+    "selector": "[data-design-preset=\"calm\"]"
+  },
+  {
+    "at": "2026-09-09T09:46:27.174Z",
+    "op": "click",
+    "selector": "[data-design-preset=\"editorial\"]"
+  },
+  {
+    "at": "2026-09-09T09:46:28.169Z",
+    "op": "click",
+    "selector": "[data-design-preset=\"original\"]"
+  },
+  {
+    "at": "2026-09-09T09:46:29.030Z",
+    "op": "click",
+    "selector": "[data-design-reset]"
+  },
+  {
+    "at": "2026-09-09T09:46:29.655Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:46:30.291Z",
+    "op": "click",
+    "selector": "[data-editor-page]"
+  },
+  {
+    "at": "2026-09-09T09:46:30.715Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:46:31.382Z",
+    "op": "shot",
+    "name": "11-page-settings"
+  },
+  {
+    "at": "2026-09-09T09:46:32.163Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:46:32.837Z",
+    "op": "click",
+    "selector": "[data-editor-preview]"
+  },
+  {
+    "at": "2026-09-09T09:46:33.524Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:46:34.125Z",
+    "op": "shot",
+    "name": "12-preview"
+  },
+  {
+    "at": "2026-09-09T09:46:46.413Z",
+    "op": "click",
+    "selector": "[data-preview-copy]"
+  },
+  {
+    "at": "2026-09-09T09:46:47.254Z",
+    "op": "click",
+    "selector": "[data-preview-open]"
+  },
+  {
+    "at": "2026-09-09T09:46:47.940Z",
+    "op": "click",
+    "selector": "[data-preview-create]"
+  },
+  {
+    "at": "2026-09-09T09:46:48.385Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:46:49.038Z",
+    "op": "click",
+    "selector": "[data-preview-copy]"
+  },
+  {
+    "at": "2026-09-09T09:46:49.930Z",
+    "op": "shot",
+    "name": "13-preview-ready"
+  },
+  {
+    "at": "2026-09-09T09:46:50.723Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:46:51.458Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T09:46:52.410Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"users\"]"
+  },
+  {
+    "at": "2026-09-09T09:46:53.006Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:46:53.947Z",
+    "op": "shot",
+    "name": "14-users"
+  },
+  {
+    "at": "2026-09-09T09:47:06.657Z",
+    "op": "click",
+    "selector": ".omni-user-invite [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:07.751Z",
+    "op": "fill",
+    "selector": "#omniInviteName"
+  },
+  {
+    "at": "2026-09-09T09:47:08.619Z",
+    "op": "fill",
+    "selector": "#omniInviteEmail"
+  },
+  {
+    "at": "2026-09-09T09:47:09.283Z",
+    "op": "click",
+    "selector": ".omni-user-invite [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:09.761Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:47:10.463Z",
+    "op": "shot",
+    "name": "15-invited-user"
+  },
+  {
+    "at": "2026-09-09T09:47:11.054Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:47:11.772Z",
+    "op": "click",
+    "selector": "[data-editor-publish]"
+  },
+  {
+    "at": "2026-09-09T09:47:12.306Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:47:23.251Z",
+    "op": "click",
+    "selector": "[data-dialog-cancel]"
+  },
+  {
+    "at": "2026-09-09T09:47:23.887Z",
+    "op": "click",
+    "selector": "[data-editor-publish]"
+  },
+  {
+    "at": "2026-09-09T09:47:24.558Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T09:47:25.031Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:47:25.965Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T09:47:26.352Z",
+    "op": "shot",
+    "name": "16-maintenance-overview"
+  },
+  {
+    "at": "2026-09-09T09:47:26.767Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:47:35.272Z",
+    "op": "click",
+    "selector": "[data-tab=\"design\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:35.662Z",
+    "op": "shot",
+    "name": "advanced-design"
+  },
+  {
+    "at": "2026-09-09T09:47:36.269Z",
+    "op": "click",
+    "selector": "[data-tab=\"content\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:36.807Z",
+    "op": "shot",
+    "name": "advanced-content"
+  },
+  {
+    "at": "2026-09-09T09:47:37.386Z",
+    "op": "click",
+    "selector": "[data-tab=\"services\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:37.786Z",
+    "op": "shot",
+    "name": "advanced-services"
+  },
+  {
+    "at": "2026-09-09T09:47:38.299Z",
+    "op": "click",
+    "selector": "[data-tab=\"industries\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:38.690Z",
+    "op": "shot",
+    "name": "advanced-industries"
+  },
+  {
+    "at": "2026-09-09T09:47:39.255Z",
+    "op": "click",
+    "selector": "[data-tab=\"pages\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:39.729Z",
+    "op": "shot",
+    "name": "advanced-pages"
+  },
+  {
+    "at": "2026-09-09T09:47:40.351Z",
+    "op": "click",
+    "selector": "[data-tab=\"settings\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:40.833Z",
+    "op": "shot",
+    "name": "advanced-settings"
+  },
+  {
+    "at": "2026-09-09T09:47:41.392Z",
+    "op": "click",
+    "selector": "[data-tab=\"submissions\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:42.249Z",
+    "op": "shot",
+    "name": "advanced-submissions"
+  },
+  {
+    "at": "2026-09-09T09:47:43.091Z",
+    "op": "click",
+    "selector": "[data-tab=\"account\"]"
+  },
+  {
+    "at": "2026-09-09T09:47:43.660Z",
+    "op": "shot",
+    "name": "advanced-account"
+  },
+  {
+    "at": "2026-09-09T09:48:02.797Z",
+    "op": "go",
+    "route": "/index.html?edit=1"
+  },
+  {
+    "at": "2026-09-09T09:48:03.242Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:03.911Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:48:04.198Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:48:10.239Z",
+    "op": "click",
+    "selector": "[data-list=\"industry.strip\"] [data-item=\"i2\"] .omni-touch-menu"
+  },
+  {
+    "at": "2026-09-09T09:48:10.569Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:48:29.455Z",
+    "op": "click",
+    "selector": "[data-action-label=\"Remove item\"]"
+  },
+  {
+    "at": "2026-09-09T09:48:29.804Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:30.204Z",
+    "op": "shot",
+    "name": "17-banking-hidden"
+  },
+  {
+    "at": "2026-09-09T09:48:30.693Z",
+    "op": "click",
+    "selector": "[data-editor-publish]"
+  },
+  {
+    "at": "2026-09-09T09:48:31.191Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T09:48:32.018Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T09:48:32.584Z",
+    "op": "click",
+    "selector": "[data-tab=\"industries\"]"
+  },
+  {
+    "at": "2026-09-09T09:48:33.240Z",
+    "op": "click",
+    "selector": "[data-imove=\"1.1\"]"
+  },
+  {
+    "at": "2026-09-09T09:48:33.634Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:34.233Z",
+    "op": "click",
+    "selector": "#saveBtn"
+  },
+  {
+    "at": "2026-09-09T09:48:34.595Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:35.431Z",
+    "op": "go",
+    "route": "/index.html?edit=1"
+  },
+  {
+    "at": "2026-09-09T09:48:35.809Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:36.240Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:37.045Z",
+    "op": "shot",
+    "name": "18-wrong-industry-hidden"
+  },
+  {
+    "at": "2026-09-09T09:48:56.415Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T09:48:57.017Z",
+    "op": "click",
+    "selector": "[data-tab=\"services\"]"
+  },
+  {
+    "at": "2026-09-09T09:48:57.339Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:57.867Z",
+    "op": "click",
+    "selector": "[data-add-item=\"0.0\"]"
+  },
+  {
+    "at": "2026-09-09T09:48:58.517Z",
+    "op": "click",
+    "selector": "[data-add-item=\"0.0\"]"
+  },
+  {
+    "at": "2026-09-09T09:48:58.888Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:48:59.397Z",
+    "op": "click",
+    "selector": "#saveBtn"
+  },
+  {
+    "at": "2026-09-09T09:48:59.767Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:00.201Z",
+    "op": "shot",
+    "name": "19-duplicate-services-publish"
+  },
+  {
+    "at": "2026-09-09T09:49:20.177Z",
+    "op": "click",
+    "selector": "[data-move=\"0.0.0.1\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:20.506Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:21.028Z",
+    "op": "click",
+    "selector": "[data-move=\"0.0.1.-1\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:21.301Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:21.827Z",
+    "op": "click",
+    "selector": "[data-del-item=\"0.0.7\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:22.149Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:22.713Z",
+    "op": "click",
+    "selector": "[data-add-group=\"0\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:23.064Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:23.586Z",
+    "op": "click",
+    "selector": "[data-del-group=\"0.3\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:23.853Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:24.405Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"cancel\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:24.899Z",
+    "op": "click",
+    "selector": "[data-del-group=\"0.3\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:25.477Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:26.050Z",
+    "op": "click",
+    "selector": "#resetEngines"
+  },
+  {
+    "at": "2026-09-09T09:49:26.571Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"cancel\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:27.385Z",
+    "op": "click",
+    "selector": "#resetEngines"
+  },
+  {
+    "at": "2026-09-09T09:49:28.038Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:28.685Z",
+    "op": "click",
+    "selector": "#discardBtn"
+  },
+  {
+    "at": "2026-09-09T09:49:29.021Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:54.399Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:55.006Z",
+    "op": "click",
+    "selector": "[data-tab=\"industries\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:55.658Z",
+    "op": "click",
+    "selector": "#addInd"
+  },
+  {
+    "at": "2026-09-09T09:49:56.025Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:49:56.629Z",
+    "op": "click",
+    "selector": "[data-idel=\"11\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:57.332Z",
+    "op": "click",
+    "selector": "#resetInd"
+  },
+  {
+    "at": "2026-09-09T09:49:57.946Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"cancel\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:58.532Z",
+    "op": "click",
+    "selector": "[data-tab=\"design\"]"
+  },
+  {
+    "at": "2026-09-09T09:49:59.449Z",
+    "op": "fill",
+    "selector": "[data-token-text=\"--signal\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:00.016Z",
+    "op": "click",
+    "selector": "#saveBtn"
+  },
+  {
+    "at": "2026-09-09T09:50:00.447Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:00.996Z",
+    "op": "shot",
+    "name": "20-invalid-colour"
+  },
+  {
+    "at": "2026-09-09T09:50:01.629Z",
+    "op": "click",
+    "selector": "[data-token-reset=\"--ink\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:02.609Z",
+    "op": "click",
+    "selector": "[data-token-reset=\"--paper\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:03.641Z",
+    "op": "click",
+    "selector": "[data-token-reset=\"--signal\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:04.577Z",
+    "op": "click",
+    "selector": "[data-token-reset=\"--violet\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:05.387Z",
+    "op": "select",
+    "selector": "#previewPage"
+  },
+  {
+    "at": "2026-09-09T09:50:06.172Z",
+    "op": "click",
+    "selector": "#previewReload"
+  },
+  {
+    "at": "2026-09-09T09:50:06.914Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:08.197Z",
+    "op": "click",
+    "selector": "[data-tab=\"content\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:09.010Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:38.255Z",
+    "op": "fill",
+    "selector": "#copySearch"
+  },
+  {
+    "at": "2026-09-09T09:50:38.899Z",
+    "op": "select",
+    "selector": "#copyNs"
+  },
+  {
+    "at": "2026-09-09T09:50:39.567Z",
+    "op": "fill",
+    "selector": "textarea[data-lang=\"en\"][data-key=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:40.041Z",
+    "op": "click",
+    "selector": "#copyChanged"
+  },
+  {
+    "at": "2026-09-09T09:50:40.336Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:41.280Z",
+    "op": "fill",
+    "selector": "#copySearch"
+  },
+  {
+    "at": "2026-09-09T09:50:41.724Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:42.283Z",
+    "op": "click",
+    "selector": "[data-tab=\"pages\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:42.944Z",
+    "op": "fill",
+    "selector": "[data-page=\"about.title\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:43.530Z",
+    "op": "click",
+    "selector": "[data-section=\"about.s1\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:44.073Z",
+    "op": "click",
+    "selector": "[data-section=\"about.s1\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:44.651Z",
+    "op": "click",
+    "selector": "[data-tab=\"settings\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:45.318Z",
+    "op": "fill",
+    "selector": "[data-bind=\"settings.email\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:45.848Z",
+    "op": "click",
+    "selector": "#saveBtn"
+  },
+  {
+    "at": "2026-09-09T09:50:46.192Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:46.916Z",
+    "op": "fill",
+    "selector": "[data-bind=\"settings.email\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:48.142Z",
+    "op": "click",
+    "selector": "[data-tab=\"account\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:48.471Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:48.961Z",
+    "op": "click",
+    "selector": "#exportBtn"
+  },
+  {
+    "at": "2026-09-09T09:50:49.338Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:49.897Z",
+    "op": "click",
+    "selector": "#resetAll"
+  },
+  {
+    "at": "2026-09-09T09:50:50.397Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"cancel\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:50.896Z",
+    "op": "click",
+    "selector": "#resetAll"
+  },
+  {
+    "at": "2026-09-09T09:50:51.380Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T09:50:51.706Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:50:52.314Z",
+    "op": "click",
+    "selector": "#discardBtn"
+  },
+  {
+    "at": "2026-09-09T09:50:52.864Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T09:51:27.894Z",
+    "op": "click",
+    "selector": "[data-tab=\"content\"]"
+  },
+  {
+    "at": "2026-09-09T09:51:28.625Z",
+    "op": "fill",
+    "selector": "#copySearch"
+  },
+  {
+    "at": "2026-09-09T09:51:28.953Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:51:29.268Z",
+    "op": "shot",
+    "name": "21-copy-filter"
+  },
+  {
+    "at": "2026-09-09T09:51:58.562Z",
+    "op": "fill",
+    "selector": "textarea[data-lang=\"en\"][data-key=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T09:51:58.872Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:51:59.379Z",
+    "op": "click",
+    "selector": "#copyChanged"
+  },
+  {
+    "at": "2026-09-09T09:51:59.668Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:52:00.016Z",
+    "op": "shot",
+    "name": "22-copy-change-filter"
+  },
+  {
+    "at": "2026-09-09T09:52:10.094Z",
+    "op": "click",
+    "selector": "#copyChanged"
+  },
+  {
+    "at": "2026-09-09T09:52:10.598Z",
+    "op": "click",
+    "selector": "textarea[data-lang=\"en\"][data-key=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T09:52:10.890Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:52:11.212Z",
+    "op": "shot",
+    "name": "24-copy-click"
+  },
+  {
+    "at": "2026-09-09T09:52:19.113Z",
+    "op": "fill",
+    "selector": "textarea[data-lang=\"en\"][data-key=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T09:52:19.401Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:01.797Z",
+    "op": "click",
+    "selector": "#copyChanged"
+  },
+  {
+    "at": "2026-09-09T09:53:02.185Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:02.671Z",
+    "op": "click",
+    "selector": "[data-reset-row=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:03.190Z",
+    "op": "click",
+    "selector": "#copyChanged"
+  },
+  {
+    "at": "2026-09-09T09:53:03.846Z",
+    "op": "fill",
+    "selector": "#copySearch"
+  },
+  {
+    "at": "2026-09-09T09:53:04.161Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:27.376Z",
+    "op": "fill",
+    "selector": "#copySearch"
+  },
+  {
+    "at": "2026-09-09T09:53:27.674Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:28.131Z",
+    "op": "click",
+    "selector": "textarea[data-lang=\"en\"][data-key=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:28.384Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:28.676Z",
+    "op": "shot",
+    "name": "25-search-loses-focus"
+  },
+  {
+    "at": "2026-09-09T09:53:29.171Z",
+    "op": "click",
+    "selector": "[data-tab=\"account\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:29.728Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:53:30.169Z",
+    "op": "click",
+    "selector": "#importBtn"
+  },
+  {
+    "at": "2026-09-09T09:53:30.502Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:53:30.804Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:53:31.069Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:53:31.317Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:31.741Z",
+    "op": "click",
+    "selector": "#importBtn"
+  },
+  {
+    "at": "2026-09-09T09:53:32.101Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:53:32.383Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:32.715Z",
+    "op": "shot",
+    "name": "23-import-review"
+  },
+  {
+    "at": "2026-09-09T09:53:33.223Z",
+    "op": "click",
+    "selector": "#discardBtn"
+  },
+  {
+    "at": "2026-09-09T09:53:33.710Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:57.525Z",
+    "op": "click",
+    "selector": "[data-tab=\"account\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:58.074Z",
+    "op": "click",
+    "selector": "#pwForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:58.355Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:53:58.815Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"pwCur\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:59.257Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"pwCur\"]"
+  },
+  {
+    "at": "2026-09-09T09:53:59.707Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"pwNew\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:00.142Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"pwNew\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:00.625Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"pwNew2\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:01.077Z",
+    "op": "click",
+    "selector": "[data-password-toggle=\"pwNew2\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:01.694Z",
+    "op": "fill",
+    "selector": "#pwCur"
+  },
+  {
+    "at": "2026-09-09T09:54:02.393Z",
+    "op": "fill",
+    "selector": "#pwNew"
+  },
+  {
+    "at": "2026-09-09T09:54:03.010Z",
+    "op": "fill",
+    "selector": "#pwNew2"
+  },
+  {
+    "at": "2026-09-09T09:54:03.475Z",
+    "op": "click",
+    "selector": "#pwForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:03.711Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:04.330Z",
+    "op": "fill",
+    "selector": "#pwNew2"
+  },
+  {
+    "at": "2026-09-09T09:54:04.754Z",
+    "op": "click",
+    "selector": "#pwForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:04.991Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:05.492Z",
+    "op": "click",
+    "selector": "#logoutBtn"
+  },
+  {
+    "at": "2026-09-09T09:54:05.802Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:06.080Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:54:24.515Z",
+    "op": "fill",
+    "selector": "#loginPw"
+  },
+  {
+    "at": "2026-09-09T09:54:24.987Z",
+    "op": "click",
+    "selector": "#loginForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:25.272Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:25.595Z",
+    "op": "shot",
+    "name": "26-signout-login-missing-email"
+  },
+  {
+    "at": "2026-09-09T09:54:26.362Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T09:54:26.611Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:54:53.552Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:54.017Z",
+    "op": "click",
+    "selector": "[data-tab=\"submissions\"]"
+  },
+  {
+    "at": "2026-09-09T09:54:54.316Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:54.682Z",
+    "op": "shot",
+    "name": "27-enquiries"
+  },
+  {
+    "at": "2026-09-09T09:54:55.148Z",
+    "op": "click",
+    "selector": "#subNext"
+  },
+  {
+    "at": "2026-09-09T09:54:55.415Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:55.903Z",
+    "op": "click",
+    "selector": "#subPrev"
+  },
+  {
+    "at": "2026-09-09T09:54:56.528Z",
+    "op": "fill",
+    "selector": "#subSearch"
+  },
+  {
+    "at": "2026-09-09T09:54:56.892Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:57.392Z",
+    "op": "click",
+    "selector": "#subSearchClear"
+  },
+  {
+    "at": "2026-09-09T09:54:57.925Z",
+    "op": "select",
+    "selector": "#subForm"
+  },
+  {
+    "at": "2026-09-09T09:54:58.399Z",
+    "op": "click",
+    "selector": "#subRefresh"
+  },
+  {
+    "at": "2026-09-09T09:54:58.666Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:59.092Z",
+    "op": "click",
+    "selector": "#subCsv"
+  },
+  {
+    "at": "2026-09-09T09:54:59.384Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:54:59.661Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:55:20.156Z",
+    "op": "click",
+    "selector": "[data-del-sub=\"0d633400f6a2c92d\"]"
+  },
+  {
+    "at": "2026-09-09T09:55:20.629Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"cancel\"]"
+  },
+  {
+    "at": "2026-09-09T09:55:21.076Z",
+    "op": "click",
+    "selector": "[data-del-sub=\"0d633400f6a2c92d\"]"
+  },
+  {
+    "at": "2026-09-09T09:55:21.492Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T09:55:21.777Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:55:22.343Z",
+    "op": "click",
+    "selector": "#panel details summary"
+  },
+  {
+    "at": "2026-09-09T09:55:22.830Z",
+    "op": "click",
+    "selector": "#subClear"
+  },
+  {
+    "at": "2026-09-09T09:55:23.178Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:55:23.658Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"cancel\"]"
+  },
+  {
+    "at": "2026-09-09T09:55:24.105Z",
+    "op": "view"
+  },
+  {
+    "at": "2026-09-09T09:55:24.455Z",
+    "op": "shot",
+    "name": "28-maintenance-mobile"
+  },
+  {
+    "at": "2026-09-09T09:55:24.740Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:55:25.201Z",
+    "op": "click",
+    "selector": ".side-menu-toggle"
+  },
+  {
+    "at": "2026-09-09T09:55:25.699Z",
+    "op": "click",
+    "selector": "[data-tab=\"settings\"]"
+  },
+  {
+    "at": "2026-09-09T09:55:26.026Z",
+    "op": "shot",
+    "name": "29-maintenance-mobile-settings"
+  },
+  {
+    "at": "2026-09-09T09:55:26.317Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:55:27.180Z",
+    "op": "go",
+    "route": "/index.html?edit=1"
+  },
+  {
+    "at": "2026-09-09T09:55:27.713Z",
+    "op": "click",
+    "selector": ".omni-bar__mobile [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T09:55:28.274Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"inbox\"]"
+  },
+  {
+    "at": "2026-09-09T09:55:28.558Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:55:28.968Z",
+    "op": "shot",
+    "name": "30-mobile-inbox"
+  },
+  {
+    "at": "2026-09-09T09:55:37.466Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:55:37.761Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:55:58.726Z",
+    "op": "click",
+    "selector": "[data-inbox-next]"
+  },
+  {
+    "at": "2026-09-09T09:55:59.208Z",
+    "op": "click",
+    "selector": "[data-inbox-prev]"
+  },
+  {
+    "at": "2026-09-09T09:55:59.721Z",
+    "op": "click",
+    "selector": "[data-submission-id=\"c21880782fb5f2d7\"] .omni-lead__summary"
+  },
+  {
+    "at": "2026-09-09T09:56:00.025Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:56:00.300Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:56:00.754Z",
+    "op": "click",
+    "selector": "[data-submission-id=\"c21880782fb5f2d7\"] .omni-lead__detail button:not([data-danger])"
+  },
+  {
+    "at": "2026-09-09T09:56:01.022Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:56:01.379Z",
+    "op": "shot",
+    "name": "31-mobile-enquiry-detail"
+  },
+  {
+    "at": "2026-09-09T09:56:27.690Z",
+    "op": "click",
+    "selector": "[data-submission-id=\"c21880782fb5f2d7\"] .omni-lead__summary"
+  },
+  {
+    "at": "2026-09-09T09:56:27.946Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:56:28.300Z",
+    "op": "shot",
+    "name": "31-mobile-enquiry-detail"
+  },
+  {
+    "at": "2026-09-09T09:56:28.776Z",
+    "op": "click",
+    "selector": "[data-submission-id=\"c21880782fb5f2d7\"] [data-danger]"
+  },
+  {
+    "at": "2026-09-09T09:56:29.283Z",
+    "op": "click",
+    "selector": "[data-dialog-cancel]"
+  },
+  {
+    "at": "2026-09-09T09:56:29.760Z",
+    "op": "click",
+    "selector": "[data-submission-id=\"c21880782fb5f2d7\"] [data-danger]"
+  },
+  {
+    "at": "2026-09-09T09:56:30.338Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T09:56:31.019Z",
+    "op": "fill",
+    "selector": "#omniInboxSearch"
+  },
+  {
+    "at": "2026-09-09T09:56:31.507Z",
+    "op": "click",
+    "selector": "[data-inbox-refresh]"
+  },
+  {
+    "at": "2026-09-09T09:56:31.759Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:56:32.355Z",
+    "op": "click",
+    "selector": "[data-inbox-clear]"
+  },
+  {
+    "at": "2026-09-09T09:56:32.923Z",
+    "op": "select",
+    "selector": "#omniInboxForm"
+  },
+  {
+    "at": "2026-09-09T09:56:33.255Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:56:33.751Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:56:34.216Z",
+    "op": "click",
+    "selector": ".omni-bar__mobile [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T09:56:34.744Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"media\"]"
+  },
+  {
+    "at": "2026-09-09T09:56:35.007Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:56:35.409Z",
+    "op": "shot",
+    "name": "32-image-library-empty"
+  },
+  {
+    "at": "2026-09-09T09:56:50.607Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:56:50.864Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:56:51.357Z",
+    "op": "click",
+    "selector": "[data-media-pick]"
+  },
+  {
+    "at": "2026-09-09T09:56:51.685Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:56:52.055Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:56:52.431Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T09:56:52.692Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:56:53.027Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:57:25.553Z",
+    "op": "fill",
+    "selector": "#omniMediaName"
+  },
+  {
+    "at": "2026-09-09T09:57:26.218Z",
+    "op": "fill",
+    "selector": "#omniMediaAlt"
+  },
+  {
+    "at": "2026-09-09T09:57:26.752Z",
+    "op": "click",
+    "selector": ".omni-focal"
+  },
+  {
+    "at": "2026-09-09T09:57:27.320Z",
+    "op": "click",
+    "selector": "[data-media-save]"
+  },
+  {
+    "at": "2026-09-09T09:57:27.622Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:57:28.029Z",
+    "op": "shot",
+    "name": "33-image-details-mobile"
+  },
+  {
+    "at": "2026-09-09T09:57:28.659Z",
+    "op": "fill",
+    "selector": "#omniMediaSearch"
+  },
+  {
+    "at": "2026-09-09T09:57:28.937Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:57:29.623Z",
+    "op": "fill",
+    "selector": "#omniMediaSearch"
+  },
+  {
+    "at": "2026-09-09T09:57:30.136Z",
+    "op": "click",
+    "selector": ".omni-media-card"
+  },
+  {
+    "at": "2026-09-09T09:57:30.679Z",
+    "op": "click",
+    "selector": "[data-media-delete]"
+  },
+  {
+    "at": "2026-09-09T09:57:30.972Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:57:31.461Z",
+    "op": "click",
+    "selector": "[data-dialog-cancel]"
+  },
+  {
+    "at": "2026-09-09T09:57:31.921Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:57:32.509Z",
+    "op": "view"
+  },
+  {
+    "at": "2026-09-09T09:57:33.058Z",
+    "op": "click",
+    "selector": "[aria-label=\"Add image for index.hero\"]"
+  },
+  {
+    "at": "2026-09-09T09:57:33.453Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:57:33.943Z",
+    "op": "click",
+    "selector": ".omni-media-card"
+  },
+  {
+    "at": "2026-09-09T09:57:34.495Z",
+    "op": "click",
+    "selector": "[data-media-use]"
+  },
+  {
+    "at": "2026-09-09T09:57:34.842Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:57:35.372Z",
+    "op": "click",
+    "selector": "[aria-label=\"Change image for index.hero\"]"
+  },
+  {
+    "at": "2026-09-09T09:57:35.659Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:57:36.249Z",
+    "op": "click",
+    "selector": "[data-media-remove]"
+  },
+  {
+    "at": "2026-09-09T09:57:36.640Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:57:37.310Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:57:38.029Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T09:57:38.626Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"media\"]"
+  },
+  {
+    "at": "2026-09-09T09:57:39.195Z",
+    "op": "click",
+    "selector": ".omni-media-card"
+  },
+  {
+    "at": "2026-09-09T09:57:39.589Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:57:52.988Z",
+    "op": "click",
+    "selector": "[data-media-delete]"
+  },
+  {
+    "at": "2026-09-09T09:57:53.542Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:57:54.280Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T09:57:54.706Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:57:55.294Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T09:57:55.966Z",
+    "op": "click",
+    "selector": "[data-i18n=\"home.hero.micro\"]"
+  },
+  {
+    "at": "2026-09-09T09:57:56.387Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:57:57.099Z",
+    "op": "shot",
+    "name": "34-element-toolbar"
+  },
+  {
+    "at": "2026-09-09T09:58:24.293Z",
+    "op": "click",
+    "selector": ".omni-remove-hint button"
+  },
+  {
+    "at": "2026-09-09T09:58:25.008Z",
+    "op": "click",
+    "selector": "[data-element-edit]"
+  },
+  {
+    "at": "2026-09-09T09:58:25.849Z",
+    "op": "fill",
+    "selector": "[data-i18n=\"home.hero.micro\"]"
+  },
+  {
+    "at": "2026-09-09T09:58:26.576Z",
+    "op": "key"
+  },
+  {
+    "at": "2026-09-09T09:58:27.068Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:58:27.994Z",
+    "op": "click",
+    "selector": "[data-element-remove]"
+  },
+  {
+    "at": "2026-09-09T09:58:28.406Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:58:29.060Z",
+    "op": "click",
+    "selector": "[data-element-remove]"
+  },
+  {
+    "at": "2026-09-09T09:58:29.725Z",
+    "op": "click",
+    "selector": "[data-element-move]"
+  },
+  {
+    "at": "2026-09-09T09:58:30.057Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:58:30.418Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:58:41.615Z",
+    "op": "shot",
+    "name": "35-move-destinations"
+  },
+  {
+    "at": "2026-09-09T09:58:42.642Z",
+    "op": "click",
+    "selector": "[data-action-label=\"Section 2\"]"
+  },
+  {
+    "at": "2026-09-09T09:58:43.103Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:58:43.749Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:58:44.469Z",
+    "op": "shot",
+    "name": "36-move-hidden-section-slots"
+  },
+  {
+    "at": "2026-09-09T09:59:06.141Z",
+    "op": "click",
+    "selector": "[data-action-label=\"Bottom of section\"]"
+  },
+  {
+    "at": "2026-09-09T09:59:06.490Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:59:07.214Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T09:59:07.837Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:59:08.521Z",
+    "op": "click",
+    "selector": "[data-editor-publish]"
+  },
+  {
+    "at": "2026-09-09T09:59:09.108Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T09:59:10.071Z",
+    "op": "go",
+    "route": "/index.html"
+  },
+  {
+    "at": "2026-09-09T09:59:10.427Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:59:11.029Z",
+    "op": "shot",
+    "name": "37-public-hidden-move"
+  },
+  {
+    "at": "2026-09-09T09:59:12.010Z",
+    "op": "go",
+    "route": "/index.html?edit=1"
+  },
+  {
+    "at": "2026-09-09T09:59:12.892Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T09:59:13.794Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"history\"]"
+  },
+  {
+    "at": "2026-09-09T09:59:14.246Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:59:14.893Z",
+    "op": "shot",
+    "name": "38-history"
+  },
+  {
+    "at": "2026-09-09T09:59:27.443Z",
+    "op": "click",
+    "selector": ".omni-panel button[aria-label^=\"Restore version from Previous live\"]"
+  },
+  {
+    "at": "2026-09-09T09:59:28.053Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:59:28.516Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:59:39.600Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T09:59:47.050Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:59:47.807Z",
+    "op": "click",
+    "selector": "[data-i18n=\"home.hero.micro\"]"
+  },
+  {
+    "at": "2026-09-09T09:59:48.508Z",
+    "op": "click",
+    "selector": "[data-element-add]"
+  },
+  {
+    "at": "2026-09-09T09:59:48.921Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:59:49.310Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T09:59:56.375Z",
+    "op": "click",
+    "selector": "[data-action-label=\"Paragraph\"]"
+  },
+  {
+    "at": "2026-09-09T09:59:56.786Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T09:59:57.513Z",
+    "op": "key"
+  },
+  {
+    "at": "2026-09-09T09:59:58.005Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:00:05.654Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:00:06.076Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:00:19.174Z",
+    "op": "click",
+    "selector": "[data-i18n=\"added.ae-338e4404\"]"
+  },
+  {
+    "at": "2026-09-09T10:00:19.619Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:00:30.016Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:00:30.771Z",
+    "op": "shot",
+    "name": "39-added-paragraph"
+  },
+  {
+    "at": "2026-09-09T10:00:48.891Z",
+    "op": "key"
+  },
+  {
+    "at": "2026-09-09T10:00:49.339Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:00:50.170Z",
+    "op": "key"
+  },
+  {
+    "at": "2026-09-09T10:00:50.623Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:00:51.435Z",
+    "op": "key"
+  },
+  {
+    "at": "2026-09-09T10:00:52.255Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:00:53.058Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:11.110Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:11.470Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:11.969Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:01:12.545Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:01:13.092Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:01:13.713Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:14.677Z",
+    "op": "shot",
+    "name": "40-native-drag-zones"
+  },
+  {
+    "at": "2026-09-09T10:01:37.897Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:38.363Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:01:38.789Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:01:39.210Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:39.949Z",
+    "op": "shot",
+    "name": "41-native-drag-result"
+  },
+  {
+    "at": "2026-09-09T10:01:40.723Z",
+    "op": "click",
+    "selector": "[data-editor-undo]"
+  },
+  {
+    "at": "2026-09-09T10:01:41.112Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:42.237Z",
+    "op": "click",
+    "selector": "[data-editor-redo]"
+  },
+  {
+    "at": "2026-09-09T10:01:42.848Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:43.565Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:01:44.388Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"discard\"]"
+  },
+  {
+    "at": "2026-09-09T10:01:44.794Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:01:45.405Z",
+    "op": "click",
+    "selector": "[data-dialog-cancel]"
+  },
+  {
+    "at": "2026-09-09T10:01:45.856Z",
+    "op": "errors"
+  },
+  {
+    "at": "2026-09-09T10:02:01.413Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:01.832Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:25.123Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:25.490Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:26.122Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:26.580Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:27.063Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:27.590Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:28.131Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:28.526Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:28.911Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:29.282Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:46.400Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:46.782Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:47.102Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:47.651Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:48.050Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:48.486Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:48.896Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:49.307Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:49.692Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:50.310Z",
+    "op": "cdp"
+  },
+  {
+    "at": "2026-09-09T10:02:50.723Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:02:51.381Z",
+    "op": "shot",
+    "name": "42-native-drag-success"
+  },
+  {
+    "at": "2026-09-09T10:03:08.815Z",
+    "op": "click",
+    "selector": "[data-editor-undo]"
+  },
+  {
+    "at": "2026-09-09T10:03:09.525Z",
+    "op": "click",
+    "selector": "[data-editor-redo]"
+  },
+  {
+    "at": "2026-09-09T10:03:10.190Z",
+    "op": "click",
+    "selector": "[data-element-add]"
+  },
+  {
+    "at": "2026-09-09T10:03:10.856Z",
+    "op": "click",
+    "selector": "[data-action-label=\"Button\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:11.617Z",
+    "op": "key"
+  },
+  {
+    "at": "2026-09-09T10:03:12.121Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:03:18.905Z",
+    "op": "click",
+    "selector": "[data-element-style=\"secondary\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:19.690Z",
+    "op": "click",
+    "selector": "[data-element-style=\"text\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:20.493Z",
+    "op": "click",
+    "selector": "[data-element-style=\"primary\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:21.171Z",
+    "op": "click",
+    "selector": "[data-element-link]"
+  },
+  {
+    "at": "2026-09-09T10:03:21.573Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:03:21.972Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:03:22.787Z",
+    "op": "shot",
+    "name": "43-button-link"
+  },
+  {
+    "at": "2026-09-09T10:03:44.204Z",
+    "op": "click",
+    "selector": "[data-element-link-save]"
+  },
+  {
+    "at": "2026-09-09T10:03:44.713Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:03:45.505Z",
+    "op": "fill",
+    "selector": "#omni-link-custom"
+  },
+  {
+    "at": "2026-09-09T10:03:46.104Z",
+    "op": "click",
+    "selector": "[data-element-link-save]"
+  },
+  {
+    "at": "2026-09-09T10:03:46.526Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:03:47.208Z",
+    "op": "click",
+    "selector": ".omni-panel input[type=\"radio\"][value=\"page\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:48.002Z",
+    "op": "click",
+    "selector": ".omni-panel input[type=\"radio\"][value=\"section\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:48.705Z",
+    "op": "click",
+    "selector": ".omni-panel input[type=\"radio\"][value=\"item\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:49.361Z",
+    "op": "click",
+    "selector": ".omni-panel input[type=\"radio\"][value=\"custom\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:50.175Z",
+    "op": "fill",
+    "selector": "#omni-link-custom"
+  },
+  {
+    "at": "2026-09-09T10:03:50.908Z",
+    "op": "click",
+    "selector": "[data-element-link-save]"
+  },
+  {
+    "at": "2026-09-09T10:03:51.412Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:03:52.019Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:03:52.822Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"phone\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:53.492Z",
+    "op": "shot",
+    "name": "44-phone-preview"
+  },
+  {
+    "at": "2026-09-09T10:03:54.007Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:03:54.591Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:03:55.206Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"phone\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:55.787Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:03:56.454Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"discard\"]"
+  },
+  {
+    "at": "2026-09-09T10:03:57.084Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T10:03:57.729Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:04:18.364Z",
+    "op": "mail"
+  },
+  {
+    "at": "2026-09-09T10:04:18.891Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:04:19.834Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T10:04:20.558Z",
+    "op": "click",
+    "selector": "[data-tab=\"content\"]"
+  },
+  {
+    "at": "2026-09-09T10:04:21.376Z",
+    "op": "fill",
+    "selector": "#copySearch"
+  },
+  {
+    "at": "2026-09-09T10:04:21.977Z",
+    "op": "click",
+    "selector": "[data-tab=\"overview\"]"
+  },
+  {
+    "at": "2026-09-09T10:04:22.312Z",
+    "op": "errors"
+  },
+  {
+    "at": "2026-09-09T10:04:54.945Z",
+    "op": "go",
+    "route": "/admin.html?reset=3c474e2194787bfadbd0c3fe905a3445ff6afa0f9b11f41ca7dc01dea089b6d5"
+  },
+  {
+    "at": "2026-09-09T10:04:55.542Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:15.689Z",
+    "op": "click",
+    "selector": "#resetForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:16.330Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:17.231Z",
+    "op": "fill",
+    "selector": "#resetPw"
+  },
+  {
+    "at": "2026-09-09T10:05:18.312Z",
+    "op": "fill",
+    "selector": "#resetPw2"
+  },
+  {
+    "at": "2026-09-09T10:05:19.047Z",
+    "op": "click",
+    "selector": "#resetForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:19.592Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:20.430Z",
+    "op": "fill",
+    "selector": "#loginEmail"
+  },
+  {
+    "at": "2026-09-09T10:05:21.231Z",
+    "op": "fill",
+    "selector": "#loginPw"
+  },
+  {
+    "at": "2026-09-09T10:05:21.892Z",
+    "op": "click",
+    "selector": "#loginForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:22.442Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:05:23.369Z",
+    "op": "shot",
+    "name": "45-editor-role"
+  },
+  {
+    "at": "2026-09-09T10:05:24.565Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T10:05:25.126Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:25.656Z",
+    "op": "shot",
+    "name": "46-role-access-denied"
+  },
+  {
+    "at": "2026-09-09T10:05:26.573Z",
+    "op": "go",
+    "route": "/index.html?edit=1"
+  },
+  {
+    "at": "2026-09-09T10:05:27.331Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:05:28.370Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"account\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:29.148Z",
+    "op": "click",
+    "selector": "[data-account-logout]"
+  },
+  {
+    "at": "2026-09-09T10:05:34.955Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:35.518Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:49.542Z",
+    "op": "fill",
+    "selector": "#loginEmail"
+  },
+  {
+    "at": "2026-09-09T10:05:50.412Z",
+    "op": "fill",
+    "selector": "#loginPw"
+  },
+  {
+    "at": "2026-09-09T10:05:51.064Z",
+    "op": "click",
+    "selector": "#loginForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:51.878Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:52.747Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:05:53.650Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"users\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:54.677Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:05:55.945Z",
+    "op": "select",
+    "selector": "select[aria-label=\"Role for Audit Editor\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:56.587Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:05:57.424Z",
+    "op": "click",
+    "selector": "[data-dialog-cancel]"
+  },
+  {
+    "at": "2026-09-09T10:05:58.624Z",
+    "op": "select",
+    "selector": "select[aria-label=\"Role for Audit Editor\"]"
+  },
+  {
+    "at": "2026-09-09T10:05:59.890Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T10:06:00.423Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:06:00.956Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:06:20.474Z",
+    "op": "click",
+    "selector": ".omni-user-card [data-danger]"
+  },
+  {
+    "at": "2026-09-09T10:06:21.393Z",
+    "op": "click",
+    "selector": "[data-dialog-cancel]"
+  },
+  {
+    "at": "2026-09-09T10:06:22.223Z",
+    "op": "click",
+    "selector": ".omni-user-card [data-danger]"
+  },
+  {
+    "at": "2026-09-09T10:06:23.016Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T10:06:23.688Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:06:24.955Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:06:26.030Z",
+    "op": "click",
+    "selector": ".omni-user-card button:not([disabled]):first-of-type"
+  },
+  {
+    "at": "2026-09-09T10:06:26.716Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:06:27.585Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T10:06:28.768Z",
+    "op": "click",
+    "selector": ".omni-user-card [data-danger]"
+  },
+  {
+    "at": "2026-09-09T10:06:29.678Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T10:06:30.690Z",
+    "op": "click",
+    "selector": ".omni-user-card button:last-of-type"
+  },
+  {
+    "at": "2026-09-09T10:06:31.442Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:06:32.514Z",
+    "op": "shot",
+    "name": "47-invitation-no-revoke"
+  },
+  {
+    "at": "2026-09-09T10:06:33.307Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T10:06:34.805Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T10:06:35.685Z",
+    "op": "click",
+    "selector": "#logoutBtn"
+  },
+  {
+    "at": "2026-09-09T10:06:36.235Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:06:37.142Z",
+    "op": "fill",
+    "selector": "#loginPw"
+  },
+  {
+    "at": "2026-09-09T10:06:38.088Z",
+    "op": "click",
+    "selector": "#loginForm [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T10:06:38.701Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:07:20.764Z",
+    "op": "go",
+    "route": "/index.html?edit=1"
+  },
+  {
+    "at": "2026-09-09T10:07:21.863Z",
+    "op": "click",
+    "selector": "[data-editor-preview]"
+  },
+  {
+    "at": "2026-09-09T10:07:22.530Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:07:23.450Z",
+    "op": "click",
+    "selector": "[data-preview-copy]"
+  },
+  {
+    "at": "2026-09-09T10:07:24.850Z",
+    "op": "shot",
+    "name": "48-preview-empty-copied"
+  },
+  {
+    "at": "2026-09-09T10:07:47.075Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T10:07:48.277Z",
+    "op": "click",
+    "selector": "[data-i18n=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T10:07:49.260Z",
+    "op": "click",
+    "selector": "[data-element-edit]"
+  },
+  {
+    "at": "2026-09-09T10:07:50.452Z",
+    "op": "fill",
+    "selector": "[data-i18n=\"home.hero.h1\"]"
+  },
+  {
+    "at": "2026-09-09T10:07:51.638Z",
+    "op": "key"
+  },
+  {
+    "at": "2026-09-09T10:07:52.567Z",
+    "op": "click",
+    "selector": "[data-editor-preview]"
+  },
+  {
+    "at": "2026-09-09T10:07:53.634Z",
+    "op": "click",
+    "selector": "[data-preview-create]"
+  },
+  {
+    "at": "2026-09-09T10:07:54.880Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:07:56.021Z",
+    "op": "click",
+    "selector": "[data-preview-create]"
+  },
+  {
+    "at": "2026-09-09T10:07:57.022Z",
+    "op": "click",
+    "selector": "[data-preview-revoke]"
+  },
+  {
+    "at": "2026-09-09T10:07:58.101Z",
+    "op": "click",
+    "selector": "[data-dialog-cancel]"
+  },
+  {
+    "at": "2026-09-09T10:07:59.265Z",
+    "op": "click",
+    "selector": "[data-preview-revoke]"
+  },
+  {
+    "at": "2026-09-09T10:08:00.205Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T10:08:01.038Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:08:02.104Z",
+    "op": "shot",
+    "name": "49-preview-revoked-empty"
+  },
+  {
+    "at": "2026-09-09T10:08:02.989Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T10:08:03.952Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:08:05.412Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"discard\"]"
+  },
+  {
+    "at": "2026-09-09T10:08:06.329Z",
+    "op": "click",
+    "selector": "[data-dialog-confirm]"
+  },
+  {
+    "at": "2026-09-09T10:08:32.917Z",
+    "op": "click",
+    "selector": ".omni-bar__desktop [data-editor-more]"
+  },
+  {
+    "at": "2026-09-09T10:08:33.778Z",
+    "op": "click",
+    "selector": "[data-mobile-open=\"users\"]"
+  },
+  {
+    "at": "2026-09-09T10:08:34.773Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:08:35.801Z",
+    "op": "fill",
+    "selector": "#omniInviteName"
+  },
+  {
+    "at": "2026-09-09T10:08:36.654Z",
+    "op": "fill",
+    "selector": "#omniInviteEmail"
+  },
+  {
+    "at": "2026-09-09T10:08:37.465Z",
+    "op": "click",
+    "selector": ".omni-user-invite [type=\"submit\"]"
+  },
+  {
+    "at": "2026-09-09T10:08:38.426Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:08:38.943Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:08:39.656Z",
+    "op": "shot",
+    "name": "50-pending-invitation"
+  },
+  {
+    "at": "2026-09-09T10:08:40.182Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:08:41.083Z",
+    "op": "click",
+    "selector": ".omni-user-card:has([aria-label=\"Role for Pending Audit\"]) button"
+  },
+  {
+    "at": "2026-09-09T10:08:42.268Z",
+    "op": "snap"
+  },
+  {
+    "at": "2026-09-09T10:08:43.335Z",
+    "op": "shot",
+    "name": "51-resend-invitation"
+  },
+  {
+    "at": "2026-09-09T10:09:11.602Z",
+    "op": "click",
+    "selector": ".omni-panel__close"
+  },
+  {
+    "at": "2026-09-09T10:09:12.906Z",
+    "op": "go",
+    "route": "/admin-advanced.html"
+  },
+  {
+    "at": "2026-09-09T10:09:13.763Z",
+    "op": "click",
+    "selector": "[data-tab=\"submissions\"]"
+  },
+  {
+    "at": "2026-09-09T10:09:14.923Z",
+    "op": "click",
+    "selector": "#panel details summary"
+  },
+  {
+    "at": "2026-09-09T10:09:15.731Z",
+    "op": "click",
+    "selector": "#subClear"
+  },
+  {
+    "at": "2026-09-09T10:09:16.304Z",
+    "op": "click",
+    "selector": "#confirmDialog [value=\"confirm\"]"
+  },
+  {
+    "at": "2026-09-09T10:09:16.771Z",
+    "op": "eval"
+  },
+  {
+    "at": "2026-09-09T10:09:17.636Z",
+    "op": "shot",
+    "name": "52-cleared-enquiries"
+  },
+  {
+    "at": "2026-09-09T10:09:18.204Z",
+    "op": "errors"
+  },
+  {
+    "at": "2026-09-09T10:09:18.703Z",
+    "op": "stop"
+  }
+]

@@ -1,0 +1,30 @@
+{
+  "commit": "bf59120603c18b6b197707732fbacb940ba40ddc",
+  "branch": "claude/site-build-brief-jpmkd6",
+  "date": "2026-09-09",
+  "automated": {
+    "serverPassed": 235,
+    "browserPassed": 169,
+    "regressionPassed": 86,
+    "failed": 0
+  },
+  "interactive": {
+    "go": 17,
+    "shot": 62,
+    "click": 281,
+    "fill": 50,
+    "snap": 52,
+    "eval": 128,
+    "errors": 4,
+    "select": 6,
+    "cdp": 26,
+    "view": 2,
+    "key": 7,
+    "mail": 1,
+    "stop": 1
+  },
+  "distinctClickSelectors": 141,
+  "screenshots": 60,
+  "snapshots": 910,
+  "runtimeExceptions": 2
+}

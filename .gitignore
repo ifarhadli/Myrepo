@@ -21,3 +21,6 @@ premium-audit.json
 audit/**/*.dom.json
 audit/**/results.json
 audit/*.log
+
+audit/**/snapshots/
+audit/**/*.log

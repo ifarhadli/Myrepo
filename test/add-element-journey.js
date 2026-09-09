@@ -78,6 +78,6 @@ module.exports=async function(h,width){
   await click('[data-editor-undo]');
   check(width+'px Undo restores the entire added element',await ev(`document.querySelector(${JSON.stringify(selector)}).textContent==='Talk to our team'&&window.OmniEditor.getState().draft.i18n.az[${JSON.stringify(key)}]==='Bizimlə danışın'&&document.querySelector(${JSON.stringify(selector)}).getAttribute('href')==='contact.html'`));
   await click('[data-editor-history]');await until(()=>ev(`!!document.querySelector('.omni-history__item button')`));await click('.omni-history__item button');await click('[data-dialog-confirm]');
-  await until(()=>ev(`!!window.OmniEditor?.getState().user&&!window.OmniEditor.getState().draft.addedElements.some(r=>r.id===${JSON.stringify(id)})&&!document.querySelector('.omni-dialog')`));
+  await until(()=>ev(`!!window.OmniEditor?.getState().user&&!!window.OmniEditor.getState().draft&&!window.OmniEditor.getState().draft.addedElements.some(r=>r.id===${JSON.stringify(id)})&&!document.querySelector('.omni-dialog')`));
   check(width+'px History restores the version before Add/Link/Style',await ev(`!document.querySelector(${JSON.stringify(selector)})`));await publish();
 };

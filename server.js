@@ -442,6 +442,12 @@ function validateSite(input){
   if (isPlain(input.design)){
     site.design.tokens = strMap(input.design.tokens, 200);
     for (const k of Object.keys(site.design.tokens)) if (!/^--[a-z0-9-]{1,40}$/i.test(k)) delete site.design.tokens[k];
+    for (const key of ['--ink','--paper','--signal','--violet']) {
+      if (key in site.design.tokens && !ELEMENT_RULES.brandColor(site.design.tokens[key])) {
+        const error = new Error('Use a six-digit hex colour such as #C6F24E, or reset to the default.');
+        error.field = 'design.tokens.' + key; throw error;
+      }
+    }
     for (const k of ['fontDisplay', 'fontBody', 'fontMono']) if (typeof input.design[k] === 'string') site.design[k] = input.design[k].slice(0, 80);
     if (typeof input.design.fontPreset === 'string' && FONT_PRESETS[input.design.fontPreset]){
       site.design.fontPreset = input.design.fontPreset;

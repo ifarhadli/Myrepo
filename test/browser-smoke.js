@@ -92,7 +92,7 @@ async function main(){
   }
   async function evaluate(expression){
     const response = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true });
-    if (response.exceptionDetails) throw new Error(response.exceptionDetails.text || 'Browser evaluation failed');
+    if (response.exceptionDetails) throw new Error(response.exceptionDetails.exception?.description || response.exceptionDetails.text || 'Browser evaluation failed');
     return response.result.value;
   }
   async function viewport(width, height){
@@ -262,10 +262,12 @@ async function main(){
   state = await evaluate(`document.querySelector('[data-i18n="home.hero.h1"]').textContent`);
   check('server draft survives an editor reload', state === 'A sharper draft headline.', state);
   await evaluate(`document.querySelector('[data-editor-preview]').click()`);await waitFor(() => evaluate(`document.querySelector('#omniPanelTitle')?.textContent==='Draft preview'`),3000);
+  check('empty preview URL controls are visually hidden and inactive',await evaluate(`getComputedStyle(document.querySelector('[data-preview-link]')).display==='none'&&document.querySelector('[data-preview-copy]').disabled&&!document.querySelector('[data-preview-open]').hasAttribute('href')`));
   await evaluate(`document.querySelector('[data-preview-create]').click()`);
   const previewCreated = await waitFor(() => evaluate(`document.querySelector('#omniPreviewUrl')?.value||''`),8000);
   state=await evaluate(`({url:document.querySelector('#omniPreviewUrl').value,status:document.querySelector('[data-preview-status]').textContent,message:document.querySelector('.omni-form-message').textContent})`);
   check('Preview panel creates a clear expiring private link',!!previewCreated&&/preview=/.test(state.url)&&/active until/.test(state.status)&&/Anyone with this URL/.test(state.message),JSON.stringify(state));
+  check('created preview enables Copy and Open with the current URL',await evaluate(`getComputedStyle(document.querySelector('[data-preview-link]')).display!=='none'&&!document.querySelector('[data-preview-copy]').disabled&&document.querySelector('[data-preview-open]').href===document.querySelector('#omniPreviewUrl').value`));
   const previewToken=new URL(state.url).searchParams.get('preview');
   await go('/?preview='+encodeURIComponent(previewToken));await waitFor(() => evaluate(`document.documentElement.classList.contains('omni-preview')`),5000);
   state=await evaluate(`({ribbon:document.querySelector('.omni-preview-ribbon')?.textContent,headline:document.querySelector('[data-i18n="home.hero.h1"]')?.textContent.trim().replace(/\\s+/g,' '),editor:!!document.querySelector('.omni-bar'),linked:[...document.querySelectorAll('a[href]')].some(a=>a.href.includes('preview='))})`);
@@ -275,6 +277,7 @@ async function main(){
   await go('/index.html?edit=1');await waitFor(() => evaluate(`!!document.querySelector('.omni-bar')`),10000);
   await evaluate(`document.querySelector('[data-editor-preview]').click()`);await waitFor(() => evaluate(`!document.querySelector('[data-preview-revoke]').hidden`),3000);await evaluate(`document.querySelector('[data-preview-revoke]').click()`);await waitFor(() => evaluate(`!!document.querySelector('.omni-dialog[open]')`),3000);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);await waitFor(() => evaluate(`!document.querySelector('.omni-dialog')`),5000);
   check('Preview panel revokes the current URL immediately',await evaluate(`fetch('/?preview='+${JSON.stringify(previewToken)}).then(response=>response.status===403)`));
+  check('revoking preview hides and clears its controls',await evaluate(`getComputedStyle(document.querySelector('[data-preview-link]')).display==='none'&&document.querySelector('[data-preview-copy]').disabled&&!document.querySelector('[data-preview-open]').hasAttribute('href')&&!document.querySelector('#omniPreviewUrl').value`));
   await evaluate(`document.querySelector('.omni-panel__close').click()`);
   await evaluate(`document.querySelector('[data-editor-lang="az"]').click()`); await pause(100);
   await evaluate(`(() => { const el=document.querySelector('[data-i18n="home.hero.h1"]'); el.click(); document.querySelector('[data-element-edit]')?.click(); el.textContent='Daha kəskin qaralama başlıq.'; el.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true})); document.querySelector('[data-editor-lang="en"]').click(); })()`); await pause(100);
@@ -553,9 +556,23 @@ async function main(){
   await evaluate(`(() => {document.querySelector('#omniInviteName').value='Browser Editor';document.querySelector('#omniInviteEmail').value='browser-editor@example.test';document.querySelector('#omniInviteRole').value='editor';document.querySelector('.omni-user-invite').requestSubmit();})()`);
   const invitationArrived=await waitFor(()=>sentMail.length===inviteMailStart+1,8000);
   await waitFor(() => evaluate(`document.querySelectorAll('.omni-user-card').length===2`),5000);
-  const invitation=sentMail[inviteMailStart],inviteToken=invitation&&((invitation.text||'').match(/reset=([a-f0-9]{64})/)||[])[1];
+  const invitation=sentMail[inviteMailStart];let inviteToken=invitation&&((invitation.text||'').match(/reset=([a-f0-9]{64})/)||[])[1];
   state=await evaluate(`({cards:document.querySelectorAll('.omni-user-card').length,pending:[...document.querySelectorAll('.omni-user-card__head span')].some(x=>/editor · invited/.test(x.textContent)),message:document.querySelector('.omni-user-invite .omni-form-message').textContent})`);
   check('Admin invitation UI sends mail and adds a pending Editor',!!invitationArrived&&!!inviteToken&&state.cards===2&&state.pending&&/expires in 48 hours/.test(state.message),JSON.stringify(state));
+  await evaluate(`document.querySelector('[data-user-cancel-invite]').click()`);await pause(100);
+  check('cancel invitation explains that the link stops working',await evaluate(`document.querySelector('.omni-dialog').textContent.includes('stop working immediately')`));
+  await screenshot('cancel-invitation');
+  await evaluate(`document.querySelector('[data-dialog-cancel]').click()`);await pause(100);
+  check('dismissing invitation cancellation keeps the invitation',await evaluate(`!!document.querySelector('[data-user-cancel-invite]')`));
+  await evaluate(`document.querySelector('[data-user-cancel-invite]').click()`);await pause(100);await evaluate(`document.querySelector('[data-dialog-confirm]').click()`);
+  await waitFor(()=>evaluate(`!document.querySelector('[data-user-cancel-invite]')&&[...document.querySelectorAll('.omni-user-card')].some(c=>c.textContent.includes('editor · disabled'))`),5000);
+  const cancelledReset=await evaluate(`fetch('/api/reset',{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'OmniAdmin'},body:JSON.stringify({token:${JSON.stringify(inviteToken)},next:'browser-editor-pass'})}).then(r=>r.status)`);
+  check('cancelled invitation cannot be used to create a password',cancelledReset===400);
+  const resendStart=sentMail.length;
+  await evaluate(`[...document.querySelectorAll('.omni-user-card button')].find(b=>b.textContent==='Resend invitation').click()`);
+  await waitFor(()=>sentMail.length===resendStart+1,8000);
+  const freshToken=((sentMail[resendStart]?.text||'').match(/reset=([a-f0-9]{64})/)||[])[1];
+  check('cancelled invitation can be replaced with a fresh link',!!freshToken&&freshToken!==inviteToken);inviteToken=freshToken;
   await go('/admin.html?reset='+inviteToken);await waitFor(() => evaluate(`!document.querySelector('#resetForm').hidden`),3000);
   await evaluate(`(() => {document.querySelector('#resetPw').value='browser-editor-pass';document.querySelector('#resetPw2').value='browser-editor-pass';document.querySelector('#resetForm').requestSubmit();})()`);
   await waitFor(() => evaluate(`!document.querySelector('#loginForm').hidden&&!document.querySelector('#loginEmailField').hidden`),5000);

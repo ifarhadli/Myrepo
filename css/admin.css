@@ -94,6 +94,7 @@ p{margin:0 0 10px}
 .card{background:var(--a-surface);border:1px solid var(--a-border);border-radius:var(--a-radius);padding:20px;margin-bottom:18px}
 .card.tight{padding:14px 16px}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.grid2>*{min-width:0}
 .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .stat{background:var(--a-surface);border:1px solid var(--a-border);border-radius:var(--a-radius);padding:18px}
 .stat .n{font-size:28px;font-weight:800;letter-spacing:-.03em}
@@ -122,16 +123,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--a-accent
 .switch-list{display:flex;flex-direction:column}
 
 /* ---------- design tokens ---------- */
-.tokens{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px 16px}
+.tokens{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr));gap:10px 16px}
 .token{display:flex;flex-direction:column;gap:5px;padding:10px;border:1px solid var(--a-border);border-radius:10px;background:var(--a-surface)}
 .token .lbl{margin:0}
 .token .row{display:flex;gap:6px;align-items:center}
 .token input[type=color]{width:36px;height:34px;padding:2px;border:1px solid var(--a-border);border-radius:8px;background:var(--a-surface);cursor:pointer;flex:none}
-.token input[type=text]{flex:1;font-family:var(--a-mono);font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--a-border)}
+.token input[type=text]{flex:1;min-width:0;font-family:var(--a-mono);font-size:12.5px;padding:8px 10px;border-radius:8px;border:1px solid var(--a-border)}
 .token.changed{border-color:var(--a-accent)}
 .preview-wrap{position:sticky;top:76px}
 .preview-bar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.preview-bar select{flex:1;padding:8px 10px;border-radius:8px;border:1px solid var(--a-border);font:inherit;background:var(--a-surface)}
+.preview-bar select{flex:1;min-width:0;padding:8px 10px;border-radius:8px;border:1px solid var(--a-border);font:inherit;background:var(--a-surface)}
 .preview{width:100%;height:calc(100vh - 150px);min-height:520px;border:1px solid var(--a-border);border-radius:12px;background:#fff}
 
 /* ---------- copy table ---------- */
@@ -196,7 +197,9 @@ td .kv b{color:var(--a-text);font-weight:600}
   .side nav button{padding:8px 10px;font-size:13px}
   .side-foot{flex-direction:row}
   .panel{padding:16px}
-  .topbar{padding:12px 16px}
+  .topbar{padding:12px 16px;flex-wrap:wrap}
+  .topbar-actions{flex:1 1 100%;flex-wrap:wrap}
+  .topbar-actions .dirty{flex:1}
   .row-i18n,.head-i18n{grid-template-columns:1fr}
   .grid3{grid-template-columns:1fr}
   .item,.group .grow,.ind{grid-template-columns:1fr}

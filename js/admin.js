@@ -203,7 +203,7 @@
   var state = { site: null, saved: null, pages: [], subs: null, tab: 'overview', openEngines: {}, publishing: false };
 
   function normalize(site){
-    site = Object.assign(clone(DEFAULT_SITE), site || {});
+    site = Object.assign(clone(DEFAULT_SITE), clone(site || {}));
     site.settings = Object.assign(clone(DEFAULT_SITE.settings), site.settings || {});
     site.features = Object.assign(clone(DEFAULT_SITE.features), site.features || {});
     site.design = Object.assign(clone(DEFAULT_SITE.design), site.design || {});
@@ -215,14 +215,15 @@
     site.i18n = site.i18n || {}; site.i18n.en = site.i18n.en || {}; site.i18n.az = site.i18n.az || {};
     return site;
   }
-  function isDirty(){ return !same(state.site, state.saved); }
+  var invalidBrandColors={};
+  function isDirty(){ return Object.keys(invalidBrandColors).length>0 || !same(state.site, state.saved); }
   var previewPush = debounce(function(){
     var f = $('#preview');
     if (f && f.contentWindow) f.contentWindow.postMessage({ type: 'omni:preview', site: state.site }, location.origin);
   }, 120);
   function markDirty(){
     var d = isDirty();
-    $('#dirty').textContent = d ? 'Unsaved changes' : '';
+    $('#dirty').textContent = Object.keys(invalidBrandColors).length ? 'Fix the brand colour before publishing' : d ? 'Unsaved changes' : '';
     $('#saveBtn').disabled = !d || state.publishing;
     $('#discardBtn').hidden = !d;
     previewPush();
@@ -323,23 +324,31 @@
   }
 
   /* ---------- design ---------- */
-  function isHex(v){ return /^#[0-9a-f]{6}$/i.test(v || ''); }
+  function isHex(v){ return window.OmniElementRules.brandColor(v); }
   function tokenCard(tk, color){
-    var val = state.site.design.tokens[tk.k] || '';
-    var hex = isHex(val) ? val : (isHex(tk.d) ? tk.d : '#000000');
+    var val = tk.k in invalidBrandColors ? invalidBrandColors[tk.k] : state.site.design.tokens[tk.k] || '';
+    var valid = state.site.design.tokens[tk.k],hex = isHex(valid) ? valid : (isHex(tk.d) ? tk.d : '#000000');
     return '<div class="token' + (val ? ' changed' : '') + '" data-token-card="' + tk.k + '">' +
       '<span class="lbl">' + esc(tk.l) + ' <code>' + tk.k + '</code></span>' +
       '<div class="row">' +
         (color ? '<input type="color" value="' + hex + '" data-token-color="' + tk.k + '" aria-label="' + esc(tk.l) + ' colour">' : '') +
-        '<input type="text" value="' + esc(val) + '" placeholder="' + esc(tk.d) + '" data-token-text="' + tk.k + '" aria-label="' + esc(tk.l) + '">' +
+        '<input type="text" value="' + esc(val) + '" placeholder="' + esc(tk.d) + '" data-token-text="' + tk.k + '" aria-label="' + esc(tk.l) + '" aria-describedby="token-help' + tk.k + '" aria-invalid="' + (tk.k in invalidBrandColors) + '">' +
         '<button class="btn icon" title="Reset to default" data-token-reset="' + tk.k + '">↺</button>' +
-      '</div></div>';
+      '</div><p id="token-help' + tk.k + '" class="small ' + (tk.k in invalidBrandColors ? 'err' : 'muted') + '">' + (tk.k in invalidBrandColors ? 'Enter a six-digit hex colour, such as #C6F24E. The last valid colour is kept until you correct this.' : 'Use the picker or a six-digit hex colour, such as #C6F24E. Leave blank to use the default.') + '</p></div>';
   }
   function renderDesign(panel){
     clearPanelListeners(panel);var shown=TOKENS.filter(function(t){return ['--ink','--paper','--signal','--violet'].indexOf(t.k)>=0;});
     panel.innerHTML='<div class="grid2"><div class="card"><h2>Brand colours</h2><p class="muted">Change your main colours. Use the page editor to preview the full design.</p><div class="tokens">'+shown.map(function(t){return tokenCard(t,true);}).join('')+'</div><a class="btn" href="index.html?edit=1" style="margin-top:18px">Open page editor</a></div><div class="preview-wrap"><div class="preview-bar"><select id="previewPage" aria-label="Preview page">'+state.pages.map(function(p){return '<option value="'+esc(p.file)+'"'+(p.file==='index.html'?' selected':'')+'>'+esc(p.title||p.file)+'</option>';}).join('')+'</select><button class="btn" id="previewReload">Reload</button></div><iframe id="preview" class="preview" src="index.html" title="Website preview"></iframe></div></div>';
-    onPanel(panel,'input',function(e){var el=e.target,key=el.getAttribute('data-token-color')||el.getAttribute('data-token-text');if(!key)return;if(el.value.trim())state.site.design.tokens[key]=el.value.trim();else delete state.site.design.tokens[key];$('[data-token-text="'+key+'"]',panel).value=el.value;var picker=$('[data-token-color="'+key+'"]',panel);if(isHex(el.value))picker.value=el.value;markDirty();});
-    onPanel(panel,'click',function(e){var b=e.target.closest('[data-token-reset]');if(!b)return;delete state.site.design.tokens[b.getAttribute('data-token-reset')];markDirty();renderDesign(panel);});
+    onPanel(panel,'input',function(e){
+      var el=e.target,key=el.getAttribute('data-token-color')||el.getAttribute('data-token-text');if(!key)return;
+      var value=el.value.trim(),input=$('[data-token-text="'+key+'"]',panel),help=document.getElementById('token-help'+key),invalid=!!value&&!isHex(value);
+      input.value=el.value;input.setAttribute('aria-invalid',String(invalid));help.className='small '+(invalid?'err':'muted');
+      help.textContent=invalid?'Enter a six-digit hex colour, such as #C6F24E. The last valid colour is kept until you correct this.':'Use the picker or a six-digit hex colour, such as #C6F24E. Leave blank to use the default.';
+      if(invalid)invalidBrandColors[key]=el.value;
+      else{delete invalidBrandColors[key];if(value)state.site.design.tokens[key]=value;else delete state.site.design.tokens[key];var picker=$('[data-token-color="'+key+'"]',panel);picker.value=value||shown.find(function(t){return t.k===key;}).d;}
+      markDirty();
+    });
+    onPanel(panel,'click',function(e){var b=e.target.closest('[data-token-reset]');if(!b)return;var key=b.getAttribute('data-token-reset');delete state.site.design.tokens[key];delete invalidBrandColors[key];markDirty();renderDesign(panel);});
     var frame=$('#preview',panel);frame.addEventListener('load',previewPush);$('#previewPage',panel).addEventListener('change',function(){frame.src=this.value;});$('#previewReload',panel).addEventListener('click',function(){frame.src=$('#previewPage',panel).value;});
   }
 
@@ -354,7 +363,7 @@
         '<label class="small"><input type="checkbox" id="copyChanged"> Only changed</label><span class="muted small" id="copyCount"></span></div>' +
       '<div class="head-i18n"><span class="lbl">Key</span><span class="lbl">English</span><span class="lbl">Azərbaycan</span></div>' +
       '<div id="copyList"></div>';
-    var list = $('#copyList');
+    var list = $('#copyList',panel),search=$('#copySearch',panel),namespace=$('#copyNs',panel),changed=$('#copyChanged',panel),count=$('#copyCount',panel);
     function rowHtml(k){
       var ov = state.site.i18n, en = ov.en[k], az = ov.az[k];
       var changed = en != null || az != null;
@@ -365,7 +374,8 @@
       '</div>';
     }
     function draw(){
-      var q = ($('#copySearch').value || '').toLowerCase(), ns = $('#copyNs').value, only = $('#copyChanged').checked;
+      if(!list.isConnected)return;
+      var q = (search.value || '').toLowerCase(), ns = namespace.value, only = changed.checked;
       var rows = COPY_KEYS.filter(function(k){
         if (ns && k.split('.')[0] !== ns) return false;
         if (only && state.site.i18n.en[k] == null && state.site.i18n.az[k] == null) return false;
@@ -381,11 +391,12 @@
         html += rowHtml(k);
       });
       list.innerHTML = html || '<div class="empty">No strings match.</div>';
-      $('#copyCount').textContent = rows.length + ' of ' + COPY_KEYS.length + (rows.length > 600 ? ' (showing first 600 — narrow the search)' : '');
+      count.textContent = rows.length + ' of ' + COPY_KEYS.length + (rows.length > 600 ? ' (showing first 600 — narrow the search)' : '');
       labelize(list);
     }
     draw();
-    ['input', 'change'].forEach(function(ev){ $('#copySearch').addEventListener(ev, debounce(draw, 150)); });
+    // Draw while typing only: no delayed redraw after navigation or when a result gains focus.
+    search.addEventListener('input', draw);
     $('#copyNs').addEventListener('change', draw);
     $('#copyChanged').addEventListener('change', draw);
     list.addEventListener('input', function(e){
@@ -462,6 +473,12 @@
       var v, parts;
       if (b.id === 'resetEngines'){
         if (!await confirmAction('Discard all catalogue edits and go back to the code defaults?', 'Discard edits')) return;
+        engines().forEach(function(engine,ei){
+          var prefix='engines.e'+(ei+1)+'.groups.',defaults=DEF.engines[ei].groups;
+          var order=window.OmniElementRules.catalogueResetOrder(engine.groups.map(function(g){return g.title;}),defaults.map(function(g){return g.title;}));
+          order.forEach(function(old,gi){if(old>=0)window.OmniElementRules.remapRemovalOrder(state.site,prefix+old+'.items.',window.OmniElementRules.catalogueResetOrder(engine.groups[old].items,defaults[gi].items),engine.groups[old].items.length);});
+          window.OmniElementRules.remapRemovalOrder(state.site,prefix,order,engine.groups.length);
+        });
         state.site.engines = null; state.site.enginesAz = null;
       } else if ((v = b.getAttribute('data-add-item'))){
         ensureEngines(); parts = v.split('.').map(Number);
@@ -469,11 +486,13 @@
         state.site.enginesAz[parts[0]].groups[parts[1]].items.push('Yeni xidmət');
       } else if ((v = b.getAttribute('data-del-item'))){
         ensureEngines(); parts = v.split('.').map(Number);
+        window.OmniElementRules.remapRemovedItems(state.site,'engines.e'+(parts[0]+1)+'.groups.'+parts[1]+'.items.',parts[2],null,state.site.engines[parts[0]].groups[parts[1]].items.length);
         state.site.engines[parts[0]].groups[parts[1]].items.splice(parts[2], 1);
         state.site.enginesAz[parts[0]].groups[parts[1]].items.splice(parts[2], 1);
       } else if ((v = b.getAttribute('data-move'))){
         ensureEngines(); parts = v.split('.').map(Number);
         var to = parts[2] + parts[3];
+        window.OmniElementRules.remapRemovedItems(state.site,'engines.e'+(parts[0]+1)+'.groups.'+parts[1]+'.items.',parts[2],to,state.site.engines[parts[0]].groups[parts[1]].items.length);
         [state.site.engines, state.site.enginesAz].forEach(function(arr){
           var items = arr[parts[0]].groups[parts[1]].items;
           if (to < 0 || to >= items.length) return;
@@ -486,6 +505,7 @@
       } else if ((v = b.getAttribute('data-del-group'))){
         if (!await confirmAction('Remove this group and its services?', 'Remove group')) return;
         ensureEngines(); parts = v.split('.').map(Number);
+        window.OmniElementRules.remapRemovedItems(state.site,'engines.e'+(parts[0]+1)+'.groups.',parts[1],null,state.site.engines[parts[0]].groups.length);
         state.site.engines[parts[0]].groups.splice(parts[1], 1);
         state.site.enginesAz[parts[0]].groups.splice(parts[1], 1);
       } else return;
@@ -518,10 +538,11 @@
       var b = e.target.closest('button'); if (!b) return;
       var v;
       if (b.id === 'addInd'){ ensureIndustries(); state.site.industries.push('New industry'); state.site.industriesAz.push('Yeni sahə'); }
-      else if (b.id === 'resetInd'){ if (!await confirmAction('Discard industry edits?', 'Discard edits')) return; state.site.industries = null; state.site.industriesAz = null; }
-      else if ((v = b.getAttribute('data-idel')) != null){ ensureIndustries(); state.site.industries.splice(+v, 1); state.site.industriesAz.splice(+v, 1); }
+      else if (b.id === 'resetInd'){ if (!await confirmAction('Discard industry edits?', 'Discard edits')) return; window.OmniElementRules.remapRemovalOrder(state.site,'industries.',window.OmniElementRules.catalogueResetOrder(industries(),DEF.industries),industries().length);state.site.industries = null; state.site.industriesAz = null; }
+      else if ((v = b.getAttribute('data-idel')) != null){ ensureIndustries();window.OmniElementRules.remapRemovedItems(state.site,'industries.',+v,null,state.site.industries.length); state.site.industries.splice(+v, 1); state.site.industriesAz.splice(+v, 1); }
       else if ((v = b.getAttribute('data-imove'))){
         ensureIndustries(); var p = v.split('.').map(Number), to = p[0] + p[1];
+        window.OmniElementRules.remapRemovedItems(state.site,'industries.',p[0],to,state.site.industries.length);
         [state.site.industries, state.site.industriesAz].forEach(function(arr){ if (to < 0 || to >= arr.length) return; var t = arr[p[0]]; arr[p[0]] = arr[to]; arr[to] = t; });
       } else return;
       markDirty(); renderIndustries(panel);
@@ -645,20 +666,23 @@
         try {
           var obj = JSON.parse(r.result);
           if (!obj || typeof obj !== 'object' || !obj.settings) throw new Error('Not a site configuration file.');
-          state.site = normalize(obj); markDirty(); toast('Imported — review, then Save & publish.', 'ok'); showTab('overview');
+          var imported=normalize(obj);
+          ['--ink','--paper','--signal','--violet'].forEach(function(key){if(key in imported.design.tokens&&!isHex(imported.design.tokens[key]))throw new Error('Invalid brand colour '+key+'. Use a six-digit hex colour such as #C6F24E.');});
+          state.site = imported; invalidBrandColors={};markDirty(); toast('Imported — review, then Save & publish.', 'ok'); showTab('overview');
         } catch (err) { toast(err.message, 'err'); }
       };
       r.readAsText(f);
     });
     $('#resetAll').addEventListener('click', async function(){
       if (!await confirmAction('Reset every setting to the code defaults? It will not take effect until you publish.', 'Reset defaults')) return;
-      state.site = normalize(clone(DEFAULT_SITE)); markDirty(); toast('Reset to defaults — Save & publish to apply.', 'ok'); showTab('overview');
+      state.site = normalize(clone(DEFAULT_SITE)); invalidBrandColors={};markDirty(); toast('Reset to defaults — Save & publish to apply.', 'ok'); showTab('overview');
     });
   }
 
   /* ---------- save / discard ---------- */
   function save(){
     if (!isDirty() || state.publishing) return;
+    if(Object.keys(invalidBrandColors).length){showTab('design');$('[data-token-text="'+Object.keys(invalidBrandColors)[0]+'"]').focus();toast('Correct the highlighted brand colour before publishing.','err');return;}
     var submitted=clone(state.site);state.publishing=true;
     var btn = $('#saveBtn'); btn.disabled = true; btn.textContent = 'Publishing…';
     /* the on-page editor may hold an unpublished draft — the server says so
@@ -683,7 +707,7 @@
   }
   async function discard(){
     if (!isDirty() || !await confirmAction('Throw away unsaved changes?', 'Discard changes')) return;
-    state.site = clone(state.saved); markDirty(); showTab(state.tab);
+    state.site = clone(state.saved); invalidBrandColors={}; markDirty(); showTab(state.tab);
   }
 
   /* ---------- boot ---------- */

@@ -1,0 +1,112 @@
+[
+  {
+    "timestamp": 1788947442243.554,
+    "exceptionDetails": {
+      "exceptionId": 4,
+      "text": "Uncaught",
+      "lineNumber": 367,
+      "columnNumber": 31,
+      "scriptId": "74",
+      "url": "http://127.0.0.1:6181/js/admin.js",
+      "stackTrace": {
+        "callFrames": [
+          {
+            "functionName": "draw",
+            "scriptId": "74",
+            "url": "http://127.0.0.1:6181/js/admin.js",
+            "lineNumber": 367,
+            "columnNumber": 31
+          },
+          {
+            "functionName": "",
+            "scriptId": "74",
+            "url": "http://127.0.0.1:6181/js/admin.js",
+            "lineNumber": 15,
+            "columnNumber": 121
+          }
+        ]
+      },
+      "exception": {
+        "type": "object",
+        "subtype": "error",
+        "className": "TypeError",
+        "description": "TypeError: Cannot read properties of null (reading 'value')\n    at draw (http://127.0.0.1:6181/js/admin.js:368:32)\n    at http://127.0.0.1:6181/js/admin.js:16:122",
+        "objectId": "-2432792120526357988.9.3",
+        "preview": {
+          "type": "object",
+          "subtype": "error",
+          "description": "TypeError: Cannot read properties of null (reading 'value')\n    at draw (http://127.0.0.1:6181/js/admin.js:368:32)\n    at http://127.0.0.1:6181/js/admin.js:16:122",
+          "overflow": false,
+          "properties": [
+            {
+              "name": "stack",
+              "type": "string",
+              "value": "TypeError: Cannot read properties of null (reading…)\n    at http://127.0.0.1:6181/js/admin.js:16:122"
+            },
+            {
+              "name": "message",
+              "type": "string",
+              "value": "Cannot read properties of null (reading 'value')"
+            }
+          ]
+        }
+      },
+      "executionContextId": 9
+    }
+  },
+  {
+    "timestamp": 1788948261942.071,
+    "exceptionDetails": {
+      "exceptionId": 8,
+      "text": "Uncaught",
+      "lineNumber": 367,
+      "columnNumber": 31,
+      "scriptId": "74",
+      "url": "http://127.0.0.1:6181/js/admin.js",
+      "stackTrace": {
+        "callFrames": [
+          {
+            "functionName": "draw",
+            "scriptId": "74",
+            "url": "http://127.0.0.1:6181/js/admin.js",
+            "lineNumber": 367,
+            "columnNumber": 31
+          },
+          {
+            "functionName": "",
+            "scriptId": "74",
+            "url": "http://127.0.0.1:6181/js/admin.js",
+            "lineNumber": 15,
+            "columnNumber": 121
+          }
+        ]
+      },
+      "exception": {
+        "type": "object",
+        "subtype": "error",
+        "className": "TypeError",
+        "description": "TypeError: Cannot read properties of null (reading 'value')\n    at draw (http://127.0.0.1:6181/js/admin.js:368:32)\n    at http://127.0.0.1:6181/js/admin.js:16:122",
+        "objectId": "-2432792120526357988.25.1",
+        "preview": {
+          "type": "object",
+          "subtype": "error",
+          "description": "TypeError: Cannot read properties of null (reading 'value')\n    at draw (http://127.0.0.1:6181/js/admin.js:368:32)\n    at http://127.0.0.1:6181/js/admin.js:16:122",
+          "overflow": false,
+          "properties": [
+            {
+              "name": "stack",
+              "type": "string",
+              "value": "TypeError: Cannot read properties of null (reading…)\n    at http://127.0.0.1:6181/js/admin.js:16:122"
+            },
+            {
+              "name": "message",
+              "type": "string",
+              "value": "Cannot read properties of null (reading 'value')"
+            }
+          ]
+        }
+      },
+      "executionContextId": 25
+    }
+  }
+]

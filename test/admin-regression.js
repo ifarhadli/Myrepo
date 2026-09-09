@@ -92,6 +92,30 @@ async function main(){
  await go('/admin-advanced.html',`!document.querySelector('#app').hidden`);
 
  const baseline=(await api('GET','site')).data;
+ async function publishAdvanced(){await click('#saveBtn');await until(()=>ev(`document.querySelector('#dirty').textContent===''`));return (await api('GET','site')).data;}
+ async function seedVisibility(){const live=(await api('GET','site')).data;const result=await api('PUT','site',{...baseline,baseUpdatedAt:live.updatedAt,hiddenElements:['*:industries.1','*:engines.e1.groups.0.items.1','*:engines.e1.groups.1.items.0']});check('catalogue regression fixture is published',result.status===200);await go('/admin-advanced.html',`!document.querySelector('#app').hidden`);}
+ await seedVisibility();await click('[data-tab="industries"]');
+ const hiddenIndustry=await ev(`document.querySelector('[data-ind="1"]').value`),hiddenIndustryAz=await ev(`document.querySelector('[data-indaz="1"]').value`);
+ await click('[data-imove="1.1"]');let catalogue=await publishAdvanced();
+ check('advanced reorder keeps the same industry hidden in both languages',catalogue.hiddenElements.includes('*:industries.2')&&!catalogue.hiddenElements.includes('*:industries.1')&&catalogue.industries[2]===hiddenIndustry&&catalogue.industriesAz[2]===hiddenIndustryAz);
+ await go('/index.html');check('public strip hides Banking after advanced reorder',await ev(`(()=>{const el=document.querySelector('[data-list="industry.strip"] [data-i18n="industries.2"]');return !!el&&el.offsetParent===null&&document.querySelector('[data-list="industry.strip"] [data-i18n="industries.1"]').offsetParent!==null;})()`));
+ await go('/admin-advanced.html',`!document.querySelector('#app').hidden`);await click('[data-tab="industries"]');await click('#resetInd');await click('#confirmDialog [value="confirm"]');catalogue=await publishAdvanced();
+ check('industry reset preserves removal of matching default content',catalogue.industries===null&&catalogue.hiddenElements.includes('*:industries.1'));
+ await click('[data-idel="0"]');catalogue=await publishAdvanced();check('industry deletion shifts the hidden identity',catalogue.industries[0]===hiddenIndustry&&catalogue.hiddenElements.includes('*:industries.0'));
+ await click('[data-idel="0"]');await click('#addInd');catalogue=await publishAdvanced();check('deleting a hidden industry does not hide its successor or a new item',!catalogue.hiddenElements.some(key=>key.startsWith('*:industries.')));
+ await seedVisibility();await click('[data-tab="services"]');
+ const hiddenService=await ev(`document.querySelector('[data-eng="0.groups.0.items.1"]').value`);
+ await click('[data-move="0.0.1.1"]');catalogue=await publishAdvanced();check('advanced service reorder preserves removed content',catalogue.engines[0].groups[0].items[2]===hiddenService&&catalogue.hiddenElements.includes('*:engines.e1.groups.0.items.2'));
+ await click('#resetEngines');await click('#confirmDialog [value="confirm"]');catalogue=await publishAdvanced();check('service reset preserves removal of matching defaults',catalogue.engines===null&&catalogue.hiddenElements.includes('*:engines.e1.groups.0.items.1'));
+ await click('[data-del-item="0.0.0"]');catalogue=await publishAdvanced();check('service deletion keeps the correct remaining service hidden',catalogue.engines[0].groups[0].items[0]===hiddenService&&catalogue.hiddenElements.includes('*:engines.e1.groups.0.items.0'));
+ await click('[data-del-group="0.0"]');catalogue=await ev(`!!document.querySelector('#confirmDialog').open`);check('group deletion still asks for confirmation',catalogue);await click('#confirmDialog [value="confirm"]');catalogue=await publishAdvanced();check('group deletion remaps surviving service removal keys',catalogue.hiddenElements.filter(key=>key.startsWith('*:engines.')).join(',')==='*:engines.e1.groups.0.items.0');
+ const afterCatalogue=(await api('GET','site')).data;await api('PUT','site',{...baseline,baseUpdatedAt:afterCatalogue.updatedAt});await go('/admin-advanced.html',`!document.querySelector('#app').hidden`);
+ await click('[data-tab="content"]');
+ await ev(`document.querySelector('#copySearch').value='hero';document.querySelector('#copySearch').dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('[data-tab="overview"]').click()`);await pause(350);
+ check('leaving translation search produces no delayed exception',errors.length===0,errors);
+ await click('[data-tab="content"]');await fill('#copySearch','home.hero.micro');
+ await ev(`document.querySelector('#copySearch').dispatchEvent(new Event('change',{bubbles:true}));document.querySelector('#copyList textarea').focus()`);await pause(350);
+ check('translation results keep focus when the search loses focus',await ev(`document.activeElement.matches('#copyList textarea')&&document.querySelectorAll('#copyList [data-row]').length===1`));
  await click('[data-tab="services"]');const before=await ev(`document.querySelectorAll('[data-eng^="0.groups.0.items."]').length`);
  for(let i=0;i<4;i++)await click('[data-add-item="0.0"]');
  check('four service clicks add exactly four services',await ev(`document.querySelectorAll('[data-eng^="0.groups.0.items."]').length`)===before+4);
@@ -101,6 +125,13 @@ async function main(){
  await click('#discardBtn');await click('#confirmDialog [value="confirm"]');
  await click('[data-tab="design"]');await pause(700);
  check('design preview selection matches its iframe',await ev(`document.querySelector('#previewPage').value===document.querySelector('#preview').getAttribute('src')`));
+ const priorColor=(await api('GET','site')).data.design.tokens['--signal'];
+ await fill('[data-token-text="--signal"]','not-a-color');await click('[data-tab="overview"]');await click('#saveBtn');
+ check('invalid colour blocks publishing and focuses its explanation across tabs',await ev(`document.activeElement.matches('[data-token-text="--signal"]')&&document.activeElement.getAttribute('aria-invalid')==='true'&&document.getElementById(document.activeElement.getAttribute('aria-describedby')).textContent.includes('six-digit hex')`)&&(await api('GET','site')).data.design.tokens['--signal']===priorColor);
+ await shot('invalid-brand-colour');
+ for(const width of [1440,390]){await view(width,900);check(width+'px colour fields and reset controls fit their cards',await ev(`[...document.querySelectorAll('[data-token-card]')].every(card=>[...card.querySelectorAll('input,button')].every(input=>{const r=input.getBoundingClientRect(),c=card.getBoundingClientRect();return r.left>=c.left&&r.right<=c.right;}))&&document.documentElement.scrollWidth<=innerWidth`));}await view();
+ await fill('[data-token-text="--signal"]','#123ABC');let colored=await publishAdvanced();check('corrected valid colour publishes successfully',colored.design.tokens['--signal']==='#123ABC');
+ await fill('[data-token-text="--signal"]','broken');await click('[data-token-reset="--signal"]');colored=await publishAdvanced();check('colour reset clears validation and restores inherited default',!('--signal' in colored.design.tokens)&&await ev(`document.querySelector('[data-token-text="--signal"]').getAttribute('aria-invalid')==='false'`));
  await click('[data-tab="settings"]');await fill('[data-bind="settings.siteName"]','Saved name');
  await ev(`window.nativeFetch=fetch;window.fetch=function(u,o){const result=window.nativeFetch.apply(this,arguments);return o?.method==='PUT'&&String(u).endsWith('api/site')?result.then(r=>new Promise(resolve=>setTimeout(()=>resolve(r),900))):result;};`);
  await click('#saveBtn');await fill('[data-bind="settings.phone"]','+1 234 567 890');await pause(1100);

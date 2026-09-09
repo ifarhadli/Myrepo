@@ -263,7 +263,7 @@ async function main(){
     settings: { siteUrl: 'https://example.test', email: 'hi@example.test', phone: '+994 12 000 00 00', address: 'Baku',
       schedulerUrl: 'javascript:alert(1)', privacyUrl: 'javascript:x', linkedin: 'https://linkedin.com/company/x', ogImage: 'https://example.test/og.png' },
     features: { customCursor: false, cookieBanner: false },
-    design: { tokens: { '--signal': '#ff0000', 'bad key': 'x', '--ink': 'red;}body{display:none' }, fontDisplay: 'Sora',
+    design: { tokens: { '--signal': '#ff0000', 'bad key': 'x', '--custom-token': 'red;}body{display:none' }, fontDisplay: 'Sora',
       fontPreset: 'sora-dmsans', motion: 'calm', customCss: '.hero{color:red}' },
     structured: { orgLegalName: 'OmniMark LLC', orgLogoUrl: 'javascript:bad', articleAuthor: 'Priya Anand',
       articleDatePublished: '2026-09-01', articleDateModified: 'not-a-date', jobTitle: 'Draft role' },
@@ -316,6 +316,20 @@ async function main(){
     check('invalid hiddenElements rejected: '+(Array.isArray(hiddenElements)?hiddenElements.length+' entries':typeof hiddenElements),invalid.status===400&&invalid.json.field==='hiddenElements',invalid.text);
   }
   check('validation: bad token key dropped, CSS-breaking value kept as opaque string', saved && !('bad key' in saved.design.tokens) && saved.design.tokens['--signal'] === '#ff0000');
+  for (const key of ['--ink','--paper','--signal','--violet']) {
+    const invalid = await req('PUT','/api/site',{...cfg,design:{tokens:{[key]:'not-a-color'}}},{admin:true});
+    check('invalid brand colour rejected with field: '+key,invalid.status===400&&invalid.json.field==='design.tokens.'+key,invalid.text);
+  }
+  const invalidDraftColor=await req('PUT','/api/draft',{...cfg,design:{tokens:{'--signal':'invalid'}}},{admin:true});
+  check('draft API also rejects invalid brand colours',invalidDraftColor.status===400&&invalidDraftColor.json.field==='design.tokens.--signal',invalidDraftColor.text);
+  const removalFixture={hiddenElements:['*:industries.1','*:engines.e1.groups.1.items.0','index:home.hero.micro']};
+  rules.remapRemovedItems(removalFixture,'industries.',1,2,4);
+  rules.remapRemovedItems(removalFixture,'engines.e1.groups.',0,null,3);
+  check('shared catalogue remapping preserves hidden identities across reorder and group deletion',removalFixture.hiddenElements.join(',')==='*:industries.2,*:engines.e1.groups.0.items.0,index:home.hero.micro');
+  rules.remapRemovedItems(removalFixture,'industries.',2,null,4);
+  check('deleting hidden catalogue content drops its obsolete removal key',!removalFixture.hiddenElements.some(key=>key.includes('industries.')));
+  removalFixture.hiddenElements.push('*:industries.999');rules.remapRemovedItems(removalFixture,'industries.',0,1,3);
+  check('catalogue edits retain unknown valid future removal keys',removalFixture.hiddenElements.includes('*:industries.999'));
   check('validation: features merged with defaults', saved && saved.features.customCursor === false && saved.features.reveal === true);
   check('validation: font and motion presets map to runtime fields', saved && saved.design.fontPreset === 'sora-dmsans' && saved.design.fontDisplay === 'Sora' &&
     saved.design.fontBody === 'DM Sans' && saved.design.fontMono === 'Fira Code' && saved.design.motion === 'calm' && saved.features.marquee === false && saved.features.countUp === true);
