@@ -53,8 +53,8 @@ nested data, so a later edit or reset remains dirty after publishing.
 Translation search renders synchronously on input so navigation and result focus
 cannot be interrupted by a delayed redraw.
 
-Move to uses authored section labels or visible content, and explains both hidden
-sections and unapproved proof in the destination list and confirmation. Moving
+Page sections uses authored section labels or visible content, and explains both hidden
+sections and unapproved proof in the page outline. Moving
 does not change either visibility setting. Cancelling a pending invitation uses
 the existing disabled-account transition, which invalidates its recovery token;
 resending issues a fresh invitation. Preview Copy/Open controls remain hidden
@@ -121,20 +121,38 @@ section IDs/labels and published collection items, cached until the next publish
 
 ### Moving elements (Phase B)
 
-Desktop selection exposes a drag handle and **Move to…**. Dragging uses the same
+Desktop selection exposes a drag handle and **Earlier / Later**. Dragging uses the same
 `beginDrag`/`endDrag` and `html.omni-dragging` lifecycle as section/item movement.
 Viewport overlays show 3 px slot lines and container-end bands without reflowing
-the page. Only compatible destinations from `ALLOWED_DROPS` are interactive;
+the page. Only compatible destinations from `ALLOWED_DROPS` in the element's
+current section are interactive. A hero button may leave its row and move
+above the hero paragraph; it cannot move into an unrelated page section.
+Catalogue/list items keep their existing list and ordering data model;
 invalid areas use the native unavailable-drop cursor. Near-edge dragging scrolls
 the page, and drop, drag end, Escape or window blur cleans up every overlay.
 
-**Move to…** reuses the owned action sheet: section label, slot label, then the
-existing confirmation dialog. Hidden sections remain destinations with explicit
-guidance and keep their visibility. On phones, a stationary 550 ms long-press
-opens Element actions; scrolling, pointer cancellation and release cancel the
-hold. The visible toolbar offers the same action without requiring a gesture.
-Alt+Up/Down moves one compatible slot, while fields, text entry and IME keep
-their normal keys. The existing toast/live region announces the chosen place.
+The generic **Move to…** sheet is retired. **Earlier / Later** move to the nearest
+supported position, preferring siblings before leaving a row. They appear in
+the selected element toolbar and the existing phone action sheet, with disabled
+boundary states. A stationary 550 ms long-press remains an optional shortcut;
+ordinary selection exposes the same actions without a gesture. Alt+Up/Down uses
+the same movement operation, while fields, text entry and IME keep their normal
+keys. The existing toast/live region announces the chosen place.
+
+**This page → Page sections** lists page sections in draft order, including
+fixed-position hero and nested sections with disabled movement and an explanation,
+using readable labels and separate written statuses for manual hiding and proof
+approval. Select locates a section; Move up/down and Hide/Restore reuse the
+on-page operations. The list updates after edits and Undo/Redo, keeps focus and
+panel scroll, and disables boundary moves. Restoring a hidden proof section does
+not enable approval. Runtime ordering remembers authored order in memory so
+removing the first ordering override through Undo restores the original layout.
+This introduces no persisted ordering or visibility mechanism.
+
+These restrictions govern new owner moves only. Published, draft and historic
+cross-section placements remain supported by the existing renderer. Opening
+the editor or changing unrelated text must preserve that content and its data.
+Image file upload/drop remains a separate unchanged workflow.
 
 Placement records are capped at 400, validated and deduplicated by `key`, keeping
 the last occurrence in application order. Authored nodes return to in-memory

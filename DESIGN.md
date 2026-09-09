@@ -195,7 +195,12 @@ sheet on phones. Remove/Restore extends the faded hidden-section appearance
 with a dashed outline and written badge. The selection toolbar sits above the
 target on desktop and above the bottom dock on phones; it does not cover small
 item labels. A first click selects; Edit text or a second click edits.
-Movement actions use written Move up/down labels. The desktop toolbar keeps
+Movement actions use written Move up/down for sections and Earlier/Later for
+selected elements. Drag targets are confined to compatible positions within
+the current section. This page includes a Page sections outline using neutral
+bordered rows, readable names, written visibility/approval status and 44px
+minimum action targets; hidden rows use a dashed border rather than unreadable
+faded labels. The generic element destination menu is retired. The desktop toolbar keeps
 page, language, undo/redo, preview, enquiries, settings and review visible;
 occasional actions live in More, and maintenance is disclosed in Account.
 

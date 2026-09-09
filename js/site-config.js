@@ -301,6 +301,15 @@
     });
   }
 
+  // Remember authored order before overrides, so Undo/History can remove an order
+  // override without leaving the previously reordered DOM in place.
+  var layoutOrigins=new WeakMap();
+  function authoredItems(container,items,attribute){
+    if(!layoutOrigins.has(container))layoutOrigins.set(container,items.map(function(el){return el.getAttribute(attribute);}));
+    var keys=layoutOrigins.get(container),ordered=[];
+    keys.forEach(function(key){var item=items.find(function(el){return el.getAttribute(attribute)===key;});if(item)ordered.push(item);});
+    items.forEach(function(item){if(ordered.indexOf(item)<0)ordered.push(item);});return ordered;
+  }
   function applyLayout(cfg){
     cfg = cfg || site;
     if (!document.body) return;
@@ -310,6 +319,7 @@
     var main = document.querySelector('main');
     if (main){
       var sections = Array.prototype.slice.call(main.children).filter(function(el){ return el.hasAttribute('data-section'); });
+      sections = authoredItems(main,sections,'data-section');
       var byKey = {};
       sections.forEach(function(el){ byKey[el.getAttribute('data-section')] = el; });
       var ordered = [];
@@ -335,6 +345,7 @@
     document.querySelectorAll('[data-list]').forEach(function(list){
       var listKey = list.getAttribute('data-list');
       var items = Array.prototype.slice.call(list.children).filter(function(el){ return el.hasAttribute('data-item'); });
+      items = authoredItems(list,items,'data-item');
       var itemById = {};
       items.forEach(function(el){ itemById[el.getAttribute('data-item')] = el; });
       var order = itemOrder[listKey] || [];

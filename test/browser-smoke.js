@@ -199,7 +199,7 @@ async function main(){
   state = await evaluate(`({ publish:document.querySelector('[data-editor-publish]').textContent.trim(), disabled:document.querySelector('[data-editor-publish]').disabled, drafted:!!window.OmniEditor.getState().draft.collections })`);
   check('opening a page invents no changes', state.publish === 'Up to date' && state.disabled && !state.drafted, JSON.stringify(state));
   await require('./add-element-journey')({evaluate,go,viewport,check,screenshot,pause},1366);
-  await require('./move-element-journey')({evaluate,go,viewport,check,screenshot,pause},1366);
+  await require('./move-element-journey')({evaluate,go,viewport,check,screenshot,pause,send},1366);
   /* the drag handle lives in a hover-only toolbar; if it hides once the pointer
      leaves the source, the browser cancels the drag and only ▲▼ work */
   await evaluate(`(() => { const s=document.querySelector('[data-section="index.s1"]');

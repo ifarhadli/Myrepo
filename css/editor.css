@@ -270,6 +270,19 @@ html.omni-editing .logo-chip[data-image-shell]>.omni-image-action::before{conten
 /* Element removal extends the faded, restorable section state. */
 html.omni-editing [data-omni-hidden-element]{display:var(--omni-element-display,block)!important;opacity:.4!important;outline:1px dashed var(--oe-violet);outline-offset:3px;position:relative}
 html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-removed-label);display:block;width:fit-content;max-width:100%;margin-top:6px;padding:3px 6px;border:1px dashed var(--oe-violet);border-radius:4px;background:var(--oe-surface,#faf9f6);color:var(--oe-ink);font:500 11px/1.4 Inter,sans-serif;white-space:normal}
+.omni-page-sections{margin:0 0 24px;padding:0 0 20px;border-bottom:1px solid var(--oe-line)}
+.omni-page-sections ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.omni-page-sections li{min-width:0;padding:10px;border:1px solid var(--oe-line);border-radius:8px;background:var(--oe-surface,#fff)}
+.omni-page-sections li[data-unavailable="true"]{border-style:dashed}
+.omni-page-sections button{min-height:44px;padding:8px;border:1px solid var(--oe-line);border-radius:5px;background:transparent;color:var(--oe-ink);font:600 12px/1.4 Inter,sans-serif;cursor:pointer}
+.omni-page-sections button:hover:not(:disabled){background:var(--oe-paper)}
+.omni-page-sections button:disabled{opacity:.45;cursor:not-allowed}
+.omni-page-sections button:focus-visible{outline:2px solid var(--oe-violet);outline-offset:2px}
+.omni-page-sections [data-page-section-select]{display:block;width:100%;border-color:transparent;text-align:left;font-size:14px;overflow-wrap:anywhere}
+.omni-page-sections [aria-current="true"]{border-color:var(--oe-violet)}
+.omni-page-sections small{display:block;padding:0 8px 10px;color:var(--oe-muted);font:400 12px/1.5 Inter,sans-serif}
+.omni-page-section-actions{display:flex;gap:6px;flex-wrap:wrap}
+.omni-page-section-actions button{flex:1}
 .omni-element-tools{position:fixed;z-index:calc(var(--oe-sheet) - 10);display:flex;flex-wrap:wrap;gap:6px;max-width:min(420px,calc(100vw - 16px));padding:7px;border:1px solid var(--oe-line);border-radius:8px;background:var(--oe-ink);color:#fff;box-shadow:0 8px 24px #0003;font:400 12px/1.5 Inter,sans-serif}
 .omni-element-tools button{min-height:36px;padding:6px 10px;border:1px solid #ffffff40;border-radius:5px;background:transparent;color:inherit;cursor:pointer;font:600 12px/1.4 Inter,sans-serif}
 .omni-element-tools button:hover:not(:disabled){background:#ffffff20}.omni-element-tools button:disabled{opacity:.5;cursor:not-allowed}
