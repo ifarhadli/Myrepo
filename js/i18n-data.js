@@ -6,6 +6,7 @@
    are per-page namespaces named after the page. */
 window.OM_I18N = {
   en: {
+    editor: {newText: "New text"},
     forms: {
       error: "We could not send that. Please try again, or email us at",
       subscribeError: "Could not subscribe right now. Please try again.",
@@ -712,6 +713,7 @@ window.OM_I18N = {
   }
   },
   az: {
+    editor: {newText: "Yeni mətn"},
     forms: {
       error: "Göndərmək mümkün olmadı. Yenidən cəhd edin və ya bizə yazın:",
       subscribeError: "Hazırda abunə olmaq mümkün olmadı. Yenidən cəhd edin.",

@@ -17,6 +17,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const DEFAULT_CONTENT = require('./js/data.js');
+const ELEMENT_RULES = require('./js/element-rules.js');
 
 const ROOT = __dirname;
 const DATA = path.join(ROOT, 'data');
@@ -90,7 +91,7 @@ const DEFAULT_SITE = {
   analytics: { gaId: '', consentScript: '' },
   structured: { orgLegalName: '', orgLogoUrl: '', articleAuthor: '', articleDatePublished: '', articleDateModified: '',
     jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
-  hiddenSections: [], hiddenElements: [], sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
+  hiddenSections: [], hiddenElements: [], addedElements: [], elementLinks: {}, elementStyles: {}, sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
   pages: {}, i18n: { en: {}, az: {} },
   engines: null, enginesAz: null, industries: null, industriesAz: null,
   collections: null
@@ -250,6 +251,7 @@ function archiveCurrent(by){
   listHistory().slice(HISTORY_KEEP).forEach(h => { try { fs.rmSync(path.join(HISTORY_DIR, h.id + '.json')); } catch (e) {} });
 }
 function saveSite(site, by){
+  linkTargetsCache = null;
   archiveCurrent(by);
   site.updatedAt = new Date(Math.max(Date.now(), (Date.parse(loadSite().updatedAt) || 0) + 1)).toISOString();
   writeJsonAtomic(SITE_JSON, site);
@@ -471,6 +473,19 @@ function validateSite(input){
     site.structured.jobEmploymentType = ['FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER'].includes(employment) ? employment : '';
   }
   site.hiddenSections = cleanStrArray(input.hiddenSections, 500) || [];
+  if(input.addedElements!==undefined){
+    const rows=input.addedElements,seen=new Set();
+    if(!Array.isArray(rows)||rows.length>400)throw Object.assign(new Error('Use at most 400 added elements.'),{field:'addedElements'});
+    site.addedElements=rows.map(row=>{
+      if(!isPlain(row)||!/^ae-[0-9a-f]{8}$/.test(row.id||'')||seen.has(row.id)||!ELEMENT_RULES.address(row.scope+':added.'+row.id)||!ELEMENT_RULES.address(row.anchor)||row.anchor.split(':')[0]!==row.scope||!ELEMENT_RULES.kinds.includes(row.kind)||!ELEMENT_RULES.positions.includes(row.position)||
+         (row.cloneOf!==undefined&&!ELEMENT_RULES.address(row.scope+':'+row.cloneOf))||(row.kind==='copy'&&!row.cloneOf))throw Object.assign(new Error('An added element has an invalid identity, kind or anchor.'),{field:'addedElements'});
+      seen.add(row.id);const out={id:row.id,scope:row.scope,kind:row.kind,anchor:row.anchor,position:row.position};if(row.cloneOf)out.cloneOf=row.cloneOf;return out;
+    });
+  }
+  for(const prop of ['elementLinks','elementStyles'])if(input[prop]!==undefined){
+    if(!isPlain(input[prop])||Object.keys(input[prop]).length>400)throw Object.assign(new Error('Use at most 400 element overrides.'),{field:prop});
+    for(const [key,value] of Object.entries(input[prop]))if(ELEMENT_RULES.address(key)&&(prop==='elementLinks'?ELEMENT_RULES.link(value):ELEMENT_RULES.styles.includes(value)))site[prop][key]=value;
+  }
   if (input.hiddenElements !== undefined){
     if (!Array.isArray(input.hiddenElements) || input.hiddenElements.length > 400 ||
         input.hiddenElements.some(key => typeof key !== 'string' || !/^(\*|[a-z0-9-]{1,40}):[a-zA-Z0-9._-]{1,120}$/.test(key))){
@@ -548,10 +563,11 @@ function diffCount(before, after){
   return Array.from(new Set(Object.keys(a).concat(Object.keys(b)))).filter(key => a[key] !== b[key]).length;
 }
 function publishSummary(before, after){
+  const elementDetails=ELEMENT_RULES.changes(before,after);
   return {
     texts: diffCount(before.i18n || {}, after.i18n || {}),
     elements: (before.hiddenElements || []).filter(key => !(after.hiddenElements || []).includes(key)).length +
-      (after.hiddenElements || []).filter(key => !(before.hiddenElements || []).includes(key)).length,
+      (after.hiddenElements || []).filter(key => !(before.hiddenElements || []).includes(key)).length + Object.values(elementDetails).reduce((a,b)=>a+b,0),
     sections: diffCount({ order: before.sectionOrder || {}, hidden: before.hiddenSections || [], accent: before.sectionAccent || {} },
       { order: after.sectionOrder || {}, hidden: after.hiddenSections || [], accent: after.sectionAccent || {} }),
     items: diffCount({ order: before.itemOrder || {}, hidden: before.hiddenItems || [], collections: before.collections },
@@ -995,9 +1011,19 @@ function pageInfo(file){
     const aria = m[0].match(/aria-label="([^"]+)"/);
     let label = lab ? stripTags(lab[lab.length - 1]) : (aria ? aria[1] : '');
     if (m[1] === 'header') label = 'Hero' + (label ? ' — ' + label : '');
-    sections.push({ key: m[2], label: (label || m[2]).slice(0, 90) });
+    const sectionId=(m[0].match(/\bid="([^"]+)"/)||[])[1]||'sec-'+m[2].replace(/\./g,'-');
+    sections.push({ key: m[2], id:sectionId, label: (label || 'Section '+(sections.length+1)).slice(0, 90) });
   }
   return { key: file.replace(/\.html$/i, ''), file, title, description, sections };
+}
+
+let linkTargetsCache=null;
+function linkTargets(){
+  const live=loadSite();if(linkTargetsCache&&linkTargetsCache.version===live.updatedAt)return linkTargetsCache.value;
+  const pages=listPages().map(pageInfo),collections=effectiveCollections(live),items={};
+  for(const type of ['cases','articles','jobs'])items[type]=(collections[type]||[]).filter(item=>item.published).map(item=>({slug:item.slug,title:itemText(item,'title','en')||item.slug}));
+  const sections={};pages.forEach(page=>{sections[page.key]=page.sections.map(section=>({id:section.id,label:section.label}));});
+  const value={pages:pages.map(page=>({key:page.key,title:page.title.replace(/\s*[—–|]\s*OmniMark.*$/,'')})),sections,items};linkTargetsCache={version:live.updatedAt,value};return value;
 }
 
 function resolveMediaUrl(value, base, width){
@@ -1617,6 +1643,7 @@ async function api(req, res, url){
   if (p === '/pages' && method === 'GET'){
     return json(res, 200, listPages().map(pageInfo));
   }
+  if (p === '/link-targets' && method === 'GET') return json(res,200,linkTargets());
   if (p === '/submissions' && method === 'GET'){
     if (!can(user, 'submissions')) return forbidden(res, 'view submissions');
     const all = readJson(SUBS_JSON, []).slice().reverse();

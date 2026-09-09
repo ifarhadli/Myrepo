@@ -183,10 +183,10 @@
   function initFaq(){
     document.querySelectorAll('.faq-item').forEach(function(item, i){
       var q = item.querySelector('.faq-q');
-      if(!q) return;
+      if(!q||q.hasAttribute('data-faq-bound')) return;q.setAttribute('data-faq-bound','');
       var a = item.querySelector('.faq-a');
       if(a){
-        if(!a.id) a.id = 'faq-a-' + (i + 1);
+        if(!a.id){var serial=i+1;while(document.getElementById('faq-a-'+serial))serial++;a.id='faq-a-'+serial;}
         q.setAttribute('aria-controls', a.id);
         a.setAttribute('aria-hidden', item.classList.contains('open') ? 'false' : 'true');
         a.inert = !item.classList.contains('open');
@@ -641,6 +641,7 @@
     document.querySelectorAll('.kinetic').forEach(function(el){ delete el.dataset.kineticDone; });
     initKinetic();
   });
+  document.addEventListener('omni:additions-ready', initFaq);
   document.addEventListener('omni:collections-ready', function(){ initFilters();initTestimonials();initReveal(); });
 
   /* partials.js (loaded before this file) injects header/footer on its own

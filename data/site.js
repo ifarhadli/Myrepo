@@ -71,5 +71,8 @@ window.OMNI_SITE = {
   "enginesAz": null,
   "industries": null,
   "industriesAz": null,
-  "hiddenElements": []
+  "hiddenElements": [],
+  "addedElements": [],
+  "elementLinks": {},
+  "elementStyles": {}
 };

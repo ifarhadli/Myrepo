@@ -66,6 +66,17 @@ items can also be added. **Design** offers Original, Calm and Editorial presets,
 Individual colour and font controls stay outside everyday editing. **Phone** previews the current
 page in a contained 390 px layout.
 
+**Adding elements, links and styles:** select content and choose **Add**.
+**Another like this** copies its English and Azerbaijani words into independently
+editable text. The menu also offers designed paragraphs, bullets, buttons,
+stats, FAQs, steps or cards where they fit. New text opens ready to type;
+switch EN/AZ to edit each language. **Link** chooses a page, this page's section,
+published item, URL, email or phone destination. Buttons offer **Primary**,
+**Secondary** and **Text** styles. Changes use the same draft, review and Publish.
+Removing an added element deletes its record and overrides; Undo restores them.
+Adding form fields and copying protected controls are unavailable. Moving
+individual elements between slots is Phase B, pending review.
+
 **Removing elements:** select text, a button, bullet, image, stat or other
 content and choose **Remove**. This hides it for visitors after **Publish**;
 it stays faded and labelled in the editor. **Restore**, **Undo**, and published
@@ -303,15 +314,16 @@ static-media export command yet.
 - Adding a string: put it in both `en` and `az` in `js/i18n-data.js` and
   reference it with `data-i18n="ns.key"`. It shows up in *Copy* at once.
 - `npm run check` syntax-checks every script.
-- `npm test` also runs [test/server.test.js](test/server.test.js): 189
+- `npm test` also runs [test/server.test.js](test/server.test.js):
   integration checks in a disposable copy covering serving, auth, publish,
   media and collection validation/storage, clean item routing, structured
   data, submissions, acknowledgements, account migration, roles, concurrent
-  draft guards and preview links.
+  draft guards, preview links, addition validation and link destinations.
 - `npm run test:browser` drives an installed Chrome/Edge through its debugging
-  protocol: 97 responsive, media, collection lifecycle, focus, inert-state,
+  protocol: responsive, media, collection lifecycle, focus, inert-state,
   validation, role, preview, editor and admin checks. Set `BROWSER_BIN` if Chromium is
-  installed somewhere non-standard.
+  installed somewhere non-standard. The shared Add/Link/Style journey verifies
+  bilingual copies, publishing, Remove, Undo and History at desktop and phone widths.
 - Static design rules live in [DESIGN.md](DESIGN.md) and shared UI behavior in
   [UX-CONTRACT.md](UX-CONTRACT.md). Audit screenshots are intentionally ignored;
   the Markdown findings remain versioned under `audit/`.

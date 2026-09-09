@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0C10'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23C6F24E' stroke-width='7'/%3E%3C/svg%3E">
 <script src="data/site.js"></script>
+<script src="js/element-rules.js"></script>
 <script src="js/site-config.js"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -20,7 +21,7 @@
 
 <div id="site-header"><noscript><nav class="nojs-nav" aria-label="Primary"><a href="index.html">Home</a><a href="services.html">Services</a><a href="work.html">Work</a><a href="index.html#industries">Industries</a><a href="about.html">About</a><a href="insights.html">Insights</a><a href="careers.html">Careers</a><a href="contact.html">Contact</a></nav></noscript></div>
 
-<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 56px" data-section="insights.hero">
+<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 56px" data-section="insights.hero" id="sec-insights-hero">
   <div class="wrap" style="display:block">
     <p class="eyebrow" data-i18n="home.insights.eyebrow">Insights</p>
     <h1 class="display-l kinetic" style="color:#fff" data-i18n="home.insights.h2">What we're arguing about this month.</h1>
@@ -29,7 +30,7 @@
 </header>
 
 <main>
-<section class="section-border reveal" data-section="insights.s1">
+<section class="section-border reveal" data-section="insights.s1" id="sec-insights-s1">
   <div class="wrap">
     <div class="filters" role="group" aria-label="Filter by category">
       <button class="active" data-filter="all" data-i18n="insightsPage.filterAll">All</button>

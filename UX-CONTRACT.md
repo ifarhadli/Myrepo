@@ -56,6 +56,51 @@ dismissible explanation uses `omni-hint-remove` in localStorage.
 - `js/site-config.js` applies published owner overrides to the public tokens.
 - Supported theme: light/dark surfaces within one brand theme.
 
+### Adding elements, links and styles (Phase A)
+
+The selection toolbar owns Add, Link and the Primary/Secondary/Text segmented
+control. Add uses the existing action sheet with a short explanation per choice;
+Link uses the existing focus-managed panel with loading, retry, empty choices,
+linked validation errors and Save. Labels show readable destinations, never keys.
+Both controls remain available on phones, with 44 px actions and wrapping.
+
+`ALLOWED_DROPS` is the shared runtime/editor compatibility table:
+
+| Kind | Allowed container |
+|---|---|
+| Paragraph / block copy | Section content wrappers: `.wrap`, `.wrap > div`, `.split > div`, `.eng-panel-in`, `.article-body`, `.rich-copy`, `.cta-grid > div` |
+| Bullet | Content `ul` / `ol` |
+| Button | `.btn-row` or a block wrapper; the runtime creates a button row when needed |
+| Stat | `.stat-row` |
+| FAQ | `.faq-list` |
+| Step | `.process-track` |
+| Card | `.grid-2`, `.grid-3`, `.claim-cards` |
+
+Forms, fields, shared navigation, wordmark, cookie controls, page H1 and editor
+chrome cannot be copied. The runtime enforces the same restrictions. Copies
+strip IDs, image/item/collection/editor bindings and form controls, and re-key
+text in DOM order under `added.<id>`. Both language overrides are captured at
+creation. Empty text uses the localized New text placeholder. FAQs receive fresh
+answer IDs and disclosure bindings. Missing anchors are skipped.
+
+`addedElements`, `elementLinks` and `elementStyles` reuse `hideTargetFor`,
+`elementRemovalInfo` and `<scope>:<key>` addresses. Rendering applies additions,
+links and styles before the existing hidden-element pass. Removing an authored
+element keeps its existing visibility behavior; removing an added element deletes
+its record and overrides. `commit()`, Undo/Redo, shared drafts, Publish and History
+own every change. The existing Elements review count includes additions, links
+and styles, with detail in its tooltip.
+
+Each collection/map is capped at 400 entries. Shared link validation allows
+HTTP(S), email, telephone, relative HTML pages, published-item route shapes and
+section fragments; unsupported schemes are discarded by the server and rejected
+inline by the editor. Session-only `/api/link-targets` lists page titles, real
+section IDs/labels and published collection items, cached until the next publish.
+
+Phase B is pending review: no element placements, drag-to-slot, drop zones,
+Move to sheet or element keyboard movement are introduced in Phase A. Existing
+section/item movement retains `beginDrag`/`endDrag` and `html.omni-dragging`.
+
 ## Canonical UI Map
 
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
@@ -317,9 +362,10 @@ Table selection and date-picker ownership are omitted because the editor has nei
 ## Verification
 
 - Static: `npm run check` and the premium strict audit.
-- Integration: `npm test` covers 206 configuration, validation, persistence,
+- Integration: `npm test` covers configuration, validation, persistence,
   notification, migration, role, conflict and preview checks.
-- Browser: `npm run test:browser` covers 132 phone/laptop containment,
+- Browser: `npm run test:browser` covers phone/laptop containment,
   navigation/focus, validation, content, preview, invitation/role, admin, and
-  complete 390 px mobile edit/publish checks.
+  complete 390 px mobile edit/publish checks, including bilingual element copies,
+  Add/Link/Style, Remove, Undo and History.
 - Owner gates still required: native Azerbaijani review, approved privacy/retention terms, and written approval for every proof item before enabling it.

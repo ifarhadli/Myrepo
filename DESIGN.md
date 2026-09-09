@@ -234,6 +234,13 @@ changes. Short contextual section/card choices remain bottom sheets with a
 visible grab cue, clear text actions, focus containment, Escape dismissal and
 focus restoration.
 
+Add and Link extend the selected-element toolbar. Add offers compatible designed
+components in the existing action sheet; Link uses the existing right panel with
+readable destination choices and inline errors. Primary/Secondary/Text buttons
+use the existing segmented control with explicit contrast on the dark toolbar.
+Phone controls wrap above the bottom dock and keep 44 px touch targets. New
+elements inherit authored component classes rather than new design settings.
+
 ### Iconography
 
 Icons are simple inline line symbols at the point of use. Unfamiliar and destructive actions retain visible text or a specific accessible name; icons never replace essential meaning.

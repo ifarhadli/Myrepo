@@ -102,6 +102,7 @@ async function main(){
   const t0 = Date.now();
   while (!/Admin dashboard/.test(out) && Date.now() - t0 < 8000) await new Promise(r => setTimeout(r, 100));
   check('server booted', /Admin dashboard/.test(out), out);
+  check('link targets require a session',(await req('GET','/api/link-targets')).status===401);
   const migratedAdmin = JSON.parse(readTmp('data/admin.json'));
   check('legacy single-password installs migrate to one Admin user', migratedAdmin.version === 2 && migratedAdmin.users.length === 1 && migratedAdmin.users[0].role === 'admin' && !Object.prototype.hasOwnProperty.call(migratedAdmin, 'hash'));
 
@@ -267,6 +268,9 @@ async function main(){
     structured: { orgLegalName: 'OmniMark LLC', orgLogoUrl: 'javascript:bad', articleAuthor: 'Priya Anand',
       articleDatePublished: '2026-09-01', articleDateModified: 'not-a-date', jobTitle: 'Draft role' },
     hiddenSections: ['index.s3'],
+    addedElements: [{id:'ae-1234abcd',scope:'index',kind:'paragraph',anchor:'index:home.hero.lede',position:'after'}],
+    elementLinks: {'index:home.hero.ctaPrimary':'contact.html#sec-contact-form','index:home.hero.ctaSecondary':'javascript:alert(1)','bad:key?':'https://example.test','index:bad':'data:text/html,x'},
+    elementStyles: {'index:home.hero.ctaPrimary':'secondary','index:bad':'huge'},
     hiddenElements: ['index:home.hero.micro', '*:unknown.future-key', 'index:home.hero.micro'],
     sectionOrder: { index: ['index.s2', 'index.s1'], about: Array.from({ length: 70 }, (_, i) => 'about.s' + i) },
     sectionAccent: { 'index.s1': 3, low: 0, high: 6, text: 'x' },
@@ -289,6 +293,15 @@ async function main(){
   r = await req('PUT', '/api/site', cfg, { admin: true });
   check('PUT site ok', r.status === 200 && r.json && r.json.ok, r.text);
   const saved = r.json && r.json.site;
+  check('additions retain validated anchors and styles; unsafe links are dropped',saved.addedElements[0].id==='ae-1234abcd'&&Object.keys(saved.elementLinks).length===1&&saved.elementLinks['index:home.hero.ctaPrimary']==='contact.html#sec-contact-form'&&Object.keys(saved.elementStyles).length===1);
+  const rules=require(path.join(ROOT,'js','element-rules.js'));
+  check('shared link validator accepts supported destinations', ['https://example.test/a','http://example.test','mailto:hello@example.test','tel:+123456789','contact.html','#sec-index-hero','/work/growth-case','/insights/article','/careers/designer'].every(rules.link));
+  check('shared link validator rejects unsafe, ambiguous and rewritten URLs', ['javascript:alert(1)','data:text/html,x','//evil.test','\\evil.test','https://name:secret@example.test',' contact.html','contact.html\n','ftp://example.test','../contact.html'].every(value=>!rules.link(value)));
+  for(const changed of [{addedElements:Array(401).fill(cfg.addedElements[0])},{addedElements:[{...cfg.addedElements[0],id:'invalid'}]},{addedElements:[{...cfg.addedElements[0],kind:'field'}]},{addedElements:[{...cfg.addedElements[0],position:'free'}]},{addedElements:[{...cfg.addedElements[0],anchor:'*:nav.work'}]},{addedElements:[{...cfg.addedElements[0],kind:'copy'}]},{elementLinks:Object.fromEntries(Array.from({length:401},(_,i)=>['index:x'+i,'contact.html']))}]){
+    const invalid=await req('PUT','/api/site',{...cfg,...changed},{admin:true});check('invalid additions and oversized overrides are rejected',invalid.status===400,invalid.text);
+  }
+  const targets=await req('GET','/api/link-targets');
+  check('link targets expose pages, labelled section ids and published items',targets.status===200&&targets.json.pages.some(page=>page.key==='contact')&&targets.json.sections.index.every(section=>section.id&&section.label)&&targets.json.items.cases.every(item=>item.slug!=='private-draft-case')&&targets.json.items.cases.length>0,targets.text.slice(0,200));
   check('element keys deduplicate and preserve keys from unknown pages', saved.hiddenElements.join(',') === 'index:home.hero.micro,*:unknown.future-key');
   for (const hiddenElements of ['index:bad', ['bad'], ['INDEX:key'], ['index:<script>'], Array(401).fill('index:key')]){
     const invalid = await req('PUT','/api/site',{...cfg,hiddenElements},{admin:true});
@@ -364,13 +377,15 @@ async function main(){
   draftCfg.i18n.en['home.hero.h1'] = 'Draft headline';
   draftCfg.hiddenSections = ['index.s3', 'index.s4'];
   draftCfg.hiddenElements.push('*:nav.insights');
+  draftCfg.addedElements.push({id:'ae-8765abcd',scope:'index',kind:'button',anchor:'index:home.hero.lede',position:'after'});
+  draftCfg.elementLinks['index:added.ae-8765abcd']='contact.html';draftCfg.elementStyles['index:added.ae-8765abcd']='primary';
   r = await req('PUT', '/api/draft', draftCfg, { admin: true });
   check('PUT draft validates and saves atomically', r.status === 200 && r.json.ok && !!r.json.savedAt && fs.existsSync(path.join(TMP, 'data', 'draft.json')), r.text);
   r = await req('GET', '/api/draft');
   check('GET draft returns draft and live', r.status === 200 && r.json.draft.i18n.en['home.hero.h1'] === 'Draft headline' && r.json.live.i18n.en['home.hero.h1'] !== 'Draft headline');
   r = await req('POST', '/api/publish', undefined, { admin: true });
   check('publish promotes draft and returns categorized summary', r.status === 200 && r.json.site.i18n.en['home.hero.h1'] === 'Draft headline' &&
-    r.json.summary.elements === 1 && r.json.summary.texts === 1 && r.json.summary.sections >= 1 && typeof r.json.summary.design === 'number', r.text);
+    r.json.summary.elements === 4 && r.json.summary.texts === 1 && r.json.summary.sections >= 1 && typeof r.json.summary.design === 'number', r.text);
   r = await req('GET', '/api/draft');
   check('publish removes the draft', r.status === 200 && r.json.draft === null && !fs.existsSync(path.join(TMP, 'data', 'draft.json')));
   r = await req('POST', '/api/publish', undefined, { admin: true });

@@ -2,6 +2,18 @@
 (function(){
   'use strict';
   var help = {
+    'Add':'Insert a designed element beside the selection. Undo removes the addition.',
+    'Another like this':'Copy this element with its English and Azerbaijani text.',
+    'Paragraph':'Add a new paragraph beneath this block.',
+    'Bullet':'Add an item to this list.',
+    'Button':'Add a button, then choose its destination with Link.',
+    'Stat':'Add a number and a short explanation in this row.',
+    'FAQ':'Add a question and answer to this FAQ list.',
+    'Step':'Add a step to this process.',
+    'Card':'Add a card to this grid.',
+    'Link':'Choose where visitors go when they click this link.',
+    'Style':'Primary draws attention. Secondary is quieter. Text uses a plain link.',
+    'Move to':'Choose a compatible place for this element. Available in the next phase.',
     'Remove':'Hide this element for visitors after publishing. Restore or Undo brings it back without losing its content.',
     'Restore':'Show this element again. Publish when you are ready for visitors to see it.',
     'Website name':'The business name shown in the website header and other shared contact areas.',
@@ -61,5 +73,5 @@
       input.setAttribute('aria-describedby',((input.getAttribute('aria-describedby')||'')+' '+small.id).trim());input.setAttribute('data-field-explained','');
     });
   }
-  window.OmniFieldHelp={enhance:enhance};
+  window.OmniFieldHelp={enhance:enhance,get:function(label){return help[label]||'';}};
 })();

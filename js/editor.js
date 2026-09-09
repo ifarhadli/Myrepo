@@ -71,9 +71,10 @@
   }
   function summaryCounts(){
     var a=state.live||{},b=state.draft||{};
+    var details=window.OmniElementRules.changes(a,b),addedChanges=Object.keys(details).reduce(function(n,k){return n+details[k];},0);
     return {
       texts:diffCount(a.i18n||{},b.i18n||{}),
-      elements:(a.hiddenElements||[]).filter(function(key){return(b.hiddenElements||[]).indexOf(key)<0;}).length+(b.hiddenElements||[]).filter(function(key){return(a.hiddenElements||[]).indexOf(key)<0;}).length,
+      elements:(a.hiddenElements||[]).filter(function(key){return(b.hiddenElements||[]).indexOf(key)<0;}).length+(b.hiddenElements||[]).filter(function(key){return(a.hiddenElements||[]).indexOf(key)<0;}).length+addedChanges,
       sections:diffCount({order:a.sectionOrder||{},hidden:a.hiddenSections||[],accent:a.sectionAccent||{}},{order:b.sectionOrder||{},hidden:b.hiddenSections||[],accent:b.sectionAccent||{}}),
       items:diffCount({order:a.itemOrder||{},hidden:a.hiddenItems||[],collections:a.collections},{order:b.itemOrder||{},hidden:b.hiddenItems||[],collections:b.collections}),
       catalogue:diffCount({engines:a.engines,enginesAz:a.enginesAz,industries:a.industries,industriesAz:a.industriesAz},{engines:b.engines,enginesAz:b.enginesAz,industries:b.industries,industriesAz:b.industriesAz}),
@@ -165,7 +166,7 @@
     mergeDraftDict();if(window.OmniI18n)window.OmniI18n.applyI18n();if(window.OmniSite){window.OmniSite.applyCollections(state.draft);window.OmniSite.applyLayout(state.draft);window.OmniSite.applyImages(state.draft);window.OmniSite.applyItem(state.draft);}renderCatalogueLists();renderIndustryStrip();if(window.OmniSite)window.OmniSite.applyHiddenElements(state.draft);applyDraftSettings();decorateSections();decorateItems();decorateCollections();decorateImageSlots();buildItemToolbar();if(window.OmniSite)window.OmniSite.applyHiddenElements(state.draft);syncCollectionAddress();syncDesignPanel();updateBar();restoreSelection();
     /* Collection and language listeners may replace authored nodes during the
        same turn. Re-apply image state once the replacement DOM is settled. */
-    requestAnimationFrame(function(){if(window.OmniSite&&state.draft){window.OmniSite.applyImages(state.draft);window.OmniSite.applyItem(state.draft);window.OmniSite.applyHiddenElements(state.draft);}});
+    requestAnimationFrame(function(){if(window.OmniSite&&state.draft){window.OmniSite.applyImages(state.draft);window.OmniSite.applyItem(state.draft);window.OmniSite.applyHiddenElements(state.draft);restoreSelection();}});
   }
   function commit(mutator,label){
     finishEdit(true);var before=clone(state.draft);mutator(state.draft);if(same(before,state.draft))return;
@@ -267,7 +268,7 @@
     closeActionSheet();var sheet=document.createElement('dialog');sheet.className='omni-action-sheet';sheet.setAttribute('aria-labelledby','omniActionSheetTitle');
     sheet.innerHTML='<header><span class="omni-action-sheet__handle" aria-hidden="true"></span><h2 id="omniActionSheetTitle"></h2><button type="button" data-action-sheet-close aria-label="Close actions">×</button></header><div class="omni-action-sheet__body"></div>';
     $('#omniActionSheetTitle',sheet).textContent=title;var body=$('.omni-action-sheet__body',sheet);
-    actions.forEach(function(action){var button=document.createElement('button');button.type='button';button.textContent=action.label;button.disabled=action.disabled===true;if(action.title)button.title=action.title;if(action.danger)button.setAttribute('data-danger','');button.addEventListener('click',function(){sheet.close('action');setTimeout(action.run,0);});body.appendChild(button);});
+    actions.forEach(function(action){var button=document.createElement('button');button.type='button';button.textContent=action.label;button.setAttribute('data-action-label',action.label);if(action.hint){var hint=document.createElement('small');hint.textContent=action.hint;button.appendChild(hint);}button.disabled=action.disabled===true;if(action.title)button.title=action.title;if(action.danger)button.setAttribute('data-danger','');button.addEventListener('click',function(){sheet.close('action');setTimeout(action.run,0);});body.appendChild(button);});
     $('[data-action-sheet-close]',sheet).addEventListener('click',function(){sheet.close('cancel');});sheet.addEventListener('cancel',function(event){event.preventDefault();sheet.close('cancel');});sheet.addEventListener('close',function(){sheet.remove();if(trigger&&trigger.isConnected)trigger.focus();});trapDialog(sheet);document.body.appendChild(sheet);sheet.showModal();var first=$('button:not([disabled])',body)||$('[data-action-sheet-close]',sheet);first.focus();return sheet;
   }
   function makeTouchMenu(owner,label,open){
@@ -762,7 +763,7 @@
   function publish(){
     finishEdit(true);if(!totalChanges())return;var missing=missingAltSlots();if(missing.length){var list='<p>Every meaningful image needs alt text before it can go live. Add it for:</p><ul>'+missing.map(function(key){return'<li>'+escapeHtml(key)+'</li>';}).join('')+'</ul>';return openDialog({title:'Add missing alt text',html:list,confirm:'Open first image',action:function(button,dialog){dialog.close('media');setTimeout(function(){var parts=missing[0].split('.');openMedia(parts[0]==='collections'?{kind:'collection',type:parts[1],id:parts[2]}:{kind:'slot',key:missing[0]});},0);}});}var counts=summaryCounts(),labels={texts:'Texts',elements:'Elements',sections:'Sections',items:'Items',catalogue:'Catalogue',images:'Images',design:'Design',settings:'Settings'};
     var html='<p>Your draft is private. Preview it, then publish when you are ready. Publishing updates the live website.</p><ul class="omni-summary">'+Object.keys(labels).filter(function(key){return counts[key]>0;}).map(function(key){return'<li>'+labels[key]+' updated</li>';}).join('')+'</ul>';
-    var review=openDialog({title:'Review your changes',html:html,confirm:'Publish changes',action:function(button,dialog){doPublish(button,dialog,false);}});var preview=document.createElement('button');preview.type='button';preview.textContent='Preview draft';preview.setAttribute('data-review-preview','');review.querySelector('.omni-dialog__body').appendChild(preview);preview.addEventListener('click',function(){preview.disabled=true;preview.textContent='Preparing preview…';saveDraft().then(function(){return api('POST','/api/preview-link',{path:previewPath()});}).then(function(result){var link=document.createElement('a');link.href=result.url;link.target='_blank';link.rel='noopener noreferrer';link.className='omni-panel-action';link.textContent='Open draft preview ↗';preview.replaceWith(link);link.focus();}).catch(function(error){preview.disabled=false;preview.textContent='Preview draft';toast(error.message||'Could not prepare preview.','error');});});
+    var review=openDialog({title:'Review your changes',html:html,confirm:'Publish changes',action:function(button,dialog){doPublish(button,dialog,false);}});var elementSummary=window.OmniElementRules.changes(state.live,state.draft),summaryRow=Array.from(review.querySelectorAll('.omni-summary li')).find(function(li){return li.textContent==='Elements updated';});if(summaryRow)summaryRow.title=elementSummary.added+' additions changed, '+elementSummary.links+' links changed, '+elementSummary.styles+' styles changed; removal and restoration included.';var preview=document.createElement('button');preview.type='button';preview.textContent='Preview draft';preview.setAttribute('data-review-preview','');review.querySelector('.omni-dialog__body').appendChild(preview);preview.addEventListener('click',function(){preview.disabled=true;preview.textContent='Preparing preview…';saveDraft().then(function(){return api('POST','/api/preview-link',{path:previewPath()});}).then(function(result){var link=document.createElement('a');link.href=result.url;link.target='_blank';link.rel='noopener noreferrer';link.className='omni-panel-action';link.textContent='Open draft preview ↗';preview.replaceWith(link);link.focus();}).catch(function(error){preview.disabled=false;preview.textContent='Preview draft';toast(error.message||'Could not prepare preview.','error');});});
   }
   function doPublish(button,dialog,force){
     button.disabled=true;button.textContent='Publishing…';
@@ -811,10 +812,63 @@
     $$('a[href]').forEach(function(link){if(link.closest('.omni-bar,.omni-panel,.omni-dialog,.omni-action-sheet'))return;var raw=link.getAttribute('href');if(!raw||/^(https?:|mailto:|tel:|#)/i.test(raw)||raw.indexOf('admin')===0)return;try{var url=new URL(raw,location.href);if(url.origin===location.origin){url.searchParams.set('edit','1');link.setAttribute('href',url.pathname.replace(/^\//,'')+url.search+url.hash);}}catch(e){}});
   }
   function selectionSelector(node){if(!node)return'';var attr=['data-collection-id','data-section','data-item','data-i18n'].find(function(key){return node.hasAttribute(key);});if(!attr)return'';var selector='['+attr+'="'+CSS.escape(node.getAttribute(attr))+'"]';if(attr==='data-item'&&node.parentElement.hasAttribute('data-list'))selector='[data-list="'+CSS.escape(node.parentElement.getAttribute('data-list'))+'"]>'+selector;return selector;}
+  function addChoices(info){
+    if(!info||!window.OmniSite.canChangeElement(info.target))return [];
+    var parent=info.target.parentElement,choices=[];
+    if(window.OmniSite.allowedContainer(window.OmniSite.elementKind(info.target),parent))choices.push({kind:'copy',label:'Another like this'});
+    [{kind:'paragraph',label:'Paragraph'},{kind:'bullet',label:'Bullet'},{kind:'button',label:'Button'},{kind:'stat',label:'Stat'},{kind:'faq',label:'FAQ'},{kind:'step',label:'Step'},{kind:'card',label:'Card'}].forEach(function(choice){if(window.OmniSite.allowedContainer(choice.kind,parent))choices.push(choice);});return choices;
+  }
+  function openAddMenu(info,trigger){
+    openActionSheet('Add element',addChoices(info).map(function(choice){return {label:choice.label,hint:window.OmniFieldHelp.get(choice.label),run:function(){addElement(info,choice.kind);}};}),trigger);
+  }
+  function addElement(info,kind){
+    finishEdit(true);if((state.draft.addedElements||[]).length>=400){toast('Remove an added element before adding another. The limit is 400.','error');return;}
+    if(!addChoices(info).some(function(choice){return choice.kind===kind;}))return;
+    var id;do{id='ae-'+crypto.getRandomValues(new Uint32Array(1))[0].toString(16).padStart(8,'0');}while((state.draft.addedElements||[]).some(function(row){return row.id===id;}));
+    var scope=info.id.split(':')[0],key='added.'+id,record={id:id,scope:scope,kind:kind,anchor:info.id,position:'after'},copied;
+    if(kind==='copy'){record.cloneOf=info.id.slice(info.id.indexOf(':')+1);copied=window.OmniSite.cloneElement(info.target,id);}
+    commit(function(d){d.addedElements=d.addedElements||[];d.addedElements.push(record);d.i18n=d.i18n||{};
+      ['en','az'].forEach(function(lang){d.i18n[lang]=d.i18n[lang]||{};if(kind==='stat')d.i18n[lang][key+'.fig']='0';if(copied)copied.mapping.forEach(function(part){var value=((state.draft.i18n||{})[lang]||{})[part.oldKey];if(value===undefined)value=getPath((window.OM_I18N||{})[lang]||{},part.oldKey);d.i18n[lang][part.key]=typeof value==='string'?value:part.text;});});
+      if(copied){var sourceLink=window.OmniSite.elementLinkTarget(info.target),dest=sourceLink&&cleanEditorDestination(sourceLink.getAttribute('href')||'');if(dest&&window.OmniElementRules.link(dest)){d.elementLinks=d.elementLinks||{};d.elementLinks[scope+':'+key]=dest;}if(sourceLink&&sourceLink.matches('.btn,.btn-text')){d.elementStyles=d.elementStyles||{};d.elementStyles[scope+':'+key]=sourceLink.matches('.btn-text')?'text':sourceLink.matches('.btn-secondary')?'secondary':'primary';}}
+    },kind==='copy'?'Copy element':'Add '+kind);
+    requestAnimationFrame(function(){var node=$('[data-omni-added="'+id+'"]');if(!node)return;var first=node.matches('[data-i18n]')?node:$('[data-i18n]',node);selectContent(first||node);node.scrollIntoView({block:'nearest'});if(first)beginEdit(first);});
+  }
+  function cleanEditorDestination(value){
+    if(/^(?:https?:|mailto:|tel:|#)/i.test(value))return value;
+    try{var url=new URL(value,location.origin);url.searchParams.delete('edit');return url.pathname.replace(/^\/(?=[a-z0-9-]+\.html)/,'')+url.search+url.hash;}catch(e){return value;}
+  }
+  function elementStyleControl(info){
+    var group=document.createElement('div');group.className='omni-segments omni-element-styles';group.setAttribute('role','group');group.setAttribute('aria-label','Button style');
+    var target=window.OmniSite.elementLinkTarget(info.target),current=(state.draft.elementStyles||{})[info.id]||(target&&target.matches('.btn-text')?'text':target&&target.matches('.btn-secondary')?'secondary':'primary');
+    ['primary','secondary','text'].forEach(function(style){var button=document.createElement('button');button.type='button';button.textContent=style.charAt(0).toUpperCase()+style.slice(1);button.setAttribute('data-element-style',style);button.setAttribute('aria-pressed',String(current===style));button.title=window.OmniFieldHelp.get('Style');button.addEventListener('click',function(){commit(function(d){d.elementStyles=d.elementStyles||{};d.elementStyles[info.id]=style;},'Change button style');$$('[data-element-style]',group).forEach(function(b){b.setAttribute('aria-pressed',String(b.getAttribute('data-element-style')===style));});});group.appendChild(button);});return group;
+  }
+  function openElementLink(info){
+    finishEdit(true);var target=window.OmniSite.elementLinkTarget(info.target);if(!target||!window.OmniSite.canChangeElement(info.target))return;
+    var current=(state.draft.elementLinks||{})[info.id]||cleanEditorDestination(target.getAttribute('href')||''),panel;
+    function render(root){
+      root.innerHTML='<p class="omni-panel-state" role="status">Loading destinations…</p>';
+      api('GET','/api/link-targets').then(function(data){if(!root.isConnected)return;root.textContent='';var status=document.createElement('p');status.className='omni-panel__hint';status.setAttribute('data-link-current','');root.appendChild(status);
+        var options={page:data.pages.map(function(p){return {value:p.key+'.html',label:p.title+' page'};}),section:((data.sections||{})[pageKey()]||[]).map(function(s){return {value:'#'+s.id,label:s.label};}),item:[]};
+        ['cases','articles','jobs'].forEach(function(type){(data.items[type]||[]).forEach(function(item){options.item.push({value:({cases:'/work/',articles:'/insights/',jobs:'/careers/'}[type])+item.slug,label:({cases:'Case: ',articles:'Article: ',jobs:'Job: '}[type])+item.title});});});
+        var selected=['page','section','item'].find(function(type){return options[type].some(function(option){return option.value===current;});})||'custom';
+        var matching=[].concat(options.page,options.section,options.item).find(function(option){return option.value===current;});status.textContent='Goes to: '+(matching?matching.label:current&&current!=='#'?current:'Choose a destination');
+        var fields=document.createElement('fieldset');fields.className='omni-link-destinations';var legend=document.createElement('legend');legend.textContent='Destination';fields.appendChild(legend);var controls={};
+        [['page','Page'],['section','Section on this page'],['item','Item'],['custom','Custom']].forEach(function(pair){var type=pair[0],wrap=document.createElement('div'),label=document.createElement('label'),radio=document.createElement('input');radio.type='radio';radio.name='omni-link-kind';radio.value=type;radio.checked=selected===type;label.append(radio,document.createTextNode(' '+pair[1]));wrap.appendChild(label);var input=document.createElement(type==='custom'?'input':'select');input.id='omni-link-'+type;input.setAttribute('aria-label',pair[1]+' destination');input.disabled=selected!==type;
+          if(type==='custom'){input.type='text';input.value=selected==='custom'?current:'';input.placeholder='https://example.com, mailto:hello@example.com, tel:+123456789';}else{options[type].forEach(function(option){var el=document.createElement('option');el.value=option.value;el.textContent=option.label;input.appendChild(el);});if(selected===type)input.value=current;if(!options[type].length){var empty=document.createElement('option');empty.value='';empty.textContent='No destinations available';input.appendChild(empty);}}
+          controls[type]=input;wrap.appendChild(input);fields.appendChild(wrap);radio.addEventListener('change',function(){selected=type;Object.keys(controls).forEach(function(key){controls[key].disabled=key!==type;});error.textContent='';input.focus();});});root.appendChild(fields);
+        var hint=document.createElement('p');hint.className='omni-field-help';hint.textContent=window.OmniFieldHelp.get('Link');root.appendChild(hint);var error=document.createElement('p');error.id='omni-link-error';error.className='omni-form-message';error.setAttribute('role','alert');root.appendChild(error);
+        if(target.matches('.btn,.btn-text')){var title=document.createElement('p');title.textContent='Button style';root.append(title,elementStyleControl(info));}
+        var save=document.createElement('button');save.type='button';save.className='omni-panel-action omni-primary-action';save.textContent='Save link';save.setAttribute('data-element-link-save','');root.appendChild(save);save.addEventListener('click',function(){var input=controls[selected],value=input.value.trim();if(!window.OmniElementRules.link(value)||value==='#'){error.textContent='Choose a destination or enter a complete web address, mailto: email link or tel: phone link.';input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',error.id);input.focus();return;}commit(function(d){d.elementLinks=d.elementLinks||{};d.elementLinks[info.id]=value;},'Change element link');closePanel();toast('Link updated. Publish when you are ready.');});
+      }).catch(function(){if(!root.isConnected)return;root.innerHTML='<p class="omni-panel-state">Could not load destinations.</p><button type="button">Try again</button>';$('button',root).addEventListener('click',function(){render(root);});});
+    }
+    panel=openPanel('Link and button style','right',render);
+  }
   function removalInfo(el){var info=window.OmniSite&&window.OmniSite.elementRemovalInfo(el);if(info&&info.target.hasAttribute('data-omni-hidden-element'))info.id=info.target.getAttribute('data-omni-hidden-element');return info;}
   function selectedElement(){var source=state.elementSelection&&$(state.elementSelection);return source&&removalInfo(source);}
   function toggleElement(info){
     if(!info||info.reason)return;
+    var added=info.target.closest('[data-omni-added]');if(added){var addedId=added.getAttribute('data-omni-added'),prefix='added.'+addedId;
+      finishEdit(true);clearSelection();commit(function(d){d.addedElements=(d.addedElements||[]).filter(function(row){return row.id!==addedId;});['en','az'].forEach(function(lang){Object.keys(d.i18n&&d.i18n[lang]||{}).forEach(function(key){if(key===prefix||key.indexOf(prefix+'.')===0)delete d.i18n[lang][key];});});['elementLinks','elementStyles'].forEach(function(prop){Object.keys(d[prop]||{}).forEach(function(key){if(key.split(':')[1]===prefix||key.split(':')[1].indexOf(prefix+'.')===0)delete d[prop][key];});});d.hiddenElements=(d.hiddenElements||[]).filter(function(key){return key.split(':')[1]!==prefix&&key.split(':')[1].indexOf(prefix+'.')!==0;});},'Remove added element');toast('Added element removed. Undo brings it back.');return;}
     finishEdit(true);var hidden=(state.draft.hiddenElements||[]).indexOf(info.id)>=0;
     if(!hidden&&(state.draft.hiddenElements||[]).length>=400){toast('Restore an element before removing another. The limit is 400.','error');return;}
     commit(function(d){d.hiddenElements=d.hiddenElements||[];if(hidden)d.hiddenElements=d.hiddenElements.filter(function(key){return key!==info.id;});else d.hiddenElements.push(info.id);},hidden?'Restore element':'Remove element');
@@ -823,7 +877,7 @@
   }
   function removalButton(info){
     var hidden=(state.draft.hiddenElements||[]).indexOf(info.id)>=0,button=document.createElement('button');button.type='button';button.setAttribute('data-element-remove','');button.textContent=hidden?'↺ Restore':'🗑 Remove';button.disabled=!!info.reason;
-    button.title=info.reason||(info.id.charAt(0)==='*'?'Hidden everywhere this appears':hidden?'Show this element to visitors again.':'Hide this element for visitors. Restore it any time.');
+    button.title=info.reason||(info.target.closest('[data-omni-added]')?'Remove this addition. Undo brings it back.':info.id.charAt(0)==='*'?'Hidden everywhere this appears':hidden?'Show this element to visitors again.':'Hide this element for visitors. Restore it any time.');
     button.addEventListener('click',function(){toggleElement(info);});return button;
   }
   function positionElementTools(){
@@ -836,9 +890,11 @@
     var tools=document.createElement('div');tools.className='omni-element-tools';tools.setAttribute('role','toolbar');tools.setAttribute('aria-label','Element actions');
     var edit=editableTarget(info.source);if(edit){var text=document.createElement('button');text.type='button';text.textContent='Edit text';text.setAttribute('data-element-edit','');text.addEventListener('click',function(){beginEdit(edit);});tools.appendChild(text);}
     tools.appendChild(removalButton(info));
-    if(isMobileEditor()){var more=document.createElement('button');more.type='button';more.textContent='Actions';more.setAttribute('data-element-actions','');more.addEventListener('click',function(){var hidden=(state.draft.hiddenElements||[]).indexOf(info.id)>=0;openActionSheet('Element actions',[{label:hidden?'Restore':'Remove',disabled:!!info.reason,title:info.reason||'Hide for visitors; restore any time.',run:function(){toggleElement(info);}}],more);});tools.appendChild(more);}
+    if(addChoices(info).length){var add=document.createElement('button');add.type='button';add.textContent='＋ Add';add.setAttribute('data-element-add','');add.addEventListener('click',function(){openAddMenu(info,add);});tools.appendChild(add);}
+    var link=window.OmniSite.elementLinkTarget(info.target);if(link&&window.OmniSite.canChangeElement(info.target)){var editLink=document.createElement('button');editLink.type='button';editLink.textContent='Link';editLink.setAttribute('data-element-link','');editLink.addEventListener('click',function(){openElementLink(info);});tools.appendChild(editLink);if(link.matches('.btn,.btn-text'))tools.appendChild(elementStyleControl(info));}
+    if(isMobileEditor()){var more=document.createElement('button');more.type='button';more.textContent='Actions';more.setAttribute('data-element-actions','');more.addEventListener('click',function(){var hidden=(state.draft.hiddenElements||[]).indexOf(info.id)>=0;openActionSheet('Element actions',[{label:hidden?'Restore':'Remove',disabled:!!info.reason,title:info.reason||(info.target.closest('[data-omni-added]')?'Remove this addition; Undo brings it back.':'Hide for visitors; restore any time.'),run:function(){toggleElement(info);}}],more);});tools.appendChild(more);}
     var hintDismissed=false;try{hintDismissed=!!localStorage.getItem('omni-hint-remove');}catch(e){}
-    if(!hintDismissed){var hint=document.createElement('div');hint.className='omni-remove-hint';var copy=document.createElement('span');copy.textContent='Remove hides this for visitors; you can restore it any time.';var dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Got it';dismiss.addEventListener('click',function(){try{localStorage.setItem('omni-hint-remove','1');}catch(e){}hint.remove();positionElementTools();});hint.append(copy,dismiss);tools.appendChild(hint);}
+    if(!hintDismissed){var hint=document.createElement('div');hint.className='omni-remove-hint';var copy=document.createElement('span');copy.textContent=info.target.closest('[data-omni-added]')?'Remove deletes this addition; Undo brings it back.':'Remove hides this for visitors; you can restore it any time.';var dismiss=document.createElement('button');dismiss.type='button';dismiss.textContent='Got it';dismiss.addEventListener('click',function(){try{localStorage.setItem('omni-hint-remove','1');}catch(e){}hint.remove();positionElementTools();});hint.append(copy,dismiss);tools.appendChild(hint);}
     document.body.appendChild(tools);positionElementTools();
   }
   function clearSelection(){state.selection='';state.elementSelection='';$$('.omni-selected').forEach(function(el){el.classList.remove('omni-selected');});var tools=$('.omni-element-tools');if(tools)tools.remove();document.documentElement.style.removeProperty('--omni-element-toolbar-height');}

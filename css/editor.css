@@ -303,3 +303,12 @@ html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-remov
 }
 
 @media(max-width:700px){body:has(.omni-element-tools)>.omni-toast{bottom:calc(82px + var(--omni-element-toolbar-height,120px))}}
+
+/* Add/Link/Style use the existing toolbar and owned panel/sheet. */
+.omni-action-sheet__body button small{display:block;margin-top:5px;font-weight:400;font-size:12px;line-height:1.5;color:var(--oe-muted)}
+.omni-element-styles{display:flex;width:264px;max-width:100%;flex-shrink:0}.omni-element-styles button{flex:1;min-width:0;white-space:nowrap;color:var(--oe-ink);border:0;padding:6px 10px}.omni-element-styles button:hover:not(:disabled){background:#eeece6}.omni-element-styles button[aria-pressed="true"]{background:var(--oe-ink);color:#fff}
+.omni-link-destinations{display:grid;gap:16px;margin:16px 0;padding:0;border:0;min-width:0}.omni-link-destinations legend{margin-bottom:12px;font-weight:700}.omni-link-destinations label{display:flex;align-items:center;gap:6px;margin-bottom:8px;min-height:32px}.omni-link-destinations input:not([type=radio]),.omni-link-destinations select{display:block;width:100%;min-width:0;min-height:44px;padding:9px;border:1px solid var(--oe-line);border-radius:7px;background:#fff;color:var(--oe-ink);font:400 14px/1.5 Inter,sans-serif}.omni-link-destinations [aria-invalid=true]{border-color:var(--oe-danger)}.omni-link-destinations :disabled{opacity:.5}
+@media(max-width:700px){.omni-link-destinations input:not([type=radio]),.omni-link-destinations select{font-size:16px}}
+
+#omni-link-error:empty{display:none}
+[data-element-link-save]{margin-top:16px}

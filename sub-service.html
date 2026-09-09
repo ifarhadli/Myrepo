@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0C10'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23C6F24E' stroke-width='7'/%3E%3C/svg%3E">
 <script src="data/site.js"></script>
+<script src="js/element-rules.js"></script>
 <script src="js/site-config.js"></script>
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -20,7 +21,7 @@
 
 <div id="site-header"><noscript><nav class="nojs-nav" aria-label="Primary"><a href="index.html">Home</a><a href="services.html">Services</a><a href="work.html">Work</a><a href="index.html#industries">Industries</a><a href="about.html">About</a><a href="insights.html">Insights</a><a href="careers.html">Careers</a><a href="contact.html">Contact</a></nav></noscript></div>
 
-<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 64px" data-section="sub-service.hero">
+<header class="hero on-dark noise" style="min-height:auto;padding:88px 0 64px" data-section="sub-service.hero" id="sec-sub-service-hero">
   <div class="wrap" style="display:block;max-width:820px">
     <p class="breadcrumb" style="color:var(--panel-muted)"><a href="index.html" style="color:var(--panel-muted)" data-i18n="nav.home">Home</a> / <a href="services.html" style="color:var(--panel-muted)" data-i18n="nav.services">Services</a> / <a href="services.html#engine-03" style="color:var(--panel-muted)" data-i18n="engines.e3.name">Media &amp; Reach</a> / <span data-i18n="subService.crumb">Demand Generation</span></p>
     <h1 class="display-l" style="color:#fff;margin-top:14px" data-i18n="subService.h1">You don't have a traffic problem. You have a demand problem.</h1>
@@ -30,7 +31,7 @@
 </header>
 
 <main>
-<section class="section-border" data-section="sub-service.s1">
+<section class="section-border" data-section="sub-service.s1" id="sec-sub-service-s1">
   <div class="wrap">
     <div class="service-layout">
       <nav class="side-nav" aria-label="On this page">
@@ -84,7 +85,7 @@
 
         <section id="faq" data-section="sub-service.s6">
           <p class="eyebrow" data-i18n="subService.navFaq">Questions we get asked</p>
-          <div>
+          <div class="faq-list">
             <div class="faq-item open" data-hide-key="sub-service.block.1"><button class="faq-q"><span data-i18n="subService.faq1q">What's the minimum commitment?</span><svg class="faq-plus" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button><div class="faq-a"><div class="faq-a-in" data-i18n="subService.faq1a">Ninety days. Anything shorter and you're paying for setup without seeing the result.</div></div></div>
             <div class="faq-item" data-hide-key="sub-service.block.2"><button class="faq-q"><span data-i18n="subService.faq2q">How is this different from lead generation?</span><svg class="faq-plus" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button><div class="faq-a"><div class="faq-a-in" data-i18n="subService.faq2a">Lead gen captures demand that already exists. This creates demand that didn't — then captures that too.</div></div></div>
             <div class="faq-item" data-hide-key="sub-service.block.3"><button class="faq-q"><span data-i18n="subService.faq3q">What team size does this need on our side?</span><svg class="faq-plus" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button><div class="faq-a"><div class="faq-a-in" data-i18n="subService.faq3a">One stakeholder for approvals and subject-matter input. We run the program.</div></div></div>

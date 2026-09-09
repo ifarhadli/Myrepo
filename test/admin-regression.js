@@ -33,6 +33,7 @@ async function main(){
  await send('Network.setBlockedURLs',{urls:['https://fonts.googleapis.com/*','https://fonts.gstatic.com/*']});
  await view();await go('/admin.html');await shot('01-sign-in');
  await fill('#loginPw',PW);await click('#loginForm button[type="submit"]');await until(()=>ev('!!window.OmniEditor'));await snap('latest');
+ await require('./add-element-journey')({evaluate:ev,go,viewport:view,check,screenshot:shot,pause},390);
  // Small item controls must remain readable and usable at both viewport sizes.
  for(const width of [1390,390]){
   await view(width,900);
