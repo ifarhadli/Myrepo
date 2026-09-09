@@ -13,7 +13,7 @@
     'Card':'Add a card to this grid.',
     'Link':'Choose where visitors go when they click this link.',
     'Style':'Primary draws attention. Secondary is quieter. Text uses a plain link.',
-    'Move to':'Choose a compatible place for this element. Available in the next phase.',
+    'Move to':'Choose a section, then a place for this element. Undo reverses the move.',
     'Remove':'Hide this element for visitors after publishing. Restore or Undo brings it back without losing its content.',
     'Restore':'Show this element again. Publish when you are ready for visitors to see it.',
     'Website name':'The business name shown in the website header and other shared contact areas.',

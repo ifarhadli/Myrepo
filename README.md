@@ -74,8 +74,17 @@ switch EN/AZ to edit each language. **Link** chooses a page, this page's section
 published item, URL, email or phone destination. Buttons offer **Primary**,
 **Secondary** and **Text** styles. Changes use the same draft, review and Publish.
 Removing an added element deletes its record and overrides; Undo restores them.
-Adding form fields and copying protected controls are unavailable. Moving
-individual elements between slots is Phase B, pending review.
+Adding form fields and copying protected controls are unavailable.
+
+**Moving elements:** select content, then drag its handle to a highlighted line
+or container end. Only places that fit the component are offered; the page scrolls
+as you drag near its edges. **Move to…** offers the same destinations by section
+and confirms the chosen place. On phones, long-press content and choose **Move to…**,
+or use the selection toolbar. **Alt+↑/↓** moves selected content one slot outside
+text entry. Buttons placed between blocks get a button row automatically. Hidden
+sections remain valid destinations and stay hidden. Form fields, navigation and
+protected controls cannot move. Undo, Remove and History work after moving;
+Publish makes the placement live.
 
 **Removing elements:** select text, a button, bullet, image, stat or other
 content and choose **Remove**. This hides it for visitors after **Publish**;

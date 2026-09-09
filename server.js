@@ -91,7 +91,7 @@ const DEFAULT_SITE = {
   analytics: { gaId: '', consentScript: '' },
   structured: { orgLegalName: '', orgLogoUrl: '', articleAuthor: '', articleDatePublished: '', articleDateModified: '',
     jobTitle: '', jobDescription: '', jobDatePosted: '', jobValidThrough: '', jobEmploymentType: '', jobLocation: '', jobRemote: false, jobApplyUrl: '' },
-  hiddenSections: [], hiddenElements: [], addedElements: [], elementLinks: {}, elementStyles: {}, sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
+  hiddenSections: [], hiddenElements: [], addedElements: [], placements: [], elementLinks: {}, elementStyles: {}, sectionOrder: {}, sectionAccent: {}, itemOrder: {}, hiddenItems: [], images: {},
   pages: {}, i18n: { en: {}, az: {} },
   engines: null, enginesAz: null, industries: null, industriesAz: null,
   collections: null
@@ -473,11 +473,20 @@ function validateSite(input){
     site.structured.jobEmploymentType = ['FULL_TIME', 'PART_TIME', 'CONTRACTOR', 'TEMPORARY', 'INTERN', 'VOLUNTEER', 'PER_DIEM', 'OTHER'].includes(employment) ? employment : '';
   }
   site.hiddenSections = cleanStrArray(input.hiddenSections, 500) || [];
+  if(input.placements!==undefined){
+    if(!Array.isArray(input.placements)||input.placements.length>400)throw Object.assign(new Error('Use at most 400 element placements.'),{field:'placements'});
+    const placements=new Map();
+    for(const row of input.placements){
+      if(!isPlain(row)||!ELEMENT_RULES.address(row.key)||!ELEMENT_RULES.address(row.anchor)||row.key===row.anchor||!ELEMENT_RULES.positions.includes(row.position))throw Object.assign(new Error('An element placement has an invalid key, anchor or position.'),{field:'placements'});
+      placements.delete(row.key);placements.set(row.key,{key:row.key,anchor:row.anchor,position:row.position});
+    }
+    site.placements=Array.from(placements.values());
+  }
   if(input.addedElements!==undefined){
     const rows=input.addedElements,seen=new Set();
     if(!Array.isArray(rows)||rows.length>400)throw Object.assign(new Error('Use at most 400 added elements.'),{field:'addedElements'});
     site.addedElements=rows.map(row=>{
-      if(!isPlain(row)||!/^ae-[0-9a-f]{8}$/.test(row.id||'')||seen.has(row.id)||!ELEMENT_RULES.address(row.scope+':added.'+row.id)||!ELEMENT_RULES.address(row.anchor)||row.anchor.split(':')[0]!==row.scope||!ELEMENT_RULES.kinds.includes(row.kind)||!ELEMENT_RULES.positions.includes(row.position)||
+      if(!isPlain(row)||!/^ae-[0-9a-f]{8}$/.test(row.id||'')||seen.has(row.id)||!ELEMENT_RULES.address(row.scope+':added.'+row.id)||!ELEMENT_RULES.address(row.anchor)||(row.anchor.split(':')[0]!==row.scope&&row.anchor.split(':')[0]!=='*'&&row.scope!=='*')||!ELEMENT_RULES.kinds.includes(row.kind)||!ELEMENT_RULES.positions.includes(row.position)||
          (row.cloneOf!==undefined&&!ELEMENT_RULES.address(row.scope+':'+row.cloneOf))||(row.kind==='copy'&&!row.cloneOf))throw Object.assign(new Error('An added element has an invalid identity, kind or anchor.'),{field:'addedElements'});
       seen.add(row.id);const out={id:row.id,scope:row.scope,kind:row.kind,anchor:row.anchor,position:row.position};if(row.cloneOf)out.cloneOf=row.cloneOf;return out;
     });

@@ -241,6 +241,14 @@ use the existing segmented control with explicit contrast on the dark toolbar.
 Phone controls wrap above the bottom dock and keep 44 px touch targets. New
 elements inherit authored component classes rather than new design settings.
 
+Movement adds a selected-element handle and **Move to…** beside the existing
+actions. Violet 3 px slot lines and subtle container-end bands appear only while
+dragging; the active target gains an ink outline. Overlays never change document
+flow. Phones use the existing action sheet and confirmation dialog with readable
+section and slot names. Structural grids retain their designed component rules.
+Secondary buttons on the signal CTA use its signal-ink foreground and border;
+moving a button there must preserve readable contrast.
+
 ### Iconography
 
 Icons are simple inline line symbols at the point of use. Unfamiliar and destructive actions retain visible text or a specific accessible name; icons never replace essential meaning.

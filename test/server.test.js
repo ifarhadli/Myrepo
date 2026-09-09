@@ -295,9 +295,17 @@ async function main(){
   const saved = r.json && r.json.site;
   check('additions retain validated anchors and styles; unsafe links are dropped',saved.addedElements[0].id==='ae-1234abcd'&&Object.keys(saved.elementLinks).length===1&&saved.elementLinks['index:home.hero.ctaPrimary']==='contact.html#sec-contact-form'&&Object.keys(saved.elementStyles).length===1);
   const rules=require(path.join(ROOT,'js','element-rules.js'));
+  const placement={key:'index:home.hero.micro',anchor:'index:home.hero.lede',position:'before'};
+  for(const placements of [{},Array(401).fill(placement),[{...placement,key:'bad'}],[{...placement,anchor:'index:<bad>'}],[{...placement,position:'free'}],[{...placement,anchor:placement.key}]]){
+    const invalid=await req('PUT','/api/site',{...cfg,placements},{admin:true});check('invalid element placements are rejected',invalid.status===400&&invalid.json.field==='placements',invalid.text);
+  }
+  const placed=await req('PUT','/api/site',{...cfg,placements:[placement,{key:'index:home.hero.ctaSecondary',anchor:'index:home.hero.lede',position:'after'},{...placement,position:'after',ignored:true}]},{admin:true});
+  check('placements keep the last entry per key in application order and strip unknown fields',placed.status===200&&placed.json.site.placements.length===2&&placed.json.site.placements[1].key===placement.key&&placed.json.site.placements[1].position==='after'&&!('ignored' in placed.json.site.placements[1]));
+  check('shared Elements summary counts moved keys',rules.changes({},placed.json.site).moved===2);
+  check('placement application order participates in the Elements summary',rules.changes(placed.json.site,{...placed.json.site,placements:placed.json.site.placements.slice().reverse()}).moved===2);
   check('shared link validator accepts supported destinations', ['https://example.test/a','http://example.test','mailto:hello@example.test','tel:+123456789','contact.html','#sec-index-hero','/work/growth-case','/insights/article','/careers/designer'].every(rules.link));
   check('shared link validator rejects unsafe, ambiguous and rewritten URLs', ['javascript:alert(1)','data:text/html,x','//evil.test','\\evil.test','https://name:secret@example.test',' contact.html','contact.html\n','ftp://example.test','../contact.html'].every(value=>!rules.link(value)));
-  for(const changed of [{addedElements:Array(401).fill(cfg.addedElements[0])},{addedElements:[{...cfg.addedElements[0],id:'invalid'}]},{addedElements:[{...cfg.addedElements[0],kind:'field'}]},{addedElements:[{...cfg.addedElements[0],position:'free'}]},{addedElements:[{...cfg.addedElements[0],anchor:'*:nav.work'}]},{addedElements:[{...cfg.addedElements[0],kind:'copy'}]},{elementLinks:Object.fromEntries(Array.from({length:401},(_,i)=>['index:x'+i,'contact.html']))}]){
+  for(const changed of [{addedElements:Array(401).fill(cfg.addedElements[0])},{addedElements:[{...cfg.addedElements[0],id:'invalid'}]},{addedElements:[{...cfg.addedElements[0],kind:'field'}]},{addedElements:[{...cfg.addedElements[0],position:'free'}]},{addedElements:[{...cfg.addedElements[0],anchor:'contact:home.hero.lede'}]},{addedElements:[{...cfg.addedElements[0],kind:'copy'}]},{elementLinks:Object.fromEntries(Array.from({length:401},(_,i)=>['index:x'+i,'contact.html']))}]){
     const invalid=await req('PUT','/api/site',{...cfg,...changed},{admin:true});check('invalid additions and oversized overrides are rejected',invalid.status===400,invalid.text);
   }
   const targets=await req('GET','/api/link-targets');
@@ -377,6 +385,7 @@ async function main(){
   draftCfg.i18n.en['home.hero.h1'] = 'Draft headline';
   draftCfg.hiddenSections = ['index.s3', 'index.s4'];
   draftCfg.hiddenElements.push('*:nav.insights');
+  draftCfg.placements=[{key:'index:home.hero.micro',anchor:'index:home.hero.lede',position:'before'}];
   draftCfg.addedElements.push({id:'ae-8765abcd',scope:'index',kind:'button',anchor:'index:home.hero.lede',position:'after'});
   draftCfg.elementLinks['index:added.ae-8765abcd']='contact.html';draftCfg.elementStyles['index:added.ae-8765abcd']='primary';
   r = await req('PUT', '/api/draft', draftCfg, { admin: true });
@@ -385,7 +394,7 @@ async function main(){
   check('GET draft returns draft and live', r.status === 200 && r.json.draft.i18n.en['home.hero.h1'] === 'Draft headline' && r.json.live.i18n.en['home.hero.h1'] !== 'Draft headline');
   r = await req('POST', '/api/publish', undefined, { admin: true });
   check('publish promotes draft and returns categorized summary', r.status === 200 && r.json.site.i18n.en['home.hero.h1'] === 'Draft headline' &&
-    r.json.summary.elements === 4 && r.json.summary.texts === 1 && r.json.summary.sections >= 1 && typeof r.json.summary.design === 'number', r.text);
+    r.json.summary.elements === 5 && r.json.summary.texts === 1 && r.json.summary.sections >= 1 && typeof r.json.summary.design === 'number', r.text);
   r = await req('GET', '/api/draft');
   check('publish removes the draft', r.status === 200 && r.json.draft === null && !fs.existsSync(path.join(TMP, 'data', 'draft.json')));
   r = await req('POST', '/api/publish', undefined, { admin: true });

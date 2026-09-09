@@ -312,3 +312,14 @@ html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-remov
 
 #omni-link-error:empty{display:none}
 [data-element-link-save]{margin-top:16px}
+
+/* Element drag targets are overlays, so showing slots never shifts content. */
+.omni-element-dropzones{position:fixed;inset:0;z-index:calc(var(--oe-sheet) - 5);pointer-events:none}
+.omni-element-dropzone{position:fixed;pointer-events:auto;cursor:move}
+.omni-element-dropzone::before{content:"";position:absolute;left:0;right:0;top:8px;height:3px;background:var(--oe-violet);box-shadow:0 0 0 1px #fff}
+.omni-element-dropzone.is-container{border:1px dashed var(--oe-violet);background:#4634f01c;border-radius:4px}
+.omni-element-dropzone.is-container::before{display:none}
+.omni-element-dropzone.is-over{background:#c6f24e66;outline:2px solid var(--oe-ink)}
+.omni-element-dropzone.is-over::before{background:var(--oe-ink)}
+[data-element-drag]{cursor:grab!important;touch-action:none}
+html.omni-dragging .omni-element-tools{opacity:1;visibility:visible}

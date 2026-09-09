@@ -74,5 +74,6 @@ window.OMNI_SITE = {
   "hiddenElements": [],
   "addedElements": [],
   "elementLinks": {},
-  "elementStyles": {}
+  "elementStyles": {},
+  "placements": []
 };

@@ -34,6 +34,7 @@ async function main(){
  await view();await go('/admin.html');await shot('01-sign-in');
  await fill('#loginPw',PW);await click('#loginForm button[type="submit"]');await until(()=>ev('!!window.OmniEditor'));await snap('latest');
  await require('./add-element-journey')({evaluate:ev,go,viewport:view,check,screenshot:shot,pause},390);
+ await require('./move-element-journey')({evaluate:ev,go,viewport:view,check,screenshot:shot,pause},390);
  // Small item controls must remain readable and usable at both viewport sizes.
  for(const width of [1390,390]){
   await view(width,900);
@@ -56,10 +57,10 @@ async function main(){
  await view(390,844);
  await click('[data-i18n="home.hero.micro"]');
  await click('.omni-element-tools [data-element-actions]');
- check('mobile element sheet offers Remove',await ev(`document.querySelector('.omni-action-sheet__body button').textContent==='Remove'`));
- await click('.omni-action-sheet__body button');
+ check('mobile element sheet offers Remove',await ev(`!!document.querySelector('[data-action-label="Remove"]')`));
+ await click('[data-action-label="Remove"]');
  await click('.omni-element-tools [data-element-actions]');
- check('mobile element sheet offers Restore after removal',await ev(`document.querySelector('.omni-action-sheet__body button').textContent==='Restore'`));
+ check('mobile element sheet offers Restore after removal',await ev(`!!document.querySelector('[data-action-label="Restore"]')`));
  await click('[data-action-sheet-close]');
  await ev(`document.querySelector('[data-i18n="home.hero.micro"]').scrollIntoView({block:'center',behavior:'instant'})`);await shot('element-removed-mobile');
  check('mobile removed state and toolbar fit the viewport',await ev(`document.documentElement.scrollWidth<=innerWidth&&document.querySelector('.omni-element-tools').getBoundingClientRect().right<=innerWidth`));

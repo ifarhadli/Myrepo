@@ -83,13 +83,13 @@ text in DOM order under `added.<id>`. Both language overrides are captured at
 creation. Empty text uses the localized New text placeholder. FAQs receive fresh
 answer IDs and disclosure bindings. Missing anchors are skipped.
 
-`addedElements`, `elementLinks` and `elementStyles` reuse `hideTargetFor`,
+`addedElements`, `placements`, `elementLinks` and `elementStyles` reuse `hideTargetFor`,
 `elementRemovalInfo` and `<scope>:<key>` addresses. Rendering applies additions,
-links and styles before the existing hidden-element pass. Removing an authored
+placements, links and styles before the existing hidden-element pass. Removing an authored
 element keeps its existing visibility behavior; removing an added element deletes
 its record and overrides. `commit()`, Undo/Redo, shared drafts, Publish and History
 own every change. The existing Elements review count includes additions, links
-and styles, with detail in its tooltip.
+placements and styles, with detail in its tooltip.
 
 Each collection/map is capped at 400 entries. Shared link validation allows
 HTTP(S), email, telephone, relative HTML pages, published-item route shapes and
@@ -97,9 +97,39 @@ section fragments; unsupported schemes are discarded by the server and rejected
 inline by the editor. Session-only `/api/link-targets` lists page titles, real
 section IDs/labels and published collection items, cached until the next publish.
 
-Phase B is pending review: no element placements, drag-to-slot, drop zones,
-Move to sheet or element keyboard movement are introduced in Phase A. Existing
-section/item movement retains `beginDrag`/`endDrag` and `html.omni-dragging`.
+### Moving elements (Phase B)
+
+Desktop selection exposes a drag handle and **Move to…**. Dragging uses the same
+`beginDrag`/`endDrag` and `html.omni-dragging` lifecycle as section/item movement.
+Viewport overlays show 3 px slot lines and container-end bands without reflowing
+the page. Only compatible destinations from `ALLOWED_DROPS` are interactive;
+invalid areas use the native unavailable-drop cursor. Near-edge dragging scrolls
+the page, and drop, drag end, Escape or window blur cleans up every overlay.
+
+**Move to…** reuses the owned action sheet: section label, slot label, then the
+existing confirmation dialog. Hidden sections remain destinations with explicit
+guidance and keep their visibility. On phones, a stationary 550 ms long-press
+opens Element actions; scrolling, pointer cancellation and release cancel the
+hold. The visible toolbar offers the same action without requiring a gesture.
+Alt+Up/Down moves one compatible slot, while fields, text entry and IME keep
+their normal keys. The existing toast/live region announces the chosen place.
+
+Placement records are capped at 400, validated and deduplicated by `key`, keeping
+the last occurrence in application order. Authored nodes return to in-memory
+origin markers before each repaint, then saved placements run after additions.
+Missing anchors, invalid nesting and incompatible containers are skipped. Added
+elements update their existing anchor/position instead of gaining a placement
+record. Addition dependencies resolve before placements; cyclic destinations are
+unavailable in the editor. Buttons between blocks receive temporary `.btn-row`
+wrappers; Undo removes those wrappers and restores authored order.
+
+Container ends receive stable `data-hide-key="slot.…"` anchors, addressed through
+the same `elementRemovalInfo` and `<scope>:<key>` contract. They are not content
+controls and do not intercept descendant buttons. Structural grids only accept
+their intended component kind; paragraph/button placement never adds layout
+columns. Forms and fields, navigation, protected controls and structural container
+anchors cannot move. Language changes, draft restore, Publish and History all
+apply the same placement runtime; no separate movement storage or endpoint exists.
 
 ## Canonical UI Map
 

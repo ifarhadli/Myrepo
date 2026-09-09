@@ -10,7 +10,7 @@ The findings below were verified against the source and screenshots, then addres
 
 | Finding | Status | Where |
 |---|---|---|
-| Cannot add or reposition elements | **Partially resolved — Phase A**: compatible Add/copy, bilingual text, Link destinations and button styles use the existing draft/Undo/Publish/History flow. Drag-to-slot and Move to remain pending Phase B review | `ADD-AND-PLACE-PLAN.md`, `js/site-config.js`, `js/editor.js`, `js/element-rules.js`, server/browser tests |
+| Cannot add or reposition elements | **Fixed — Phases A and B**: compatible Add/copy, bilingual text, Link/Style, drag-to-slot, mobile Move to and Alt+Up/Down use the existing draft/Undo/Publish/History flow. Structural grids and protected controls remain guarded | `ADD-AND-PLACE-PLAN.md`, `js/site-config.js`, `js/editor.js`, `js/element-rules.js`, server/browser tests |
 | Single elements not removable | **Fixed** — reversible Remove/Restore for keyed content, whole controls, shared menu/catalogue copies and optional form fields; protected controls explain why; existing draft, Undo, Publish and History retained | `js/site-config.js`, `js/editor.js`, `server.js`, browser/server regressions |
 | P0-1 Desktop mega-menu off-screen | **Fixed** — panel now positions from the header (`.nav-item.has-mega{position:static}`); measures 253–1173 px at 1440 | `css/style.css`, `js/partials.js` |
 | P0-2 Consent UI only on homepage | **Fixed** — banner rendered by `partials.js` on every page; analytics gating now site-wide | `js/partials.js`, `index.html` |
