@@ -79,7 +79,7 @@ function writeJsonAtomic(file, obj){ writeTextAtomic(file, JSON.stringify(obj, n
 const DEFAULT_SITE = {
   version: 1, updatedAt: null,
   settings: {
-    siteName: 'OmniMark', siteUrl: 'https://www.omnimark.com', defaultLang: 'en',
+    siteName: 'OmniMark', siteUrl: 'https://www.omnimark.com', defaultLang: 'en', logoSize: 'standard',
     email: 'hello@omnimark.com', phone: '+1 (800) 555-1234', phoneHref: '+18005551234',
     address: '400 Commerce St, Austin, TX 78701', addressLine1: '400 Commerce St', addressLine2: 'Austin, TX 78701',
     geoEmail: 'austin@omnimark.com', linkedin: 'https://www.linkedin.com', privacyUrl: '', termsUrl: '',
@@ -427,6 +427,7 @@ function validateSite(input){
   const megaMenuLinkLimit = Number.parseInt(input.settings && input.settings.megaMenuLinkLimit, 10);
   site.settings.megaMenuLinkLimit = Number.isFinite(megaMenuLinkLimit) ? Math.max(1, Math.min(12, megaMenuLinkLimit)) : 4;
   if (!['en', 'az'].includes(site.settings.defaultLang)) site.settings.defaultLang = 'en';
+  if (!['standard', 'large', 'extra-large'].includes(site.settings.logoSize)) site.settings.logoSize = 'standard';
   /* links the public pages will render as href — no javascript:/data: schemes */
   const safeLink = (v, schemes) => {
     v = String(v || '').trim();

@@ -473,7 +473,7 @@ async function main(){
   await screenshot('editor-settings-menu-1366');
   await evaluate(`document.querySelector('[data-settings-view="website"]').click()`);
   state=await evaluate(`({title:document.querySelector('#omniPanelTitle').textContent,email:!!document.querySelector('#omni-setting-settings-email'),technical:!!document.querySelector('#omni-setting-analytics-consentScript,#omni-setting-settings-megaMenuLinkLimit,#omni-setting-settings-phoneHref'),fields:document.querySelectorAll('.omni-panel input,.omni-panel select').length})`);
-  check('Website details keeps contact fields and removes technical settings',state.title==='Website details'&&state.email&&!state.technical&&state.fields===12,JSON.stringify(state));
+  check('Website details keeps contact fields and removes technical settings',state.title==='Website details'&&state.email&&!state.technical&&state.fields===13,JSON.stringify(state));
   await screenshot('editor-website-details-1366');
   await evaluate(`document.querySelector('[data-editor-settings]').click();document.querySelector('[data-settings-view="notifications"]').click()`);
   await waitFor(()=>evaluate(`document.querySelector('[data-notify-source]')?.textContent.includes('notifications')`),3000);

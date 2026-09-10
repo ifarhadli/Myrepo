@@ -4,7 +4,7 @@ module.exports = async function({req,check,adminCookie,editorCookie}){
   const baseline=(await req('GET','/api/site',undefined,anonymous)).json;
   const draft=JSON.parse(JSON.stringify(baseline));
   draft.features.englishVersion=false;draft.features.underConstruction=true;
-  draft.settings.defaultLang='en';
+  draft.settings.defaultLang='en';draft.settings.logoSize='extra-large';
   for(const flag of ['englishVersion','underConstruction']){
     const forbidden=JSON.parse(JSON.stringify(baseline));forbidden.features[flag]=draft.features[flag];
     const r=await req('PUT','/api/draft',{...forbidden,draftRevision:0},{admin:true,cookie:editorCookie,captureCookie:false});
@@ -14,6 +14,7 @@ module.exports = async function({req,check,adminCookie,editorCookie}){
   check('Admin can save language and availability controls',r.status===200,r.text);
   check('unpublished construction setting leaves public pages open',(await req('GET','/',undefined,anonymous)).status===200);
   r=await req('POST','/api/publish',undefined,admin);
+  check('publishing preserves the selected logo size',r.status===200&&r.json.site.settings.logoSize==='extra-large');
   check('hiding English forces AZ default and preserves English copy',r.status===200&&r.json.site.settings.defaultLang==='az'&&JSON.stringify(r.json.site.i18n.en)===JSON.stringify(baseline.i18n.en),r.text);
   for(const route of ['/','/services.html','/services','/work/example','/?edit=1']){
     r=await req('GET',route,undefined,anonymous);

@@ -444,6 +444,12 @@ Table selection and date-picker ownership are omitted because the editor has nei
   metadata, assignment and reference protection. Header, mobile menu, footer and
   construction page contain the complete logo without cropping. Removing its
   assignment restores the business name. Selecting the brand offers Change logo.
+- Logo size offers Standard, Large and Extra large through one shared field in
+  Website details and Change logo. It uses the existing draft, Undo and Publish
+  flow, preserves proportions and limits header size on phones.
+- In edit mode, clicking the public language switch opens Website details at
+  Offer English version. It never offers the protected switch's disabled Remove
+  action. The mobile navigation closes before opening the settings sheet.
 - Published under-construction mode returns a temporary Azerbaijani page for
   public document routes. Login, authenticated editing and signed private previews
   remain available. Draft changes alone never close the live site. Publish with

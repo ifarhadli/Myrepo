@@ -18,6 +18,7 @@
     'Remove':'Hide this element for visitors after publishing. Restore or Undo brings it back without losing its content.',
     'Restore':'Show this element again. Publish when you are ready for visitors to see it.',
     'Website name':'The business name shown in the website header and other shared contact areas.',
+    'Logo size':'Makes your uploaded logo larger in the header, menu and footer. The whole logo stays visible. Phones limit its size to keep navigation usable. Preview the change, then publish.',
     'Contact email':'The public address visitors can contact. New-enquiry notification recipients are managed separately in Enquiry emails.',
     'Phone':'The number visitors see and call when they tap a phone link. Include the country code.',
     'Street address':'The first line of your public business address, such as the street and building number.',

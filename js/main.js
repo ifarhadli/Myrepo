@@ -92,7 +92,15 @@
     function setBackgroundInert(makeInert){
       if(makeInert){
         inertState = [];
-        var targets = Array.prototype.slice.call(document.querySelectorAll('body > :not(#site-header):not(script):not(style):not(noscript), #site-header .topnav'));
+        // The editor wraps the page in a frame. Disable siblings along the
+        // drawer's ancestor chain, never an ancestor containing the drawer.
+        var targets = [], branch = drawer;
+        while(branch && branch !== document.body){
+          Array.prototype.forEach.call(branch.parentElement.children, function(node){
+            if(node !== branch && node !== scrim && !/^(SCRIPT|STYLE|NOSCRIPT)$/.test(node.tagName))targets.push(node);
+          });
+          branch = branch.parentElement;
+        }
         targets.forEach(function(node){
           inertState.push({ node: node, inert: node.inert });
           node.inert = true;

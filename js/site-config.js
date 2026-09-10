@@ -366,6 +366,7 @@
   function applyBrand(cfg){
     cfg=cfg||site;var name=(cfg.settings&&cfg.settings.siteName)||'OmniMark',logo=(cfg.images||{})['shared.logo'],hasLogo=logo&&/^[a-f0-9]{16}$/.test(logo.id||'');
     document.querySelectorAll('.mark').forEach(function(mark){
+      var size=(cfg.settings||{}).logoSize;mark.setAttribute('data-logo-size',['large','extra-large'].indexOf(size)>=0?size:'standard');
       var text=mark.querySelector('[data-brand-text]'),img=mark.querySelector('[data-brand-logo]');
       if(!text||!img){mark.textContent='';text=document.createElement('span');text.setAttribute('data-brand-text','');img=document.createElement('img');img.setAttribute('data-brand-logo','');img.className='brand-logo';mark.append(text,img);}
       if(name==='OmniMark')text.innerHTML='Omni<span>Mark</span>';else text.textContent=name;

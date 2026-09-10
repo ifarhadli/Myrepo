@@ -263,6 +263,10 @@ contain sizing, with no crop controls or destructive brand actions. Public
 Services navigation links directly to its page on desktop and phone. A temporary
 Azerbaijani construction screen uses the existing paper, ink and simple card
 styling, retaining a brand and contact email without adding configuration fields.
+Logo sizing uses three named choices with immediate page feedback and bounded
+phone sizing. Reuse the same size field in Website details and Change logo.
+Clicking the public language switch while editing opens its existing settings
+control directly, without a disabled element-removal toolbar.
 
 Icons are simple inline line symbols at the point of use. Unfamiliar and destructive actions retain visible text or a specific accessible name; icons never replace essential meaning.
 
