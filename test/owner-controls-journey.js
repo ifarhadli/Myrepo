@@ -63,7 +63,7 @@ module.exports=async function({evaluate:ev,go,viewport,check,screenshot,pause,se
   if(mobile){await viewport(320,800);check('large logo fits a 320px phone even with the language switch',await ev(`(()=>{const switcher=document.querySelector('.topnav .lang-switch'),hidden=switcher.hidden;switcher.hidden=false;const fits=document.documentElement.scrollWidth<=innerWidth;switcher.hidden=hidden;return fits;})()`));await viewport(width,900);}
   check(width+'px English copy remains stored',JSON.stringify(await ev(`window.OMNI_SITE.i18n.en`))===JSON.stringify(baseline.i18n.en));
   await screenshot('owner-public-logo-'+width);
-  if(mobile){await click('#hamburgerBtn');await click('.drawer a[href="services.html"]');await until(`location.pathname==='/services.html'`);check('mobile Services opens the page directly',true);}
+  if(mobile){await click('#hamburgerBtn');await until(`getComputedStyle(document.querySelector('#mobileDrawer')).transform==='matrix(1, 0, 0, 1, 0, 0)'`);await click('.drawer a[href="services.html"]');await until(`location.pathname==='/services.html'`);check('mobile Services opens the page directly',true);}
   await editor();await settings();await click('[data-owner-construction]');
   check(width+'px construction stays private until publish',await ev(`fetch('/services.html').then(r=>r.status===200)`));
   await publish();await go('/index.html');

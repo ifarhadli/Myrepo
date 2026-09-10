@@ -6,7 +6,7 @@ module.exports=async function(h,width){
   async function click(selector){if(!await ev(`!!document.querySelector(${JSON.stringify(selector)})`))throw Error('Missing Add journey control: '+selector);await ev(`document.querySelector(${JSON.stringify(selector)}).click()`);await pause(90);}
   async function fill(selector,value){await ev(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});el.value=${JSON.stringify(value)};el.dispatchEvent(new Event('change',{bubbles:true}));})()`);}
   async function editor(route='/index.html?edit=1'){await go(route);await until(()=>ev(`!!window.OmniEditor?.getState().user&&!!document.querySelector('.omni-bar')`));}
-  async function publish(){await click(width<=700?'[data-editor-mobile-publish]':'[data-editor-publish]');await until(()=>ev(`!!document.querySelector('[data-dialog-confirm]')`));await click('[data-dialog-confirm]');await until(()=>ev(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-publish]').disabled`));}
+  async function publish(){const selector=width<=700?'[data-editor-mobile-publish]':'[data-editor-publish]';await until(()=>ev(`!!document.querySelector('${selector}')&&!document.querySelector('${selector}').disabled`));await click(selector);await until(()=>ev(`!!document.querySelector('[data-dialog-confirm]')`));await click('[data-dialog-confirm]');await until(()=>ev(`!document.querySelector('.omni-dialog')&&document.querySelector('[data-editor-publish]').disabled`));}
   const copies=[];
   async function copy(selector,kind){
     await click(selector);await click('[data-element-add]');await click('[data-action-label="Another like this"]');

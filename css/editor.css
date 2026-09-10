@@ -306,6 +306,12 @@ html.omni-editing [data-omni-hidden-element]::after{content:attr(data-omni-remov
 .omni-image-edit .omni-logo-detail .omni-media-detail-preview{display:block}
 .omni-logo-detail .omni-media-detail-preview img{object-fit:contain;padding:20px}
 .omni-owner-languages{display:grid;gap:12px}
+.omni-owner-logo{display:grid;gap:12px}
+.omni-owner-logo>h3,.omni-owner-logo>.omni-panel__hint,.omni-owner-languages>.omni-panel__hint{margin:0}
+.omni-owner-logo>.omni-panel-action{justify-self:start}
+.omni-panel__body>.omni-panel-action{margin-bottom:12px}
+.omni-media [data-media-detail]:not([hidden]){display:grid;gap:12px}
+.omni-media [data-media-detail]>h3,.omni-media [data-media-detail]>.omni-panel__hint{margin:0}
 .omni-image-edit .omni-upload-list:empty{display:none}
 .omni-primary-action{background:var(--oe-violet)!important;color:#fff!important;border-color:var(--oe-violet)!important;min-height:44px!important;padding:10px 20px!important}
 .omni-image-edit .omni-inline-actions{position:sticky;bottom:0;padding:12px 0;background:var(--oe-surface,#faf9f6);border-top:1px solid var(--oe-line)}

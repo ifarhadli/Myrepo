@@ -267,6 +267,8 @@ Logo sizing uses three named choices with immediate page feedback and bounded
 phone sizing. Reuse the same size field in Website details and Change logo.
 Clicking the public language switch while editing opens its existing settings
 control directly, without a disabled element-removal toolbar.
+Settings groups keep a 12 px gap between descriptions, actions and fields;
+back buttons have the same separation from the content that follows them.
 
 Icons are simple inline line symbols at the point of use. Unfamiliar and destructive actions retain visible text or a specific accessible name; icons never replace essential meaning.
 
